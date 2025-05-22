@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -15,5 +16,17 @@ public class BrandService {
 
     public List<Brand> findAll() {
         return brandRepository.findAll();
+    }
+
+    public Brand save(Brand brand) {
+        return brandRepository.save(brand);
+    }
+
+    public Optional<Brand> findById(Long id) {
+        return brandRepository.findById(id);
+    }
+
+    public void deleteById(Long id) {
+        brandRepository.deleteById(id);
     }
 }
