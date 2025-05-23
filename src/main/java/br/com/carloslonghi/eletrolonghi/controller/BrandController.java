@@ -30,8 +30,8 @@ public class BrandController {
 
     @PostMapping
     public ResponseEntity<BrandResponse> createBrand(@RequestBody BrandRequest request) {
-        Brand newBrand = BrandMapper.toBrandEntity(request);
-        Brand createdBrand = brandService.save(newBrand);
+        Brand brandEntity = BrandMapper.toBrandEntity(request);
+        Brand createdBrand = brandService.save(brandEntity);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(BrandMapper.toBrandResponse(createdBrand));
     }
@@ -39,8 +39,8 @@ public class BrandController {
     @GetMapping("/{id}")
     public ResponseEntity<BrandResponse> getBrandById(@PathVariable Long id) {
         return brandService.findById(id)
-                .map(brand -> ResponseEntity.ok(
-                        BrandMapper.toBrandResponse(brand))
+                .map(brand ->
+                        ResponseEntity.ok(BrandMapper.toBrandResponse(brand))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }
