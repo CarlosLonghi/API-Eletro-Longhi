@@ -37,7 +37,11 @@ public class DeviceService {
     public Optional<Device> findById(Long id) {
         return deviceRepository.findById(id);
     }
-    
+
+    public List<Device> findDevicesByBrand(Long brandId) {
+        return deviceRepository.findDevicesByBrand(Brand.builder().id(brandId).build());
+    }
+
     public Optional<Device> update(Long id, Device device) {
         Optional<Device> optionalDevice = deviceRepository.findById(id);
 

@@ -64,4 +64,14 @@ public class DeviceController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<DeviceResponse>> getDevicesByBrand(@RequestParam Long brand) {
+        List<DeviceResponse> devices = deviceService.findDevicesByBrand(brand)
+                .stream()
+                .map(DeviceMapper::toDeviceResponse)
+                .toList();
+
+        return ResponseEntity.ok(devices);
+    }
 }
