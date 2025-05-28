@@ -72,8 +72,8 @@ public class DeviceController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<DeviceResponse>> getDevicesByBrand(@RequestParam Long brand) {
-        List<DeviceResponse> devices = deviceService.findDevicesByBrand(brand)
+    public ResponseEntity<List<DeviceResponse>> getDevicesByBrandId(@RequestParam Long brandId) {
+        List<DeviceResponse> devices = deviceService.findDevicesByBrandId(brandId)
                 .stream()
                 .map(DeviceMapper::toDeviceResponse)
                 .toList();

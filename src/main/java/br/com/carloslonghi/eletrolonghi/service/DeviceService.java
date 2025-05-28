@@ -38,8 +38,8 @@ public class DeviceService {
         return deviceRepository.findById(id);
     }
 
-    public List<Device> findDevicesByBrand(Long brandId) {
-        return deviceRepository.findDevicesByBrand(Brand.builder().id(brandId).build());
+    public List<Device> findDevicesByBrandId(Long brandId) {
+        return deviceRepository.findDevicesByBrandId(brandId);
     }
 
     public Optional<Device> update(Long id, Device device) {
