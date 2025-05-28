@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/accessory")
@@ -25,6 +26,7 @@ public class AccessoryController {
                 .stream()
                 .map(AccessoryMapper::toAccessoryResponse)
                 .toList();
+
         return ResponseEntity.ok(accessories);
     }
 
@@ -32,6 +34,7 @@ public class AccessoryController {
     public ResponseEntity<AccessoryResponse> createAccessory(@RequestBody AccessoryRequest request) {
         Accessory accessoryEntity = AccessoryMapper.toAccessoryEntity(request);
         Accessory createdAccessory = accessoryService.save(accessoryEntity);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(AccessoryMapper.toAccessoryResponse(createdAccessory));
     }
@@ -47,7 +50,13 @@ public class AccessoryController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAccessoryById(@PathVariable Long id) {
-        accessoryService.deleteById(id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        Optional<Accessory> optionalAccessory = accessoryService.findById(id);
+
+        if (optionalAccessory.isPresent()) {
+            accessoryService.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.notFound().build();
     }
 }

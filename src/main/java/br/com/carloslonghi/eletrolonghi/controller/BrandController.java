@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/brand")
@@ -25,6 +26,7 @@ public class BrandController {
                 .stream()
                 .map(BrandMapper::toBrandResponse)
                 .toList();
+
         return ResponseEntity.ok(brands);
     }
 
@@ -32,6 +34,7 @@ public class BrandController {
     public ResponseEntity<BrandResponse> createBrand(@RequestBody BrandRequest request) {
         Brand brandEntity = BrandMapper.toBrandEntity(request);
         Brand createdBrand = brandService.save(brandEntity);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(BrandMapper.toBrandResponse(createdBrand));
     }
@@ -47,7 +50,13 @@ public class BrandController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBrandById(@PathVariable Long id) {
-        brandService.deleteById(id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        Optional<Brand> optionalBrand = brandService.findById(id);
+
+        if (optionalBrand.isPresent()) {
+            brandService.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.notFound().build();
     }
 }
