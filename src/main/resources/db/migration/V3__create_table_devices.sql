@@ -1,5 +1,5 @@
 CREATE TABLE devices (
-    id bigserial PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     model VARCHAR(100) NOT NULL,
     serial_number VARCHAR(100),
     created_at TIMESTAMP,

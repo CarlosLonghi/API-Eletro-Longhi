@@ -1,4 +1,4 @@
 CREATE TABLE brands (
-    id bigserial PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     name varchar(50) NOT NULL UNIQUE
 )
