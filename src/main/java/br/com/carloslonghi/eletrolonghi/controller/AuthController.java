@@ -9,6 +9,7 @@ import br.com.carloslonghi.eletrolonghi.entity.User;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import br.com.carloslonghi.eletrolonghi.mapper.UserMapper;
 import br.com.carloslonghi.eletrolonghi.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> registerUser(@RequestBody UserRequest request) {
+    public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody UserRequest request) {
         User userEntity = UserMapper.toUserEntity(request);
         User userRegistered = userService.save(userEntity);
 

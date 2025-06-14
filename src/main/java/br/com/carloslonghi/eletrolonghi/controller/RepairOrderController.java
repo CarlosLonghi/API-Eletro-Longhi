@@ -5,6 +5,7 @@ import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.mapper.RepairOrderMapper;
 import br.com.carloslonghi.eletrolonghi.service.RepairOrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class RepairOrderController {
     }
 
     @PostMapping
-    public ResponseEntity<RepairOrderResponse> createRepairOrder(@RequestBody RepairOrderRequest request) {
+    public ResponseEntity<RepairOrderResponse> createRepairOrder(@Valid @RequestBody RepairOrderRequest request) {
         RepairOrder repairOrderEntity = RepairOrderMapper.toRepairOrderEntity(request);
         RepairOrder repairOrderCreated = repairOrderService.save(repairOrderEntity);
 
@@ -49,7 +50,7 @@ public class RepairOrderController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RepairOrderResponse> updateRepairOrder(@PathVariable Long id, @RequestBody RepairOrderRequest request) {
+    public ResponseEntity<RepairOrderResponse> updateRepairOrder(@PathVariable Long id, @Valid @RequestBody RepairOrderRequest request) {
         RepairOrder repairOrderEntity = RepairOrderMapper.toRepairOrderEntity(request);
 
         return repairOrderService.update(id, repairOrderEntity)

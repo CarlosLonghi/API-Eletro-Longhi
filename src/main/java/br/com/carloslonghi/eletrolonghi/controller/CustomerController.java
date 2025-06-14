@@ -5,6 +5,7 @@ import br.com.carloslonghi.eletrolonghi.controller.response.CustomerResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.mapper.CustomerMapper;
 import br.com.carloslonghi.eletrolonghi.service.CustomerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<CustomerResponse> createCustomer(@RequestBody CustomerRequest request) {
+    public ResponseEntity<CustomerResponse> createCustomer(@Valid @RequestBody CustomerRequest request) {
         Customer customerEntity = CustomerMapper.toCustomerEntity(request);
         Customer customerCreated = customerService.save(customerEntity);
 
@@ -49,7 +50,7 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CustomerResponse> updateCustomer(@PathVariable Long id, @RequestBody CustomerRequest request) {
+    public ResponseEntity<CustomerResponse> updateCustomer(@PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
         Customer customerEntity = CustomerMapper.toCustomerEntity(request);
 
         return customerService.update(id, customerEntity)

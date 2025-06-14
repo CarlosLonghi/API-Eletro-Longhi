@@ -5,6 +5,7 @@ import br.com.carloslonghi.eletrolonghi.controller.response.DeviceResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.mapper.DeviceMapper;
 import br.com.carloslonghi.eletrolonghi.service.DeviceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class DeviceController {
     }
 
     @PostMapping
-    public ResponseEntity<DeviceResponse> createDevice(@RequestBody DeviceRequest request) {
+    public ResponseEntity<DeviceResponse> createDevice(@Valid @RequestBody DeviceRequest request) {
         Device deviceEntity = DeviceMapper.toDeviceEntity(request);
         Device createdDevice = deviceService.save(deviceEntity);
 
@@ -49,7 +50,7 @@ public class DeviceController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DeviceResponse> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest request) {
+    public ResponseEntity<DeviceResponse> updateDevice(@PathVariable Long id, @Valid @RequestBody DeviceRequest request) {
         Device deviceEntity = DeviceMapper.toDeviceEntity(request);
 
         return deviceService.update(id, deviceEntity)

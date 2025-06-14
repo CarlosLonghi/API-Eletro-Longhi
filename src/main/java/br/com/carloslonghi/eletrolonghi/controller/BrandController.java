@@ -5,6 +5,7 @@ import br.com.carloslonghi.eletrolonghi.controller.response.BrandResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.mapper.BrandMapper;
 import br.com.carloslonghi.eletrolonghi.service.BrandService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class BrandController {
     }
 
     @PostMapping
-    public ResponseEntity<BrandResponse> createBrand(@RequestBody BrandRequest request) {
+    public ResponseEntity<BrandResponse> createBrand(@Valid @RequestBody BrandRequest request) {
         Brand brandEntity = BrandMapper.toBrandEntity(request);
         Brand createdBrand = brandService.save(brandEntity);
 

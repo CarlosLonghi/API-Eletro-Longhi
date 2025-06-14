@@ -5,6 +5,7 @@ import br.com.carloslonghi.eletrolonghi.controller.response.AccessoryResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.mapper.AccessoryMapper;
 import br.com.carloslonghi.eletrolonghi.service.AccessoryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class AccessoryController {
     }
 
     @PostMapping
-    public ResponseEntity<AccessoryResponse> createAccessory(@RequestBody AccessoryRequest request) {
+    public ResponseEntity<AccessoryResponse> createAccessory(@Valid @RequestBody AccessoryRequest request) {
         Accessory accessoryEntity = AccessoryMapper.toAccessoryEntity(request);
         Accessory createdAccessory = accessoryService.save(accessoryEntity);
 
