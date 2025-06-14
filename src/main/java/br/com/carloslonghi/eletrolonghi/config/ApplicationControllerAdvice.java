@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -29,5 +30,11 @@ public class ApplicationControllerAdvice {
         );
 
         return errors;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public String handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
+        return exception.getMessage();
     }
 }
