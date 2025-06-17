@@ -28,7 +28,7 @@ public class Device {
     private String serialNumber;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
@@ -38,11 +38,6 @@ public class Device {
     @ManyToOne
     @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
-
-    /* TODO:
-    * @OneToOne(mappedBy = "device", cascade = CascadeType.ALL)
-    * private Service service;
-    * */
 
     @ManyToMany
     @JoinTable(

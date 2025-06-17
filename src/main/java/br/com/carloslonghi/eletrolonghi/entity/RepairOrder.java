@@ -36,10 +36,10 @@ public class RepairOrder {
     private LocalDateTime updatedAt;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "customer_id")
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
     @OneToOne(optional = false)
-    @JoinColumn(name = "device_id", unique = true)
+    @JoinColumn(name = "device_id", unique = true, nullable = false)
     private Device device;
 }
