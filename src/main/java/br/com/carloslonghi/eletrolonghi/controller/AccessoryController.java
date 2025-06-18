@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.controller.api.spec.AccessoryApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.AccessoryRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.AccessoryResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/accessory")
 @RequiredArgsConstructor
-public class AccessoryController {
+public class AccessoryController implements AccessoryApi {
 
     private final AccessoryService accessoryService;
 
