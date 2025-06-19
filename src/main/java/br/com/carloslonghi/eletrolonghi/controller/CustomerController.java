@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.controller.api.spec.CustomerApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.CustomerRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.CustomerResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/customer")
 @RequiredArgsConstructor
-public class CustomerController {
+public class CustomerController implements CustomerApi {
 
     private final CustomerService customerService;
 
