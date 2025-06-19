@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.controller.api.spec.BrandApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.BrandRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.BrandResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/brand")
 @RequiredArgsConstructor
-public class BrandController {
+public class BrandController implements BrandApi {
 
     private final BrandService brandService;
 
