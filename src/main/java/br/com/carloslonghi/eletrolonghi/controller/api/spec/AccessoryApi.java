@@ -99,7 +99,8 @@ public interface AccessoryApi {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Acessório deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Acessório não encontrado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Acessório não deletado, pois está relacionado a um aparelho", content = @Content)
     })
     ResponseEntity<Void> deleteAccessoryById(
             @Parameter(in = ParameterIn.PATH, description = "ID do acessório", required = true)
