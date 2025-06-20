@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.controller.api.spec.RepairOrderApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/repair-order")
 @RequiredArgsConstructor
-public class RepairOrderController {
+public class RepairOrderController implements RepairOrderApi {
 
     private final RepairOrderService repairOrderService;
 
