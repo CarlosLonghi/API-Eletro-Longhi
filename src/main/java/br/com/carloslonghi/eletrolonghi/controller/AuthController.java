@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
 import br.com.carloslonghi.eletrolonghi.config.TokenService;
+import br.com.carloslonghi.eletrolonghi.controller.api.spec.AuthApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.LoginRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.UserRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.LoginResponse;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApi {
 
     private final UserService userService;
     private final TokenService tokenService;
@@ -42,7 +43,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         try {
             UsernamePasswordAuthenticationToken emailAndPassword = new UsernamePasswordAuthenticationToken(
                     request.email(),
