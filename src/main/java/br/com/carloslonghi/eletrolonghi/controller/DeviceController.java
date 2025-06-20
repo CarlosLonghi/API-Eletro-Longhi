@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.controller.api.spec.DeviceApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.DeviceRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.DeviceResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
@@ -17,7 +18,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/device")
 @RequiredArgsConstructor
-public class DeviceController {
+public class DeviceController implements DeviceApi {
 
     private final DeviceService deviceService;
 
