@@ -16,8 +16,8 @@ import java.util.Map;
 public class ApplicationControllerAdvice {
 
     @ExceptionHandler(UsernameOrPasswordInvalidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public String handleNotFoundException(UsernameOrPasswordInvalidException exception) {
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public String handleAuthException(UsernameOrPasswordInvalidException exception) {
         return exception.getMessage();
     }
 
