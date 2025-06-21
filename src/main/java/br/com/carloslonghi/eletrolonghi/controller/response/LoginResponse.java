@@ -1,4 +1,10 @@
 package br.com.carloslonghi.eletrolonghi.controller.response;
 
-public record LoginResponse(String token) {
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Token de autenticação retornado após login")
+public record LoginResponse(
+        @Schema(description = "Token JWT para autenticação")
+        String token
+) {
 }
