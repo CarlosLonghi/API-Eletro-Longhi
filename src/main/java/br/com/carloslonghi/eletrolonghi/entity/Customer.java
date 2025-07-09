@@ -26,6 +26,7 @@ public class Customer {
     @Column(length = 50, nullable = false)
     private String phone;
 
+    // TODO: Alterar coluna 'email' do customer para UNIQUE, evitando cadastros duplicados.
     @Column(length = 100)
     private String email;
 
