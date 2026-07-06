@@ -72,7 +72,7 @@ O repositório inclui um `docker-compose.yml` que orquestra:
    ```bash
    docker compose up -d --build
    ```
-4. Acesse a API em `http://localhost:8080` e o Swagger UI em `http://localhost:8080/swagger-ui.html`.
+4. Acesse a API em `http://localhost:8080` e o Swagger UI em `http://localhost:8080/swagger-ui/index.html`.
 
 ---
 
