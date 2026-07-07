@@ -21,12 +21,13 @@ import java.util.Optional;
 public class CustomerController implements CustomerApi {
 
     private final CustomerService customerService;
+    private final CustomerMapper customerMapper;
 
     @GetMapping
     public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
         List<CustomerResponse> customers = customerService.findAll()
                 .stream()
-                .map(CustomerMapper::toCustomerResponse)
+                .map(customerMapper::toResponse)
                 .toList();
 
         return ResponseEntity.ok(customers);
@@ -34,29 +35,29 @@ public class CustomerController implements CustomerApi {
 
     @PostMapping
     public ResponseEntity<CustomerResponse> createCustomer(@Valid @RequestBody CustomerRequest request) {
-        Customer customerEntity = CustomerMapper.toCustomerEntity(request);
+        Customer customerEntity = customerMapper.toEntity(request);
         Customer customerCreated = customerService.save(customerEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CustomerMapper.toCustomerResponse(customerCreated));
+                .body(customerMapper.toResponse(customerCreated));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id) {
         return customerService.findById(id)
                 .map(customer ->
-                        ResponseEntity.ok(CustomerMapper.toCustomerResponse(customer))
+                        ResponseEntity.ok(customerMapper.toResponse(customer))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> updateCustomer(@PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
-        Customer customerEntity = CustomerMapper.toCustomerEntity(request);
+        Customer customerEntity = customerMapper.toEntity(request);
 
         return customerService.update(id, customerEntity)
                 .map(customer ->
-                    ResponseEntity.ok(CustomerMapper.toCustomerResponse(customer))
+                    ResponseEntity.ok(customerMapper.toResponse(customer))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }

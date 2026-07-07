@@ -1,40 +1,30 @@
 package br.com.carloslonghi.eletrolonghi.mapper;
 
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
-import br.com.carloslonghi.eletrolonghi.controller.response.CustomerResponse;
-import br.com.carloslonghi.eletrolonghi.controller.response.DeviceResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
-import lombok.experimental.UtilityClass;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@UtilityClass
-public class RepairOrderMapper {
-    public static RepairOrder toRepairOrderEntity(RepairOrderRequest dto) {
-        Device device = Device.builder().id(dto.device()).build();
-        Customer customer = Customer.builder().id(dto.customer()).build();
+@Mapper(componentModel = "spring", uses = {DeviceMapper.class, CustomerMapper.class})
+public interface RepairOrderMapper {
 
-        return RepairOrder
-                .builder()
-                .description(dto.description())
-                .status(dto.status())
-                .device(device)
-                .customer(customer)
-                .build();
+    @Mapping(target = "customer", source = "customer", qualifiedByName = "customerFromId")
+    @Mapping(target = "device", source = "device", qualifiedByName = "deviceFromId")
+    RepairOrder toEntity(RepairOrderRequest dto);
+
+    RepairOrderResponse toResponse(RepairOrder entity);
+
+    @Named("customerFromId")
+    default Customer customerFromId(Long id) {
+        return id == null ? null : Customer.builder().id(id).build();
     }
 
-    public static RepairOrderResponse toRepairOrderResponse(RepairOrder entity) {
-        DeviceResponse device = DeviceMapper.toDeviceResponse(entity.getDevice());
-        CustomerResponse customer = CustomerMapper.toCustomerResponse(entity.getCustomer());
-
-        return RepairOrderResponse
-                .builder()
-                .id(entity.getId())
-                .description(entity.getDescription())
-                .status(entity.getStatus())
-                .device(device)
-                .customer(customer)
-                .build();
+    @Named("deviceFromId")
+    default Device deviceFromId(Long id) {
+        return id == null ? null : Device.builder().id(id).build();
     }
 }

@@ -3,23 +3,12 @@ package br.com.carloslonghi.eletrolonghi.mapper;
 import br.com.carloslonghi.eletrolonghi.controller.request.BrandRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.BrandResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
-import lombok.experimental.UtilityClass;
+import org.mapstruct.Mapper;
 
-@UtilityClass
-public class BrandMapper {
+@Mapper(componentModel = "spring")
+public interface BrandMapper {
 
-    public static Brand toBrandEntity(BrandRequest request) {
-        return Brand
-                .builder()
-                .name(request.name())
-                .build();
-    }
+    Brand toEntity(BrandRequest request);
 
-    public static BrandResponse toBrandResponse(Brand response) {
-        return BrandResponse
-                .builder()
-                .id(response.getId())
-                .name(response.getName())
-                .build();
-    }
+    BrandResponse toResponse(Brand brand);
 }

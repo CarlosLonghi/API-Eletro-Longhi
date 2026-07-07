@@ -21,12 +21,13 @@ import java.util.Optional;
 public class DeviceController implements DeviceApi {
 
     private final DeviceService deviceService;
+    private final DeviceMapper deviceMapper;
 
     @GetMapping
     public ResponseEntity<List<DeviceResponse>> getAllDevices() {
         List<DeviceResponse> devices = deviceService.findAll()
                 .stream()
-                .map(DeviceMapper::toDeviceResponse)
+                .map(deviceMapper::toResponse)
                 .toList();
 
         return ResponseEntity.ok(devices);
@@ -34,29 +35,29 @@ public class DeviceController implements DeviceApi {
 
     @PostMapping
     public ResponseEntity<DeviceResponse> createDevice(@Valid @RequestBody DeviceRequest request) {
-        Device deviceEntity = DeviceMapper.toDeviceEntity(request);
+        Device deviceEntity = deviceMapper.toEntity(request);
         Device createdDevice = deviceService.save(deviceEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(DeviceMapper.toDeviceResponse(createdDevice));
+                .body(deviceMapper.toResponse(createdDevice));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<DeviceResponse> getDeviceById(@PathVariable Long id) {
         return deviceService.findById(id)
                 .map(device ->
-                        ResponseEntity.ok(DeviceMapper.toDeviceResponse(device))
+                        ResponseEntity.ok(deviceMapper.toResponse(device))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<DeviceResponse> updateDevice(@PathVariable Long id, @Valid @RequestBody DeviceRequest request) {
-        Device deviceEntity = DeviceMapper.toDeviceEntity(request);
+        Device deviceEntity = deviceMapper.toEntity(request);
 
         return deviceService.update(id, deviceEntity)
                 .map(device ->
-                        ResponseEntity.ok(DeviceMapper.toDeviceResponse(device))
+                        ResponseEntity.ok(deviceMapper.toResponse(device))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -77,7 +78,7 @@ public class DeviceController implements DeviceApi {
     public ResponseEntity<List<DeviceResponse>> getDevicesByBrandId(@RequestParam Long brandId) {
         List<DeviceResponse> devices = deviceService.findDevicesByBrandId(brandId)
                 .stream()
-                .map(DeviceMapper::toDeviceResponse)
+                .map(deviceMapper::toResponse)
                 .toList();
 
         return ResponseEntity.ok(devices);

@@ -21,12 +21,13 @@ import java.util.Optional;
 public class BrandController implements BrandApi {
 
     private final BrandService brandService;
+    private final BrandMapper brandMapper;
 
     @GetMapping
     public ResponseEntity<List<BrandResponse>> getAllBrands() {
         List<BrandResponse> brands = brandService.findAll()
                 .stream()
-                .map(BrandMapper::toBrandResponse)
+                .map(brandMapper::toResponse)
                 .toList();
 
         return ResponseEntity.ok(brands);
@@ -34,18 +35,18 @@ public class BrandController implements BrandApi {
 
     @PostMapping
     public ResponseEntity<BrandResponse> createBrand(@Valid @RequestBody BrandRequest request) {
-        Brand brandEntity = BrandMapper.toBrandEntity(request);
+        Brand brandEntity = brandMapper.toEntity(request);
         Brand createdBrand = brandService.save(brandEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(BrandMapper.toBrandResponse(createdBrand));
+                .body(brandMapper.toResponse(createdBrand));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<BrandResponse> getBrandById(@PathVariable Long id) {
         return brandService.findById(id)
                 .map(brand ->
-                        ResponseEntity.ok(BrandMapper.toBrandResponse(brand))
+                        ResponseEntity.ok(brandMapper.toResponse(brand))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }

@@ -32,14 +32,15 @@ public class AuthController implements AuthApi {
     private final TokenService tokenService;
 
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody UserRequest request) {
-        User userEntity = UserMapper.toUserEntity(request);
+        User userEntity = userMapper.toEntity(request);
         User userRegistered = userService.save(userEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(UserMapper.toUserResponse(userRegistered));
+                .body(userMapper.toResponse(userRegistered));
     }
 
     @PostMapping("/login")

@@ -3,27 +3,12 @@ package br.com.carloslonghi.eletrolonghi.mapper;
 import br.com.carloslonghi.eletrolonghi.controller.request.CustomerRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.CustomerResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
-import lombok.experimental.UtilityClass;
+import org.mapstruct.Mapper;
 
-@UtilityClass
-public class CustomerMapper {
+@Mapper(componentModel = "spring")
+public interface CustomerMapper {
 
-    public static Customer toCustomerEntity(CustomerRequest dto) {
-        return Customer
-                .builder()
-                .name(dto.name())
-                .phone(dto.phone())
-                .email(dto.email())
-                .build();
-    }
+    Customer toEntity(CustomerRequest dto);
 
-    public static CustomerResponse toCustomerResponse(Customer entity) {
-        return CustomerResponse
-                .builder()
-                .id(entity.getId())
-                .name(entity.getName())
-                .phone(entity.getPhone())
-                .email(entity.getEmail())
-                .build();
-    }
+    CustomerResponse toResponse(Customer entity);
 }

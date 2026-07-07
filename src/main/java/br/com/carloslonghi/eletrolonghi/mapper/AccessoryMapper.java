@@ -3,23 +3,12 @@ package br.com.carloslonghi.eletrolonghi.mapper;
 import br.com.carloslonghi.eletrolonghi.controller.request.AccessoryRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.AccessoryResponse;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
-import lombok.experimental.UtilityClass;
+import org.mapstruct.Mapper;
 
-@UtilityClass
-public class AccessoryMapper {
+@Mapper(componentModel = "spring")
+public interface AccessoryMapper {
 
-    public static Accessory toAccessoryEntity(AccessoryRequest request) {
-        return Accessory
-                .builder()
-                .name(request.name())
-                .build();
-    }
+    Accessory toEntity(AccessoryRequest request);
 
-    public static AccessoryResponse toAccessoryResponse(Accessory response) {
-        return AccessoryResponse
-                .builder()
-                .id(response.getId())
-                .name(response.getName())
-                .build();
-    }
+    AccessoryResponse toResponse(Accessory accessory);
 }

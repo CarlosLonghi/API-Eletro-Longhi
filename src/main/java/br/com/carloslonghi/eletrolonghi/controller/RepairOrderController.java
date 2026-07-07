@@ -21,12 +21,13 @@ import java.util.Optional;
 public class RepairOrderController implements RepairOrderApi {
 
     private final RepairOrderService repairOrderService;
+    private final RepairOrderMapper repairOrderMapper;
 
     @GetMapping
     public ResponseEntity<List<RepairOrderResponse>> getAllRepairOrders() {
         List<RepairOrderResponse> repairOrders = repairOrderService.findAll()
                 .stream()
-                .map(RepairOrderMapper::toRepairOrderResponse)
+                .map(repairOrderMapper::toResponse)
                 .toList();
 
         return ResponseEntity.ok(repairOrders);
@@ -34,29 +35,29 @@ public class RepairOrderController implements RepairOrderApi {
 
     @PostMapping
     public ResponseEntity<RepairOrderResponse> createRepairOrder(@Valid @RequestBody RepairOrderRequest request) {
-        RepairOrder repairOrderEntity = RepairOrderMapper.toRepairOrderEntity(request);
+        RepairOrder repairOrderEntity = repairOrderMapper.toEntity(request);
         RepairOrder repairOrderCreated = repairOrderService.save(repairOrderEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(RepairOrderMapper.toRepairOrderResponse(repairOrderCreated));
+                .body(repairOrderMapper.toResponse(repairOrderCreated));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<RepairOrderResponse> getRepairOrderById(@PathVariable Long id) {
         return repairOrderService.findById(id)
                 .map(repairOrder ->
-                        ResponseEntity.ok(RepairOrderMapper.toRepairOrderResponse(repairOrder))
+                        ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<RepairOrderResponse> updateRepairOrder(@PathVariable Long id, @Valid @RequestBody RepairOrderRequest request) {
-        RepairOrder repairOrderEntity = RepairOrderMapper.toRepairOrderEntity(request);
+        RepairOrder repairOrderEntity = repairOrderMapper.toEntity(request);
 
         return repairOrderService.update(id, repairOrderEntity)
                 .map(repairOrder ->
-                    ResponseEntity.ok(RepairOrderMapper.toRepairOrderResponse(repairOrder))
+                    ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }

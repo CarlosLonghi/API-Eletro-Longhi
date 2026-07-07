@@ -21,12 +21,13 @@ import java.util.Optional;
 public class AccessoryController implements AccessoryApi {
 
     private final AccessoryService accessoryService;
+    private final AccessoryMapper accessoryMapper;
 
     @GetMapping
     public ResponseEntity<List<AccessoryResponse>> getAllAccessories() {
         List<AccessoryResponse> accessories = accessoryService.findAll()
                 .stream()
-                .map(AccessoryMapper::toAccessoryResponse)
+                .map(accessoryMapper::toResponse)
                 .toList();
 
         return ResponseEntity.ok(accessories);
@@ -34,18 +35,18 @@ public class AccessoryController implements AccessoryApi {
 
     @PostMapping
     public ResponseEntity<AccessoryResponse> createAccessory(@Valid @RequestBody AccessoryRequest request) {
-        Accessory accessoryEntity = AccessoryMapper.toAccessoryEntity(request);
+        Accessory accessoryEntity = accessoryMapper.toEntity(request);
         Accessory createdAccessory = accessoryService.save(accessoryEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(AccessoryMapper.toAccessoryResponse(createdAccessory));
+                .body(accessoryMapper.toResponse(createdAccessory));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<AccessoryResponse> getAccessoryById(@PathVariable Long id) {
         return accessoryService.findById(id)
                 .map(accessory ->
-                        ResponseEntity.ok(AccessoryMapper.toAccessoryResponse(accessory))
+                        ResponseEntity.ok(accessoryMapper.toResponse(accessory))
                 )
                 .orElse(ResponseEntity.notFound().build());
     }
