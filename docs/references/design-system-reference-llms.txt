@@ -1,0 +1,305 @@
+DESIGN SYSTEM REFERENCE FOR LLMs & AI AGENTS
+
+Este arquivo contém referências e guias para uso eficiente com modelos de linguagem e agentes de IA.
+
+=============================================================================
+SEÇÃO 1: COMO USAR AGENTES PARA TAREFAS COMUNS
+=============================================================================
+
+1. REVISAR CÓDIGO ANTES DE COMMITAR
+   - Use template em docs/AGENT_PROMPTS.md → "Template 1: Revisar e corrigir código"
+   - Compartilhe: código + arquivo AGENTS.md
+   - Peça: verificar conformidade com convenções
+
+2. GERAR MIGRAÇÃO BD
+   - Use template em docs/AGENT_PROMPTS.md → "Template 2: Gerar migração BD"
+   - Contexto: schema atual em docs/generated/db-schema.md
+   - Resultado: SQL PostgreSQL pronto para V8__, V9__, etc.
+
+3. IMPLEMENTAR NOVO ENDPOINT
+   - Use template em docs/AGENT_PROMPTS.md → "Template 3: Adicionar novo endpoint"
+   - Contexto: exemplo de DeviceController em src/main/java/.../controller/
+   - Inclua: request/response DTOs + mapper + service + repository + controller
+
+4. GERAR DOCUMENTAÇÃO DE FEATURE
+   - Use template em docs/AGENT_PROMPTS.md → "Template 4: Gerar documentação de feature"
+   - Salve em: docs/product-specs/[nome-feature].md
+
+5. ANALISAR & PROPOR REFATORAÇÃO
+   - Use template em docs/AGENT_PROMPTS.md → "Template 5: Analizar e propor refatoração"
+   - Escolha camada (service, repository, mapper)
+   - Receba sugestões com código de exemplo
+
+6. ESCREVER TESTES
+   - Use template em docs/AGENT_PROMPTS.md → "Template 6: Escrever testes"
+   - Resultado: testes JUnit 5 + Mockito pronto para src/test/java/
+
+=============================================================================
+SEÇÃO 2: BOAS PRÁTICAS DE PROMPTING
+=============================================================================
+
+ESTRUTURA IDEAL DE PROMPT:
+1. Contexto: compartilhar AGENTS.md ou ARCHITECTURE.md
+2. Tarefa específica: o que você quer que o agente faça
+3. Restrições: convenções a seguir
+4. Formato esperado: código, markdown, SQL, etc.
+5. Validação: como você saberá se está correto
+
+EXEMPLO BOM:
+---
+Contexto: Estou desenvolvendo em Java 21 + Spring Boot 3. Veja AGENTS.md para convenções.
+
+Tarefa: Implementar novo endpoint GET /api/device/search que filtra dispositivos por marca.
+
+Restrições:
+- Use record para DeviceSearchRequest
+- Mapper DeviceMapper deve converter Entity → Response
+- Service retorna List<Device>, Repository usa Spring Data naming
+- Validações com @NotNull, @NotBlank
+
+Formato esperado:
+- 3 arquivos Java: Controller, Service (atualizar), Repository (atualizar)
+- Código tipo-seguro, sem warnings
+
+Validação:
+- ./mvnw compile sem erros
+- Endpoint responde em /swagger-ui/index.html
+---
+
+EVITE:
+- Prompts genéricos ("escreva um controller")
+- Sem contexto de convenções (sempre compartilhe AGENTS.md)
+- Misturar múltiplas tarefas não relacionadas
+- Esperar código de produção sem revisão
+
+=============================================================================
+SEÇÃO 3: INTEGRAÇÃO AGENT + DESENVOLVIMENTO
+=============================================================================
+
+WORKFLOW RECOMENDADO:
+
+1. CRIAR EXEC-PLAN
+   Comando: ./scripts/new-exec-plan.sh "Sua Feature"
+   Resultado: arquivo template em docs/exec-plans/active/YYYY-MM-DD-feature.md
+
+2. PREENCHER CONTEXTO
+   - Contexto
+   - Objetivos
+   - Escopo
+   - Referência ao AGENTS.md + STRUCTURE.md
+
+3. CHAMAR AGENTE COM CONTEXTO
+   Prompt para agente:
+   "
+   Você é um desenvolvedor Java/Spring Boot experiente.
+
+   Leia docs/exec-plans/active/2026-07-14-sua-feature.md (contexto)
+   Leia AGENTS.md (convenções)
+   Leia docs/STRUCTURE.md (arquivos a modificar)
+
+   Implemente a Fase 2 conforme exec-plan.
+
+   Use docs/AGENT_PROMPTS.md como referência para tarefas similares.
+   "
+
+4. AGENTE IMPLEMENTA
+   - Compartilha código
+   - Você valida: ./mvnw compile && ./mvnw test
+   - Você revisa com template Template 1 de AGENT_PROMPTS.md
+
+5. INTEGRAR & COMMITAR
+   - Push em feature branch
+   - Abra PR
+   - Após aprovação, merge
+
+6. REGISTRAR LEARNINGS
+   - Atualize exec-plan com notas
+   - Mova para docs/exec-plans/completed/
+
+=============================================================================
+SEÇÃO 4: PADRÕES & TEMPLATES FREQUENTES
+=============================================================================
+
+PADRÃO: NOVO RECURSO CRUD
+
+Estrutura:
+- Request record em controller/request/XyzRequest.java
+- Response record em controller/response/XyzResponse.java
+- Entity @Entity em entity/XyzEntity.java
+- Mapper @Mapper interface em mapper/XyzMapper.java
+- Repository extends JpaRepository em repository/XyzRepository.java
+- Service com Optional/List em service/XyzService.java
+- Controller @RestController em controller/XyzController.java
+
+Migração: src/main/resources/db/migration/V[N]__create_table_xyz.sql
+
+---
+
+PADRÃO: BUSCA/FILTRO
+
+Request: BrandFilterRequest com @NotNull/@NotBlank em campos de filtro
+Service: List<XyzEntity> findBy...(filtro1, filtro2) com lógica de OR/AND
+Repository: derivar query via Spring Data naming (ex: findByStatusAndDateRange)
+Controller: mapear request → service → response
+
+---
+
+PADRÃO: VALIDAÇÃO GLOBAL
+
+Validação: @NotNull, @NotBlank, @Email, @Size, etc. em record DTOs
+Tratamento: ApplicationControllerAdvice captura MethodArgumentNotValidException
+Resposta: { errors: { field: "mensagem", ... } }
+
+---
+
+PADRÃO: ERRO DE INTEGRIDADE BD
+
+Erro: DataIntegrityViolationException ao UNIQUE constraint ou FK
+Tratamento: ApplicationControllerAdvice traduz em 409 Conflict
+Resposta: { message: "Recurso X já existe" }
+
+=============================================================================
+SEÇÃO 5: CHECKLIST ANTES DE CHAMAR AGENTE
+=============================================================================
+
+PRÉ-REQUISITOS:
+
+☐ Você tem AGENTS.md lido?
+☐ Você tem contexto claro do que quer (feature, bugfix, refactor)?
+☐ Você tem arquivo ou código específico para agente analisar?
+☐ Você tem exec-plan criado (ou contexto em texto)?
+☐ Você sabe qual template em AGENT_PROMPTS.md se aplica?
+
+DURANTE CHAMADA:
+
+☐ Compartilhe AGENTS.md (obrigatório)
+☐ Compartilhe arquivo relevante (controller/service/test)
+☐ Use template de AGENT_PROMPTS.md como base
+☐ Seja específico (ex: "adicione validação @NotNull" vs. "adicione validação")
+☐ Espere código + explicação
+
+PÓS-RECEBIMENTO:
+
+☐ ./mvnw clean compile (gera MapStruct implementations)
+☐ ./mvnw test (roda testes, se existir)
+☐ Revise código contra AGENTS.md
+☐ Use template Template 1 (Revisar código) se necessário
+☐ Commite com mensagem [FEAT] / [FIX] / [REFACTOR]
+
+=============================================================================
+SEÇÃO 6: REFERÊNCIAS RÁPIDAS
+=============================================================================
+
+TECNOLOGIAS:
+- Java 21
+- Spring Boot 3.x
+- PostgreSQL 16
+- MapStruct (DTOs ↔ Entities)
+- Flyway (BD migrations)
+- JWT (autenticação)
+
+ARQUIVO CHAVE:
+- AGENTS.md: obrigatório, convenções
+- ARCHITECTURE.md: visão geral
+- STRUCTURE.md: mapa de diretórios
+- QUICK_START_FOR_AGENTS.md: resumo 15 min
+- TROUBLESHOOTING.md: problemas comuns
+- docs/AGENT_PROMPTS.md: templates
+
+COMANDOS MAVEN:
+- ./mvnw compile: compila (gera MapStruct)
+- ./mvnw test: roda testes
+- ./mvnw spring-boot:run: inicia app
+- ./mvnw -q -DskipTests package: build JAR
+
+BD:
+- docker compose up -d: inicia PostgreSQL
+- Migrations: src/main/resources/db/migration/
+- Schema: docs/generated/db-schema.md
+
+ESTRUTURA JAVA:
+- controller/ → HTTP endpoints (DTOs, validações)
+- service/ → Lógica de negócio (Optional/List)
+- repository/ → Spring Data JPA queries
+- mapper/ → MapStruct (DTOs ↔ Entities)
+- entity/ → Entidades @Entity
+- config/ → Security, JWT, Error Handling
+
+PADRÃO HTTP:
+- GET /api/xyz: lista (retorna List<Response>)
+- POST /api/xyz: cria (request DTO, 201)
+- GET /api/xyz/{id}: detalhe (200/404)
+- PUT /api/xyz/{id}: atualiza (200/400)
+- DELETE /api/xyz/{id}: deleta (204)
+
+ERRORS COMUNS:
+- "Cannot find symbol: XyzMapper" → ./mvnw compile
+- 409 Conflict → violou constraint BD
+- 403 Forbidden → JWT inválido ou faltando
+- 404 Not Found → recurso não existe
+
+=============================================================================
+SEÇÃO 7: EXEMPLO DE INTEGRAÇÃO AGENTE COMPLETA
+=============================================================================
+
+DIA 1: Você deseja adicionar paginação a /api/device
+
+1. Criar exec-plan:
+   ./scripts/new-exec-plan.sh "Adicionar paginação a device listing"
+
+2. Editar exec-plan com contexto:
+   docs/exec-plans/active/2026-07-14-adicionar-paginacao-device.md
+
+   # Exec Plan: Adicionar paginação a device listing
+
+   ## Contexto
+   Endpoint /api/device retorna lista GRANDE sem paginação.
+   Usuário quer page/size como query params.
+
+   ## Objetivos
+   - [ ] DeviceController aceita page/size query params
+   - [ ] DeviceService retorna Page<Device> (Spring Data)
+   - [ ] DeviceResponse inclui metadados (total, page, size)
+   - [ ] Testes unitários
+
+   ## Referências
+   - AGENTS.md (convenções)
+   - docs/STRUCTURE.md (onde mexer)
+   - docs/AGENT_PROMPTS.md (templates)
+
+3. Chamar agente:
+   "
+   Veja este exec-plan: docs/exec-plans/active/2026-07-14-adicionar-paginacao-device.md
+
+   Leia AGENTS.md.
+   Leia docs/STRUCTURE.md.
+
+   Implemente paginação conforme exec-plan e AGENT_PROMPTS.md Template 3.
+
+   Retorne: DeviceController.java + DeviceService.java + DeviceResponse.java atualizados.
+   Teste: ./mvnw compile sem erros.
+   "
+
+4. Receber código, validar:
+   ./mvnw clean compile
+   ./mvnw test
+   Revisar contra AGENTS.md
+
+5. Commitar:
+   git checkout -b feature/add-device-pagination
+   git commit -m "[FEAT] Add pagination to device listing"
+   git push origin feature/add-device-pagination
+
+6. Finalizar:
+   Mova exec-plan: mv docs/exec-plans/active/... docs/exec-plans/completed/
+   Registre learnings no exec-plan completado
+
+=============================================================================
+FIM DE ARQUIVO
+=============================================================================
+
+Para mais detalhes, consulte:
+- docs/index.md (índice central)
+- docs/AGENT_PROMPTS.md (templates prontos)
+- AGENTS.md (convenções obrigatórias)
+

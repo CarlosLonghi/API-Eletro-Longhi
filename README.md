@@ -51,6 +51,26 @@ src/main/java/resources/
 
 ---
 
+### Documentação e Arquitetura
+
+**Comece por:**
+
+* **`AGENTS.md`** — Guia de onboarding para agentes de IA e estrutura do projeto.
+* **`ARCHITECTURE.md`** — Resumo rápido de arquitetura e decisões principais.
+* **`docs/QUICK_START_FOR_AGENTS.md`** — Folha de referência super rápida (5-15 min).
+* **`docs/`** — Documentação estruturada:
+  * `AGENT_PROMPTS.md` — Templates de prompts para trabalhar com modelos de IA.
+  * `STRUCTURE.md` — Mapa detalhado de diretórios e responsabilidades.
+  * `TROUBLESHOOTING.md` — Resolução rápida de problemas comuns.
+  * `DESIGN.md` — Decisões de design importantes.
+  * `SECURITY.md` — Política e notas de segurança (JWT, autenticação).
+  * `RELIABILITY.md` — Operações, backup e procedures.
+  * `design-docs/` — Documentação detalhada de design.
+  * `product-specs/` — Especificações de features e onboarding.
+  * `exec-plans/` — Planos de execução e roadmap.
+
+---
+
 ### Docker Compose
 
 O repositório inclui um `docker-compose.yml` que orquestra:

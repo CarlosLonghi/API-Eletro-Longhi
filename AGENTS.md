@@ -32,6 +32,7 @@ Integration points and external dependencies
 - PostgreSQL (jdbc URL configured in `application.properties`). Flyway applies SQL migrations from `src/main/resources/db/migration`.
 - JWT uses auth0 Java JWT library; secret is read from `spring.security.secret` property — set this in `application.properties` or environment for CI.
 - OpenAPI/Swagger is enabled via springdoc; docs available at `/swagger-ui/index.html` when app runs.
+ - Springdoc configuration: the API docs path is customized in `src/main/resources/application.properties` via `springdoc.api-docs.path=/api/api-docs`. Security permits access to the docs (`/api/api-docs/**` and `/swagger-ui/**`) — see `config/SecurityConfig.java`.
 
 Quick examples an agent should follow
 - Add a new endpoint that returns devices by brand: follow pattern in `controller/DeviceController.getDevicesByBrandId` → call `DeviceService.findDevicesByBrandId` → repository method `DeviceRepository.findDevicesByBrandId`.
@@ -49,6 +50,7 @@ Where to look first (key files)
 - Example controller/service/repository: `controller/DeviceController.java`, `service/DeviceService.java`, `repository/DeviceRepository.java`
 - DTOs & mappers: `controller/request/*.java`, `controller/response/*.java`, `mapper/*.java` — after the MapStruct migration, open `mapper/*.java` first to inspect `@Mapper` annotations, helper default methods (id→entity) and `componentModel` settings.
 - DB migrations: `src/main/resources/db/migration/*` and `application.properties`
+ - API spec interfaces: `controller/api/spec/*.java` — these interfaces contain OpenAPI annotations and are used to document endpoints. Prefer the concrete controller implementations (e.g. `controller/DeviceController.java`) as the source of truth for runtime behavior; some spec interfaces may contain small annotation mismatches (example: `controller/api/spec/DeviceApi.java` declares `getDevicesByBrandId` with a `@PathVariable` but the controller implements it with `@RequestParam`).
 
 - Notes and discovered inconsistencies
 - README claims `docker-compose.yml` orchestrates `app` + `db`, but the checked-in `docker-compose.yml` currently only defines `db`. Agents should not assume the app is containerized by compose.
@@ -57,6 +59,8 @@ Where to look first (key files)
   - Controllers/services now inject mapper beans (e.g. `private final DeviceMapper deviceMapper;`) and call `deviceMapper.toEntity(...)` / `deviceMapper.toResponse(...)`.
   - MapStruct will generate implementations only at compile time; ensure `./mvnw compile` or `./mvnw package` is run during development/CI.
   - Some mappers include helper default methods for id→entity conversion and explicit list mapping to preserve prior behavior (see `DeviceMapper.map(List<Long>)`).
+
+    - API spec / documentation mismatches: the `controller/api/spec` interfaces are detailed and useful for OpenAPI docs but may not always match the controller parameter annotations or method signatures exactly. Always cross-check the generated docs or spec interface against the controller implementation (example conflict: `controller/api/spec/DeviceApi.java#getDevicesByBrandId` vs `controller/DeviceController.java#getDevicesByBrandId`).
 
 If you need to run quick checks
 - Start DB only: `docker compose up -d --build` (spins up postgres as defined).
