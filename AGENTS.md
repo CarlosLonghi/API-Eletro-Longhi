@@ -28,39 +28,74 @@ Build / run / debug workflows (commands and gotchas)
 - Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V7). Before running locally, create the DB (README shows `CREATE DATABASE eletro_longhi;`) or use docker compose to start Postgres.
 - Tests: standard Maven tests `./mvnw test`. There are currently no extensive test suites in repo (README lists tests as future work).
 
-Integration points and external dependencies
-- PostgreSQL (jdbc URL configured in `application.properties`). Flyway applies SQL migrations from `src/main/resources/db/migration`.
-- JWT uses auth0 Java JWT library; secret is read from `spring.security.secret` property — set this in `application.properties` or environment for CI.
-- OpenAPI/Swagger is enabled via springdoc; docs available at `/swagger-ui/index.html` when app runs.
+## 📦 External Dependencies & Integration Points
 
-Quick examples an agent should follow
-- Add a new endpoint that returns devices by brand: follow pattern in `controller/DeviceController.getDevicesByBrandId` → call `DeviceService.findDevicesByBrandId` → repository method `DeviceRepository.findDevicesByBrandId`.
-- To add a new request field: update the request record in `controller/request`, update the MapStruct mapper (e.g. `DeviceMapper.toEntity`) and service logic; add `@NotNull/@NotBlank` annotations as needed to reuse `ApplicationControllerAdvice` validation mapping. Remember MapStruct mappers are Spring beans — update call-sites to inject the mapper and call `mapper.toEntity(...)` / `mapper.toResponse(...)`.
-- MapStruct specifics to keep in mind:
-  - MapStruct generates implementations at compile time; ensure `mapstruct-processor` is configured in `pom.xml` (it is in this project) and run a Maven build to create implementations.
-  - If mapping collection of IDs to entities (List<Long> → List<Accessory>) maintain the helper methods (present in `DeviceMapper`) or add element mapping methods so MapStruct can generate code.
-  - To suppress "unmapped target properties" warnings for generated fields (id, createdAt, updatedAt) you can add `unmappedTargetPolicy = ReportingPolicy.IGNORE` to `@Mapper` (requires importing `org.mapstruct.ReportingPolicy`).
-- To change auth token claims: edit `config/TokenService.generateToken` and `verifyToken` together (both use the same claim keys `userId`, `userName`). Ensure `config/SecurityFilter` still extracts JWTUserData.
+- **PostgreSQL**: JDBC URL in `application.properties`; Flyway migrations apply at startup.
+- **JWT**: Auth0 Java JWT library; secret from `spring.security.secret` property (set in `application.properties` or env).
+- **OpenAPI/Swagger**: Springdoc-enabled; UI at `/swagger-ui/index.html`.
+- **MapStruct**: Generates code at compile time; processor configured in `pom.xml`.
 
-Where to look first (key files)
-- Entry point: `EletrolonghiApplication.java`
-- Security: `config/SecurityConfig.java`, `config/SecurityFilter.java`, `config/TokenService.java`
-- Global errors: `config/ApplicationControllerAdvice.java`
-- Example controller/service/repository: `controller/DeviceController.java`, `service/DeviceService.java`, `repository/DeviceRepository.java`
-- DTOs & mappers: `controller/request/*.java`, `controller/response/*.java`, `mapper/*.java` — after the MapStruct migration, open `mapper/*.java` first to inspect `@Mapper` annotations, helper default methods (id→entity) and `componentModel` settings.
-- DB migrations: `src/main/resources/db/migration/*` and `application.properties`
+---
 
-- Notes and discovered inconsistencies
-- README claims `docker-compose.yml` orchestrates `app` + `db`, but the checked-in `docker-compose.yml` currently only defines `db`. Agents should not assume the app is containerized by compose.
-- Use the `spring.security.secret` property (present in `application.properties`) when generating/verifying tokens in any test or CI environment.
-- Mappers were migrated from manual static utility classes to MapStruct interfaces. Key practical impacts:
-  - Controllers/services now inject mapper beans (e.g. `private final DeviceMapper deviceMapper;`) and call `deviceMapper.toEntity(...)` / `deviceMapper.toResponse(...)`.
-  - MapStruct will generate implementations only at compile time; ensure `./mvnw compile` or `./mvnw package` is run during development/CI.
-  - Some mappers include helper default methods for id→entity conversion and explicit list mapping to preserve prior behavior (see `DeviceMapper.map(List<Long>)`).
+## 💡 Quick Examples
 
-If you need to run quick checks
-- Start DB only: `docker compose up -d --build` (spins up postgres as defined).
-- Start app locally: `./mvnw spring-boot:run` (ensure DB credentials in `application.properties` match the running DB).
+### Add a new endpoint: "Get devices by brand"
+1. **Repository** (`repository/DeviceRepository.java`): Add `List<Device> findDevicesByBrandId(Long brandId);`
+2. **Service** (`service/DeviceService.java`): Add `public List<Device> findDevicesByBrandId(Long brandId) { return repository.findDevicesByBrandId(brandId); }`
+3. **Controller** (`controller/DeviceController.java`): Add `@GetMapping("/search") public ResponseEntity<List<DeviceResponse>> getByBrand(@RequestParam Long brandId) { ... }`
 
-End of file.
+### Add a new request field (e.g., "color" to Device)
+1. **Entity** (`entity/Device.java`): Add `private String color;`
+2. **Migration** (`db/migration/V8__*.sql`): `ALTER TABLE devices ADD COLUMN color VARCHAR(100);`
+3. **Request DTO** (`controller/request/DeviceRequest.java`): Add `String color` field with `@NotNull` if required.
+4. **Response DTO** (`controller/response/DeviceResponse.java`): Add `String color` field.
+5. **Mapper** (`mapper/DeviceMapper.java`): MapStruct auto-maps; no code changes needed.
+6. **Compile**: `./mvnw compile` (generates MapStruct implementation).
+
+### Change JWT token claims
+Edit **both** methods together:
+- `config/TokenService.generateToken(JWTUserData)` — adds claims
+- `config/TokenService.verifyToken(String)` — extracts same claims
+- Ensure `config/SecurityFilter.java` still extracts `JWTUserData` correctly.
+
+---
+
+## 🎯 Where to Look First
+
+| Need | Key Files |
+|------|-----------|
+| Understand architecture | `.agents/ARCHITECTURE.md` |
+| Learn domain terms | `.agents/GLOSSARY.md` |
+| Plan a feature | `.agents/PLANS.md` |
+| Add new endpoint | `controller/*.java`, `service/*.java`, `repository/*.java` |
+| Change security | `config/SecurityConfig.java`, `config/SecurityFilter.java`, `config/TokenService.java` |
+| Handle errors | `config/ApplicationControllerAdvice.java` |
+| View data model | `entity/*.java`, `db/migration/*` |
+| Map DTOs | `mapper/*.java` (MapStruct interfaces) |
+
+---
+
+## ⚠️ Known Gotchas
+
+- **Docker Compose**: Only spins up DB, not the app. Run app locally via `./mvnw spring-boot:run`.
+- **JWT Secret**: Must be set in `application.properties` or environment; used in CI/CD.
+- **MapStruct Timing**: Implementations generated only at compile time; always run `./mvnw compile` after changing mappers.
+- **Migrations**: Append-only; never edit old `V*.sql` files; create new ones for schema changes.
+- **Optional Returns**: Services use `Optional<Entity>` for single lookups; controllers must check `isPresent()`.
+
+---
+
+## 🔗 Next Steps
+
+1. **Read [.agents/GLOSSARY.md](.agents/GLOSSARY.md)** to understand the domain.
+2. **Study [.agents/ARCHITECTURE.md](.agents/ARCHITECTURE.md)** to know where code belongs.
+3. **Reference [.agents/PLANS.md](.agents/PLANS.md)** when building complex features.
+4. **Run locally**: `docker compose up -d` (DB only), then `./mvnw spring-boot:run` (app).
+5. **Test an endpoint** via Swagger UI or `curl`.
+
+---
+
+**Last updated**: 2026-07-14  
+**Version**: 2.0 (harness-engineering with `.agents/` documentation)
+
 
