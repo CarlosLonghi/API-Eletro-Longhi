@@ -3,10 +3,15 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
+import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
+import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +26,28 @@ public class RepairOrderService {
 
     public List<RepairOrder> findAll() {
         return repairOrderRepository.findAll();
+    }
+
+    public Page<RepairOrder> findAll(
+            RepairOrderStatus status,
+            Long customerId,
+            Long deviceId,
+            String description,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            Pageable pageable
+    ) {
+        return repairOrderRepository.findAll(
+                RepairOrderSpecification.withFilters(
+                        status,
+                        customerId,
+                        deviceId,
+                        description,
+                        createdFrom,
+                        createdTo
+                ),
+                pageable
+        );
     }
 
     public RepairOrder save(RepairOrder repairOrder) {
