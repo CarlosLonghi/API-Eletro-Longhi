@@ -19,7 +19,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   └── SwaggerConfig.java               # OpenAPI/Springdoc configuration
 │
 ├── controller/                          # HTTP entry points; request/response DTO handling
-│   ├── api/spec/                        # (Future) Swagger interface contracts (@Operation, @ApiResponse)
+│   ├── api/spec/                        # Swagger interface contracts (@Operation, @ApiResponse)
 │   ├── request/                         # Request DTOs (Java records, validated with @NotNull/@NotBlank)
 │   │   ├── DeviceRequest.java
 │   │   ├── BrandRequest.java
@@ -34,19 +34,19 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   │   ├── CustomerResponse.java
 │   │   └── RepairOrderResponse.java
 │   │
-│   ├── DeviceController.java            # GET/POST/PUT/DELETE /device; filters by brand
+│   ├── DeviceController.java            # GET/POST/PUT/DELETE /device; paginated + advanced filters
 │   ├── BrandController.java             # GET/POST/DELETE /brand
 │   ├── AccessoryController.java         # GET/POST/DELETE /accessory
-│   ├── CustomerController.java          # GET/POST/PUT/DELETE /customer
-│   ├── RepairOrderController.java       # GET/POST/PUT/DELETE /repair-order
+│   ├── CustomerController.java          # GET/POST/PUT/DELETE /customer; paginated + advanced filters
+│   ├── RepairOrderController.java       # GET/POST/PUT/DELETE /repair-order; paginated + advanced filters
 │   └── UserController.java              # POST /auth/register, POST /auth/login
 │
 ├── service/                             # Business logic; coordinates repositories
-│   ├── DeviceService.java               # find/create/update/delete Device; findByBrandId
+│   ├── DeviceService.java               # find/create/update/delete Device; pageable/spec filter support
 │   ├── BrandService.java                # find/create/delete Brand
 │   ├── AccessoryService.java            # find/create/delete Accessory
-│   ├── CustomerService.java             # find/create/update/delete Customer
-│   ├── RepairOrderService.java          # find/create/update/delete RepairOrder
+│   ├── CustomerService.java             # find/create/update/delete Customer; pageable/spec filter support
+│   ├── RepairOrderService.java          # find/create/update/delete RepairOrder; pageable/spec filter support
 │   └── UserService.java                 # register, authenticate, generate JWT
 │
 ├── repository/                          # Spring Data JPA repositories (queries → SQL)
@@ -55,6 +55,10 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   ├── AccessoryRepository.java
 │   ├── CustomerRepository.java
 │   ├── RepairOrderRepository.java
+│   ├── specification/                   # Dynamic filter builders (Spring Data Specification)
+│   │   ├── DeviceSpecification.java
+│   │   ├── CustomerSpecification.java
+│   │   └── RepairOrderSpecification.java
 │   └── UserRepository.java              # findByUserName(String)
 │
 ├── entity/                              # JPA-annotated entities (database row representations)
@@ -129,6 +133,9 @@ src/main/resources/
 3. Single-entity lookups return `Optional<Entity>`; controllers call `ifPresentOrElse(...)` to decide 200 vs 404.
 4. Deletion returns `ResponseEntity.noContent()` (204).
 5. Creation returns `ResponseEntity.created(...)` (201) + response body.
+6. Listing endpoints follow two profiles:
+   - Simple lookup tables (`Brand`, `Accessory`) return `List<ResponseDTO>` without pagination.
+   - Operational resources (`Device`, `Customer`, `RepairOrder`) return `Page<ResponseDTO>` with filters + sort/pagination params.
 
 **Example Flow**:
 ```java
@@ -147,8 +154,9 @@ public ResponseEntity<DeviceResponse> create(@Valid @RequestBody DeviceRequest r
 
 **Naming Convention**:
 - `findById(Long) → Optional<Entity>` — Single lookup.
-- `findAll() → List<Entity>` — Collection.
-- `findXxxByYyy(Type yyy) → List<Entity>` — Filtered collection (e.g., `findDevicesByBrandId`).
+- `findAll() → List<Entity>` — Simple collection lookup (low-volume tables).
+- `findAll(filters..., Pageable) → Page<Entity>` — Paginated + filtered listing.
+- `findXxxByYyy(Type yyy) → List<Entity>` — Derived query helper when needed (e.g., `findDevicesByBrandId`).
 - `create(Entity) → Entity` — Persist new entity.
 - `update(Entity) → Entity` — Merge entity changes.
 - `delete(Long) → void` — Remove entity.
@@ -157,6 +165,7 @@ public ResponseEntity<DeviceResponse> create(@Valid @RequestBody DeviceRequest r
 1. Services **return Optional** for single lookups; controllers translate to HTTP status.
 2. Services **throw exceptions** for business rule violations (e.g., "Cannot delete brand if devices exist"); `ApplicationControllerAdvice` catches and responds.
 3. Services do **not** handle HTTP concerns (status codes, headers); only business rules.
+4. Services compose dynamic list filters through `*Specification.withFilters(...)` for pageable endpoints.
 
 **Example**:
 ```java
@@ -177,6 +186,7 @@ public Device create(Device device) {
 
 **Naming Convention**:
 - Extend `JpaRepository<Entity, Long>`.
+- Add `JpaSpecificationExecutor<Entity>` for entities with advanced listing filters.
 - Derived queries follow Spring Data naming: `findDevicesByBrandId(Long brandId)`.
 - Use `@Query` only if derived query is too complex.
 
@@ -184,7 +194,7 @@ public Device create(Device device) {
 
 **Example**:
 ```java
-public interface DeviceRepository extends JpaRepository<Device, Long> {
+public interface DeviceRepository extends JpaRepository<Device, Long>, JpaSpecificationExecutor<Device> {
     List<Device> findDevicesByBrandId(Long brandId);  // Derived query
 }
 ```
@@ -268,7 +278,12 @@ public interface DeviceMapper {
 ### **I4: Repositories use Spring Data naming conventions**
 - Derived queries like `findDevicesByBrandId` instead of custom `@Query`.
 - Improves readability and reduces SQL injection risk.
-- **Agent Rule**: Use derived queries first; only use `@Query` if necessary.
+- **Agent Rule**: Use derived queries first; combine with `Specification` for dynamic filters; only use `@Query` if necessary.
+
+### **I4.1: Listing strategy is intentionally selective**
+- `Brand` and `Accessory` are small lookup entities and should stay as plain list endpoints unless requirements change.
+- `Device`, `Customer`, and `RepairOrder` use pagination (`Pageable`) and dynamic filtering (`Specification`).
+- **Agent Rule**: Keep this split unless product explicitly asks for a different listing profile.
 
 ### **I5: Validation happens at controller boundary**
 - `@Valid` on request DTOs; annotations like `@NotNull`, `@NotBlank`.
@@ -359,10 +374,10 @@ HTTP Response (200/201/400/403/404/409)
 | Change security | `config/SecurityConfig.java`, `config/SecurityFilter.java`, `config/TokenService.java` |
 | Handle error | `config/ApplicationControllerAdvice.java` |
 | Add validation | `controller/request/*.java` (annotations) → auto-handled by advice |
-| Query by filter | `repository/DeviceRepository.java` (derived query) → `service/DeviceService.java` (call repo) → `controller/DeviceController.java` (expose endpoint) |
+| Query by filter | `repository/specification/*.java` + `JpaSpecificationExecutor` repos → `service/*Service.java` → `controller/*Controller.java` |
 
 ---
 
-**Last updated**: 2026-07-14  
-**Version**: 1.0
+**Last updated**: 2026-07-20  
+**Version**: 1.1
 

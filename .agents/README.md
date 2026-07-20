@@ -104,6 +104,13 @@ These docs are written for AI agents. They're:
 
 ## 📋 Common Tasks
 
+### **Understand listing behavior (pagination + filters)**
+👉 See `ARCHITECTURE.md` (controller/service/repository sections) + `GLOSSARY.md` (Pagination, Specification).
+
+Current split:
+- `Brand` and `Accessory`: simple `List` endpoints (no pagination/filter).
+- `Device`, `Customer`, `RepairOrder`: paginated `Page` endpoints with advanced filters.
+
 ### **Add a new REST endpoint**
 👉 See `ARCHITECTURE.md` → "Adding a New Feature: Step-by-Step"
 
@@ -169,8 +176,8 @@ Example:
 
 ## 💾 Version & Maintenance
 
-- **Last Updated**: 2026-07-14
-- **Version**: 1.0 (harness-engineering template)
+- **Last Updated**: 2026-07-20
+- **Version**: 1.1 (listing behavior updated)
 - **Maintainer**: AI Coding Agents + Human Reviewers
 - **Update Frequency**: As features are added or architectural decisions change.
 
