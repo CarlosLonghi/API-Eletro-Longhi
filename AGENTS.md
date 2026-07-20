@@ -97,6 +97,15 @@ Edit **both** methods together:
 
 ---
 
+## 📋 Documentation Maintenance Policy
+
+- Whenever you make a change that is **crucial to the application**, update the agent guidance files so they stay accurate.
+- Treat the following as crucial changes: architecture or package-structure changes, security/auth flow changes, database schema or migration changes, core API contract changes, new integrations/dependencies, and any change that alters established conventions.
+- Update `AGENTS.md` first, and also keep the related `.agents/*` guidance files in sync when they exist or are introduced later.
+- If a change affects how future agents should navigate, build, test, or safely modify the project, document that impact in the agent files in the same PR/commit.
+
+---
+
 ## 🔗 Next Steps
 
 1. **Read [.agents/GLOSSARY.md](.agents/GLOSSARY.md)** to understand the domain.
@@ -108,6 +117,6 @@ Edit **both** methods together:
 ---
 
 **Last updated**: 2026-07-20  
-**Version**: 2.1 (listing strategy updated: selective pagination + advanced filters)
+**Version**: 2.2 (added documentation maintenance policy for impactful changes)
 
 
