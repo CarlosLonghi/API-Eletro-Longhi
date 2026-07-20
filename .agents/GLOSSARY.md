@@ -38,7 +38,7 @@ This glossary defines key concepts in the Eletro Longhi system. Understand these
 - **What**: A person who owns the device and brings it for repair.
 - **Key Fields**: `id`, `name`, `email`, `phone`, `cpf`, `createdAt`, `updatedAt`
 - **Relationships**: One Customer → Many RepairOrders (implicit; orders contain customer contact).
-- **Key Pattern**: Customers are looked up when creating repair orders; no direct API to list/filter by customer (future enhancement).
+- **Key Pattern**: Customer listing supports advanced filtering + pagination (`name`, `email`, `phone`, `page`, `size`, `sortBy`, `direction`).
 - **Example**: João Silva; brought his Sony TV for repair on 2025-07-14.
 
 ### **RepairOrder** (Ordem de Reparo)
@@ -109,6 +109,23 @@ This glossary defines key concepts in the Eletro Longhi system. Understand these
 - **Key Pattern**: Public endpoints (e.g., `/auth/register`, `/auth/login`); protected endpoints require JWT.
 - **Example**: `GET /device/{id}` → returns 200 + Device or 404 + error.
 
+### **Pagination (`Page<T>`)**
+- **What**: Paginated response model from Spring Data containing `content` plus metadata (`number`, `size`, `totalElements`, `totalPages`, etc.).
+- **Where used**:
+  - `GET /device` and `GET /device/search`
+  - `GET /customer`
+  - `GET /repair-order`
+- **Shared params**: `page`, `size`, `sortBy`, `direction`.
+- **Utility**: `controller/support/PaginationUtils.createPageable(...)` centralizes `PageRequest` + sort direction parsing.
+
+### **Specification (Spring Data JPA)**
+- **What**: Dynamic query composition via predicates (`Specification<T>`) without hardcoding many repository methods.
+- **Where used**:
+  - `repository/specification/DeviceSpecification.java`
+  - `repository/specification/CustomerSpecification.java`
+  - `repository/specification/RepairOrderSpecification.java`
+- **Key Pattern**: Optional filters add predicates only when request params are present.
+
 ---
 
 ## Invariants & Constraints
@@ -132,6 +149,9 @@ This glossary defines key concepts in the Eletro Longhi system. Understand these
 2. **Update returns 200 OK + updated entity** — Not 204; client sees applied changes.
 3. **Creation returns 201 Created + new entity** — Client receives generated ID.
 4. **List endpoints may return empty arrays** — Never null; always 200 + [].
+5. **Listing profile split is intentional**:
+   - `Brand` and `Accessory` remain plain `List` endpoints (no pagination/filter).
+   - `Device`, `Customer`, and `RepairOrder` return `Page` and accept filters.
 
 ---
 
@@ -160,6 +180,6 @@ This glossary defines key concepts in the Eletro Longhi system. Understand these
 
 ---
 
-**Last updated**: 2026-07-14  
-**Version**: 1.0
+**Last updated**: 2026-07-20  
+**Version**: 1.1
 

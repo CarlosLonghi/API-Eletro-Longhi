@@ -17,8 +17,8 @@ Project-specific conventions — important for automated edits
   - `toEntity(RequestRecord)` — maps request DTO → entity
   - `toResponse(Entity)` — maps entity → response DTO
   MapStruct generates implementations; do not keep the old static utility classes. Some mappers contain helper default methods to convert id → entity placeholders (e.g. `brandFromId`, `accessoryFromId`) and explicit List<Long> → List<Accessory> helpers to match previous behavior.
-- Services return Optional for single-entity lookups and raw Lists for collections (e.g. `DeviceService.findById` returns Optional; `findAll` returns List). Controllers rely on Optional to decide 404 vs 200.
-- Repositories use Spring Data naming conventions for queries (example: `DeviceRepository.findDevicesByBrandId(Long brandId)`). Use the same naming style for derived queries.
+- Services return Optional for single-entity lookups. Collection reads are split by endpoint profile: small lookup tables (`Brand`, `Accessory`) use plain `List`, while operational listings (`Device`, `Customer`, `RepairOrder`) support `Pageable` + filters and return `Page`.
+- Repositories use Spring Data naming conventions for queries (example: `DeviceRepository.findDevicesByBrandId(Long brandId)`). Advanced listing filters use `JpaSpecificationExecutor` + `repository/specification/*`.
 - Validation and error handling: controllers use `@Valid` on records; global exception translation is in `config/ApplicationControllerAdvice` (maps MethodArgumentNotValidException → field errors map, DataIntegrityViolationException → 409). When adding new validations, ensure messages match existing mapping patterns.
 
 Build / run / debug workflows (commands and gotchas)
@@ -42,7 +42,17 @@ Build / run / debug workflows (commands and gotchas)
 ### Add a new endpoint: "Get devices by brand"
 1. **Repository** (`repository/DeviceRepository.java`): Add `List<Device> findDevicesByBrandId(Long brandId);`
 2. **Service** (`service/DeviceService.java`): Add `public List<Device> findDevicesByBrandId(Long brandId) { return repository.findDevicesByBrandId(brandId); }`
-3. **Controller** (`controller/DeviceController.java`): Add `@GetMapping("/search") public ResponseEntity<List<DeviceResponse>> getByBrand(@RequestParam Long brandId) { ... }`
+3. **Controller** (`controller/DeviceController.java`): Expose `@GetMapping("/search")` with `brandId` + pagination/sort params and return `ResponseEntity<Page<DeviceResponse>>`.
+
+### Listing strategy (current)
+- **Simple list (no pagination/filter)**:
+  - `GET /brand`
+  - `GET /accessory`
+- **Paginated + advanced filters** (shared params: `page`, `size`, `sortBy`, `direction`):
+  - `GET /device` and `GET /device/search` (filters: `model`, `serialNumber`, `brandId`, `accessoryId`)
+  - `GET /customer` (filters: `name`, `email`, `phone`)
+  - `GET /repair-order` (filters: `status`, `customerId`, `deviceId`, `description`, `createdFrom`, `createdTo`)
+- Pagination builder utility: `controller/support/PaginationUtils.java`.
 
 ### Add a new request field (e.g., "color" to Device)
 1. **Entity** (`entity/Device.java`): Add `private String color;`
@@ -68,6 +78,7 @@ Edit **both** methods together:
 | Learn domain terms | `.agents/GLOSSARY.md` |
 | Plan a feature | `.agents/PLANS.md` |
 | Add new endpoint | `controller/*.java`, `service/*.java`, `repository/*.java` |
+| Change listing filters/pagination | `controller/support/PaginationUtils.java`, `repository/specification/*.java`, `service/*Service.java` |
 | Change security | `config/SecurityConfig.java`, `config/SecurityFilter.java`, `config/TokenService.java` |
 | Handle errors | `config/ApplicationControllerAdvice.java` |
 | View data model | `entity/*.java`, `db/migration/*` |
@@ -82,6 +93,7 @@ Edit **both** methods together:
 - **MapStruct Timing**: Implementations generated only at compile time; always run `./mvnw compile` after changing mappers.
 - **Migrations**: Append-only; never edit old `V*.sql` files; create new ones for schema changes.
 - **Optional Returns**: Services use `Optional<Entity>` for single lookups; controllers must check `isPresent()`.
+- **Listing Scope**: Keep `Brand` and `Accessory` as simple lists unless product requirements change (low-volume lookup entities).
 
 ---
 
@@ -95,7 +107,7 @@ Edit **both** methods together:
 
 ---
 
-**Last updated**: 2026-07-14  
-**Version**: 2.0 (harness-engineering with `.agents/` documentation)
+**Last updated**: 2026-07-20  
+**Version**: 2.1 (listing strategy updated: selective pagination + advanced filters)
 
 
