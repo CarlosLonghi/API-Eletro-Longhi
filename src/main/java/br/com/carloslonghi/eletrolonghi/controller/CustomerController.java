@@ -3,16 +3,18 @@ package br.com.carloslonghi.eletrolonghi.controller;
 import br.com.carloslonghi.eletrolonghi.controller.api.spec.CustomerApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.CustomerRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.CustomerResponse;
+import br.com.carloslonghi.eletrolonghi.controller.support.PaginationUtils;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.mapper.CustomerMapper;
 import br.com.carloslonghi.eletrolonghi.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -24,11 +26,18 @@ public class CustomerController implements CustomerApi {
     private final CustomerMapper customerMapper;
 
     @GetMapping
-    public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
-        List<CustomerResponse> customers = customerService.findAll()
-                .stream()
-                .map(customerMapper::toResponse)
-                .toList();
+    public ResponseEntity<Page<CustomerResponse>> getAllCustomers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        Pageable pageable = PaginationUtils.createPageable(page, size, sortBy, direction);
+        Page<CustomerResponse> customers = customerService.findAll(name, email, phone, pageable)
+                .map(customerMapper::toResponse);
 
         return ResponseEntity.ok(customers);
     }

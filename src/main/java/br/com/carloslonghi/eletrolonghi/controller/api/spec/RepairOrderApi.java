@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
+import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -13,10 +14,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Tag(
         name = "Reparo",
@@ -69,7 +73,28 @@ public interface RepairOrderApi {
             ),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
-    ResponseEntity<List<RepairOrderResponse>> getAllRepairOrders();
+    ResponseEntity<Page<RepairOrderResponse>> getAllRepairOrders(
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por status do reparo")
+            @RequestParam(required = false) RepairOrderStatus status,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do cliente")
+            @RequestParam(required = false) Long customerId,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do aparelho")
+            @RequestParam(required = false) Long deviceId,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por descrição")
+            @RequestParam(required = false) String description,
+            @Parameter(in = ParameterIn.QUERY, description = "Data inicial de criação (ISO-8601)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
+            @Parameter(in = ParameterIn.QUERY, description = "Data final de criação (ISO-8601)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
+            @Parameter(in = ParameterIn.QUERY, description = "Número da página (inicia em 0)")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(in = ParameterIn.QUERY, description = "Quantidade de itens por página")
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(in = ParameterIn.QUERY, description = "Campo para ordenação")
+            @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(in = ParameterIn.QUERY, description = "Direção da ordenação: asc ou desc")
+            @RequestParam(defaultValue = "asc") String direction
+    );
 
     @Operation(
             summary = "Buscar reparo por ID",

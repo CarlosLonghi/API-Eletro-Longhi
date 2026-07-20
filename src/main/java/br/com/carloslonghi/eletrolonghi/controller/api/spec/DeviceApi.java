@@ -13,10 +13,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(
         name = "Aparelho",
@@ -68,7 +68,24 @@ public interface DeviceApi {
             ),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
-    ResponseEntity<List<DeviceResponse>> getAllDevices();
+    ResponseEntity<Page<DeviceResponse>> getAllDevices(
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por modelo")
+            @RequestParam(required = false) String model,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por número de série")
+            @RequestParam(required = false) String serialNumber,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID da marca")
+            @RequestParam(required = false) Long brandId,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do acessório")
+            @RequestParam(required = false) Long accessoryId,
+            @Parameter(in = ParameterIn.QUERY, description = "Número da página (inicia em 0)")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(in = ParameterIn.QUERY, description = "Quantidade de itens por página")
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(in = ParameterIn.QUERY, description = "Campo para ordenação")
+            @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(in = ParameterIn.QUERY, description = "Direção da ordenação: asc ou desc")
+            @RequestParam(defaultValue = "asc") String direction
+    );
 
     @Operation(
             summary = "Buscar aparelho por ID",
@@ -108,9 +125,23 @@ public interface DeviceApi {
             ),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
-    ResponseEntity<List<DeviceResponse>> getDevicesByBrandId(
+    ResponseEntity<Page<DeviceResponse>> getDevicesByBrandId(
             @Parameter(in = ParameterIn.QUERY, description = "ID da marca", required = true)
-            @PathVariable Long id
+            @RequestParam Long brandId,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por modelo")
+            @RequestParam(required = false) String model,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por número de série")
+            @RequestParam(required = false) String serialNumber,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do acessório")
+            @RequestParam(required = false) Long accessoryId,
+            @Parameter(in = ParameterIn.QUERY, description = "Número da página (inicia em 0)")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(in = ParameterIn.QUERY, description = "Quantidade de itens por página")
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(in = ParameterIn.QUERY, description = "Campo para ordenação")
+            @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(in = ParameterIn.QUERY, description = "Direção da ordenação: asc ou desc")
+            @RequestParam(defaultValue = "asc") String direction
     );
 
     @Operation(

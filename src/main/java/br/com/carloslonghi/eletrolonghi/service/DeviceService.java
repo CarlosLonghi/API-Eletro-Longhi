@@ -4,7 +4,10 @@ import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
+import br.com.carloslonghi.eletrolonghi.repository.specification.DeviceSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,6 +25,19 @@ public class DeviceService {
 
     public List<Device> findAll() {
         return deviceRepository.findAll();
+    }
+
+    public Page<Device> findAll(
+            String model,
+            String serialNumber,
+            Long brandId,
+            Long accessoryId,
+            Pageable pageable
+    ) {
+        return deviceRepository.findAll(
+                DeviceSpecification.withFilters(model, serialNumber, brandId, accessoryId),
+                pageable
+        );
     }
 
     public Device save(Device device) {
