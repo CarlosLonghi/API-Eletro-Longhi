@@ -1,5 +1,8 @@
 package br.com.carloslonghi.eletrolonghi.entity.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum RepairOrderStatus {
     AWAITING_EVALUATION("Aguardando avaliação"),
     IN_EVALUATION("Em avaliação"),
@@ -17,7 +20,4 @@ public enum RepairOrderStatus {
         this.description = description;
     }
 
-    public String getDescription() {
-        return description;
-    }
 }
