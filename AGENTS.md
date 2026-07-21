@@ -25,7 +25,7 @@ Build / run / debug workflows (commands and gotchas)
 - Build package: `./mvnw -q -DskipTests package` or full build `./mvnw package`.
 - Run locally: `./mvnw spring-boot:run`. The app reads `src/main/resources/application.properties` for DB and JWT secret.
 - Docker: repository includes `docker-compose.yml` (defines `db` service using postgres:16). Note: current compose exposes only the DB; the app isn't containerized here — run the app locally or add a Dockerfile to containerize it.
-- Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V7). Before running locally, create the DB (README shows `CREATE DATABASE eletro_longhi;`) or use docker compose to start Postgres.
+- Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V9). Before running locally, create the DB (README shows `CREATE DATABASE eletro_longhi;`) or use docker compose to start Postgres. Lookup-table seed data (like `Brand` and `Accessory`) should go in new append-only migrations.
 - Tests: standard Maven tests `./mvnw test`. There are currently no extensive test suites in repo (README lists tests as future work).
 
 ## 📦 External Dependencies & Integration Points
@@ -91,7 +91,7 @@ Edit **both** methods together:
 - **Docker Compose**: Only spins up DB, not the app. Run app locally via `./mvnw spring-boot:run`.
 - **JWT Secret**: Must be set in `application.properties` or environment; used in CI/CD.
 - **MapStruct Timing**: Implementations generated only at compile time; always run `./mvnw compile` after changing mappers.
-- **Migrations**: Append-only; never edit old `V*.sql` files; create new ones for schema changes.
+- **Migrations**: Append-only; never edit old `V*.sql` files; create new ones for schema or seed-data changes.
 - **Optional Returns**: Services use `Optional<Entity>` for single lookups; controllers must check `isPresent()`.
 - **Listing Scope**: Keep `Brand` and `Accessory` as simple lists unless product requirements change (low-volume lookup entities).
 

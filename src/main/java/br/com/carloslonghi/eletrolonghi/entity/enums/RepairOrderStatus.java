@@ -1,13 +1,23 @@
 package br.com.carloslonghi.eletrolonghi.entity.enums;
 
 public enum RepairOrderStatus {
-    AWAITING_EVALUATION,
-    IN_EVALUATION,
-    AWAITING_APPROVAL,
-    APPROVED,
-    AWAITING_PARTS,
-    IN_REPAIR,
-    REPAIR_COMPLETED,
-    PAYMENT_RECEIVED,
-    DEVICE_COLLECTED
+    AWAITING_EVALUATION("Aguardando avaliação"),
+    IN_EVALUATION("Em avaliação"),
+    AWAITING_APPROVAL("Aguardando aprovação"),
+    APPROVED("Aprovado"),
+    AWAITING_PARTS("Aguardando peças"),
+    IN_REPAIR("Em reparo"),
+    REPAIR_COMPLETED("Reparo concluído"),
+    PAYMENT_RECEIVED("Pagamento recebido"),
+    DEVICE_COLLECTED("Dispositivo coletado");
+
+    private final String description;
+
+    RepairOrderStatus(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
 }
