@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
+import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -146,6 +147,37 @@ public interface RepairOrderApi {
                     )
             )
             RepairOrderRequest request
+    );
+
+    @Operation(
+            summary = "Atualizar status do Reparo",
+            description = "Atualiza apenas o status de andamento de um reparo pelo seu ID"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Status atualizado com sucesso",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = RepairOrderResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Status inválido ou ausente", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
+    })
+    ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(
+            @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
+            @PathVariable Long id,
+
+            @RequestBody(
+                    description = "Novo status do reparo",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = RepairOrderStatusUpdateRequest.class)
+                    )
+            )
+            RepairOrderStatusUpdateRequest request
     );
 
     @Operation(

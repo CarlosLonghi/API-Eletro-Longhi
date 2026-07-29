@@ -84,6 +84,13 @@ public class RepairOrderService {
         return Optional.empty();
     }
 
+    public Optional<RepairOrder> updateStatus(Long id, RepairOrderStatus status) {
+        return repairOrderRepository.findById(id).map(repairOrder -> {
+            repairOrder.setStatus(status);
+            return repairOrderRepository.save(repairOrder);
+        });
+    }
+
     public void deleteById(Long id) {
         repairOrderRepository.deleteById(id);
     }

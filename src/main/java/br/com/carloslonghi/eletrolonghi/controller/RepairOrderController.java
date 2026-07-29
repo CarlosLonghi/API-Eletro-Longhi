@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.controller;
 
 import br.com.carloslonghi.eletrolonghi.controller.api.spec.RepairOrderApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
+import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.controller.support.PaginationUtils;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
@@ -82,6 +83,13 @@ public class RepairOrderController implements RepairOrderApi {
                 .map(repairOrder ->
                     ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder))
                 )
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(@PathVariable Long id, @Valid @RequestBody RepairOrderStatusUpdateRequest request) {
+        return repairOrderService.updateStatus(id, request.status())
+                .map(repairOrder -> ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
