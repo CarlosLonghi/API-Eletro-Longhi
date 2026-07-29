@@ -61,6 +61,15 @@ public class DeviceController implements DeviceApi {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/serial-number")
+    public ResponseEntity<DeviceResponse> getDeviceBySerialNumber(@RequestParam String serialNumber) {
+        return deviceService.findBySerialNumber(serialNumber)
+                .map(device ->
+                        ResponseEntity.ok(deviceMapper.toResponse(device))
+                )
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<DeviceResponse> updateDevice(@PathVariable Long id, @Valid @RequestBody DeviceRequest request) {
         Device deviceEntity = deviceMapper.toEntity(request);

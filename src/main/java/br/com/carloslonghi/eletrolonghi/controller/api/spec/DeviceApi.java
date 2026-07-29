@@ -109,6 +109,27 @@ public interface DeviceApi {
     );
 
     @Operation(
+            summary = "Buscar aparelho por número de série",
+            description = "Retorna um único aparelho identificado pelo número de série"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Aparelho encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DeviceResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "404", description = "Aparelho não encontrado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
+    })
+    ResponseEntity<DeviceResponse> getDeviceBySerialNumber(
+            @Parameter(in = ParameterIn.QUERY, description = "Número de série do aparelho", required = true)
+            @RequestParam String serialNumber
+    );
+
+    @Operation(
             summary = "Listar aparelhos pelo ID da marca",
             description = "Retorna uma lista de aparelhos cadastrados de apenas uma marca, com base no ID da marca"
     )

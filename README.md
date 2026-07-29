@@ -163,7 +163,6 @@ O repositório inclui um `docker-compose.yml` que orquestra:
 
 * Implementar enums nativos no banco (PostgreSQL) com driver custom.
 * Adicionar testes unitários e de integração.
-* Paginação e filtros avançados nas listagens.
 * CI/CD e métricas de performance.
 
 ---

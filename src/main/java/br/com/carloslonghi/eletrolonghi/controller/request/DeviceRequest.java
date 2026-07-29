@@ -13,6 +13,7 @@ public record DeviceRequest(
         String model,
 
         @Schema(description = "Número de série do aparelho")
+        @NotBlank(message = "O número de série do aparelho é obrigatório.")
         String serialNumber,
 
         @Schema(description = "ID da marca do aparelho")

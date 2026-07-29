@@ -52,6 +52,8 @@ Build / run / debug workflows (commands and gotchas)
   - `GET /device` and `GET /device/search` (filters: `model`, `serialNumber`, `brandId`, `accessoryId`)
   - `GET /customer` (filters: `name`, `email`, `phone`)
   - `GET /repair-order` (filters: `status`, `customerId`, `deviceId`, `description`, `createdFrom`, `createdTo`)
+- **Single-resource lookup (no pagination)**:
+  - `GET /device/serial-number?serialNumber=...` (exact serial number)
 - Pagination builder utility: `controller/support/PaginationUtils.java`.
 
 ### Add a new request field (e.g., "color" to Device)
@@ -92,6 +94,8 @@ Edit **both** methods together:
 - **JWT Secret**: Must be set in `application.properties` or environment; used in CI/CD.
 - **MapStruct Timing**: Implementations generated only at compile time; always run `./mvnw compile` after changing mappers.
 - **Migrations**: Append-only; never edit old `V*.sql` files; create new ones for schema or seed-data changes.
+- **Device Serial Number**: `devices.serial_number` now has DB-level `NOT NULL` + uniqueness; missing or duplicate values will fail on insert/update.
+  - Validation is enforced at the controller layer: `DeviceRequest.serialNumber` is `@NotBlank`.
 - **Optional Returns**: Services use `Optional<Entity>` for single lookups; controllers must check `isPresent()`.
 - **Listing Scope**: Keep `Brand` and `Accessory` as simple lists unless product requirements change (low-volume lookup entities).
 

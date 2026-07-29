@@ -58,6 +58,10 @@ public class DeviceService {
         return deviceRepository.findDevicesByBrandId(brandId);
     }
 
+    public Optional<Device> findBySerialNumber(String serialNumber) {
+        return deviceRepository.findBySerialNumber(serialNumber);
+    }
+
     public Optional<Device> update(Long id, Device device) {
         Optional<Device> optionalDevice = deviceRepository.findById(id);
 

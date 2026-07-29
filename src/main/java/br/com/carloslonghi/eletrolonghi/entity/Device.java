@@ -24,7 +24,7 @@ public class Device {
     @Column(length = 100, nullable = false)
     private String model;
 
-    @Column(name = "serial_number", length = 100)
+    @Column(name = "serial_number", length = 100, unique = true, nullable = false)
     private String serialNumber;
 
     @CreationTimestamp
