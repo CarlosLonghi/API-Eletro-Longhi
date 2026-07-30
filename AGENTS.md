@@ -3,6 +3,7 @@
 Checklist for an agent run:
 - Understand the Spring Boot layered structure (controller → service → repository).
 - Locate security and token logic before changing auth flows (`config/TokenService`, `config/SecurityFilter`, `config/SecurityConfig`).
+- Review controller API contracts before changing endpoint signatures (`controller/api/spec/*Api.java`).
 - Read DTOs (records) and mappers before changing endpoints (`controller/request`, `controller/response`, `mapper/*`).
 - Verify DB migrations and properties before touching schema (`src/main/resources/db/migration` and `application.properties`).
 
@@ -13,6 +14,7 @@ Big picture (what matters)
 
 Project-specific conventions — important for automated edits
 - DTOs are Java records (e.g. `controller/request/DeviceRequest.java`). Expect accessor methods like `request.brand()` and immutable DTOs.
+- Controllers implement OpenAPI contract interfaces from `controller/api/spec/*Api.java` (example: `DeviceController implements DeviceApi`). Update interface docs/signatures together with controller methods when changing endpoint contracts.
 - Mappers: migrated to MapStruct (see `mapper/*`). Mappers are now Spring beans (`@Mapper(componentModel = "spring")`) and should be injected where used (controllers, services). The public methods follow the new convention:
   - `toEntity(RequestRecord)` — maps request DTO → entity
   - `toResponse(Entity)` — maps entity → response DTO
@@ -25,7 +27,7 @@ Build / run / debug workflows (commands and gotchas)
 - Build package: `./mvnw -q -DskipTests package` or full build `./mvnw package`.
 - Run locally: `./mvnw spring-boot:run`. The app reads `src/main/resources/application.properties` for DB and JWT secret.
 - Docker: repository includes `docker-compose.yml` (defines `db` service using postgres:16). Note: current compose exposes only the DB; the app isn't containerized here — run the app locally or add a Dockerfile to containerize it.
-- Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V9). Before running locally, create the DB (README shows `CREATE DATABASE eletro_longhi;`) or use docker compose to start Postgres. Lookup-table seed data (like `Brand` and `Accessory`) should go in new append-only migrations.
+- Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V10). Before running locally, create the DB (README shows `CREATE DATABASE eletro_longhi;`) or use docker compose to start Postgres. Lookup-table seed data (like `Brand` and `Accessory`) should go in new append-only migrations.
 - Tests: standard Maven tests `./mvnw test`. There are currently no extensive test suites in repo (README lists tests as future work).
 
 ## 📦 External Dependencies & Integration Points
@@ -58,7 +60,7 @@ Build / run / debug workflows (commands and gotchas)
 
 ### Add a new request field (e.g., "color" to Device)
 1. **Entity** (`entity/Device.java`): Add `private String color;`
-2. **Migration** (`db/migration/V8__*.sql`): `ALTER TABLE devices ADD COLUMN color VARCHAR(100);`
+2. **Migration** (`db/migration/V11__*.sql`): `ALTER TABLE devices ADD COLUMN color VARCHAR(100);`
 3. **Request DTO** (`controller/request/DeviceRequest.java`): Add `String color` field with `@NotNull` if required.
 4. **Response DTO** (`controller/response/DeviceResponse.java`): Add `String color` field.
 5. **Mapper** (`mapper/DeviceMapper.java`): MapStruct auto-maps; no code changes needed.
@@ -79,7 +81,8 @@ Edit **both** methods together:
 | Understand architecture | `.agents/ARCHITECTURE.md` |
 | Learn domain terms | `.agents/GLOSSARY.md` |
 | Plan a feature | `.agents/PLANS.md` |
-| Add new endpoint | `controller/*.java`, `service/*.java`, `repository/*.java` |
+| Add new endpoint | `controller/*.java`, `controller/api/spec/*Api.java`, `service/*.java`, `repository/*.java` |
+| Endpoint contracts/docs | `controller/api/spec/*Api.java` |
 | Change listing filters/pagination | `controller/support/PaginationUtils.java`, `repository/specification/*.java`, `service/*Service.java` |
 | Change security | `config/SecurityConfig.java`, `config/SecurityFilter.java`, `config/TokenService.java` |
 | Handle errors | `config/ApplicationControllerAdvice.java` |
@@ -120,7 +123,5 @@ Edit **both** methods together:
 
 ---
 
-**Last updated**: 2026-07-20  
-**Version**: 2.2 (added documentation maintenance policy for impactful changes)
-
-
+**Last updated**: 2026-07-30  
+**Version**: 2.3 (added controller API contract guidance and updated migration references)
