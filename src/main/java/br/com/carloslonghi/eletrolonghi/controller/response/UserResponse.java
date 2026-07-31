@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller.response;
 
+import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -10,6 +11,9 @@ public record UserResponse(
         Long id,
 
         String name,
-        String email
+        String email,
+
+        @Schema(description = "Papel do usuário na aplicação")
+        Role role
 ) {
 }
