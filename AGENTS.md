@@ -8,7 +8,7 @@ Checklist for an agent run:
 - Verify DB migrations and properties before touching schema (`src/main/resources/db/migration` and `application.properties`).
 
 Big picture (what matters)
-- Language & framework: Java 21 + Spring Boot 3. Project is organized by feature packages under `br.com.carloslonghi.eletrolonghi` (config, controller, service, repository, entity, mapper).
+- Language & framework: Java 21 + Spring Boot 4. Project is organized by feature packages under `br.com.carloslonghi.eletrolonghi` (config, controller, service, repository, entity, mapper).
 - Flow: HTTP controllers accept record-based DTOs → controllers call Service layer (business rules) → Services use Spring Data JPA repositories → Entities persisted in PostgreSQL. Mappers convert between records and entities (see `mapper/DeviceMapper`).
 - Security: JWT-based. Token generation & verification live in `config/TokenService` and are enforced by `config/SecurityFilter`. Security policy is configured in `config/SecurityConfig` (stateless; `/auth/register` and `/auth/login` are public).
 
@@ -123,5 +123,5 @@ Edit **both** methods together:
 
 ---
 
-**Last updated**: 2026-07-30  
-**Version**: 2.3 (added controller API contract guidance and updated migration references)
+**Last updated**: 2026-07-31  
+**Version**: 2.4 (updated Spring Boot 3 → 4.1.0; springdoc-openapi 2.x → 3.x)
