@@ -13,9 +13,7 @@ public final class DeviceSpecification {
 
     public static Specification<Device> withFilters(
             String model,
-            String serialNumber,
-            Long brandId,
-            Long accessoryId
+            Long brandId
     ) {
         return (root, query, builder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
@@ -31,20 +29,10 @@ public final class DeviceSpecification {
                 ));
             }
 
-            if (serialNumber != null && !serialNumber.isBlank()) {
-                predicates.add(builder.like(
-                        builder.lower(root.get("serialNumber")),
-                        "%" + serialNumber.trim().toLowerCase() + "%"
-                ));
-            }
-
             if (brandId != null) {
                 predicates.add(builder.equal(root.get("brand").get("id"), brandId));
             }
 
-            if (accessoryId != null) {
-                predicates.add(builder.equal(root.join("accessories").get("id"), accessoryId));
-            }
 
             return predicates.isEmpty()
                     ? builder.conjunction()

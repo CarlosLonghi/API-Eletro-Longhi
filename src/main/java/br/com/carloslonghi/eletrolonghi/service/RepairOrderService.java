@@ -32,7 +32,6 @@ public class RepairOrderService {
             RepairOrderStatus status,
             Long customerId,
             Long deviceId,
-            String description,
             LocalDateTime createdFrom,
             LocalDateTime createdTo,
             Pageable pageable
@@ -42,7 +41,6 @@ public class RepairOrderService {
                         status,
                         customerId,
                         deviceId,
-                        description,
                         createdFrom,
                         createdTo
                 ),

@@ -28,16 +28,14 @@ public class DeviceController implements DeviceApi {
     @GetMapping
     public ResponseEntity<Page<DeviceResponse>> getAllDevices(
             @RequestParam(required = false) String model,
-            @RequestParam(required = false) String serialNumber,
             @RequestParam(required = false) Long brandId,
-            @RequestParam(required = false) Long accessoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
         Pageable pageable = PaginationUtils.createPageable(page, size, sortBy, direction);
-        Page<DeviceResponse> devices = deviceService.findAll(model, serialNumber, brandId, accessoryId, pageable)
+        Page<DeviceResponse> devices = deviceService.findAll(model, brandId, pageable)
                 .map(deviceMapper::toResponse);
 
         return ResponseEntity.ok(devices);
@@ -97,15 +95,13 @@ public class DeviceController implements DeviceApi {
     public ResponseEntity<Page<DeviceResponse>> getDevicesByBrandId(
             @RequestParam Long brandId,
             @RequestParam(required = false) String model,
-            @RequestParam(required = false) String serialNumber,
-            @RequestParam(required = false) Long accessoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
         Pageable pageable = PaginationUtils.createPageable(page, size, sortBy, direction);
-        Page<DeviceResponse> devices = deviceService.findAll(model, serialNumber, brandId, accessoryId, pageable)
+        Page<DeviceResponse> devices = deviceService.findAll(model, brandId, pageable)
                 .map(deviceMapper::toResponse);
 
         return ResponseEntity.ok(devices);

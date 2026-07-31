@@ -81,8 +81,6 @@ public interface RepairOrderApi {
             @RequestParam(required = false) Long customerId,
             @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do aparelho")
             @RequestParam(required = false) Long deviceId,
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por descrição")
-            @RequestParam(required = false) String description,
             @Parameter(in = ParameterIn.QUERY, description = "Data inicial de criação (ISO-8601)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
             @Parameter(in = ParameterIn.QUERY, description = "Data final de criação (ISO-8601)")

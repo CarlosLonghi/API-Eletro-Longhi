@@ -17,7 +17,6 @@ public final class RepairOrderSpecification {
             RepairOrderStatus status,
             Long customerId,
             Long deviceId,
-            String description,
             LocalDateTime createdFrom,
             LocalDateTime createdTo
     ) {
@@ -36,12 +35,6 @@ public final class RepairOrderSpecification {
                 predicates.add(builder.equal(root.get("device").get("id"), deviceId));
             }
 
-            if (description != null && !description.isBlank()) {
-                predicates.add(builder.like(
-                        builder.lower(root.get("description")),
-                        "%" + description.trim().toLowerCase() + "%"
-                ));
-            }
 
             if (createdFrom != null) {
                 predicates.add(builder.greaterThanOrEqualTo(root.get("createdAt"), createdFrom));

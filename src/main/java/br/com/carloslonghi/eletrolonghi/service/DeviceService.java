@@ -29,13 +29,11 @@ public class DeviceService {
 
     public Page<Device> findAll(
             String model,
-            String serialNumber,
             Long brandId,
-            Long accessoryId,
             Pageable pageable
     ) {
         return deviceRepository.findAll(
-                DeviceSpecification.withFilters(model, serialNumber, brandId, accessoryId),
+                DeviceSpecification.withFilters(model, brandId),
                 pageable
         );
     }

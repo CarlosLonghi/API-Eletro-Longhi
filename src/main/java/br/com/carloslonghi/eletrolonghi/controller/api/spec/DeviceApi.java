@@ -71,12 +71,8 @@ public interface DeviceApi {
     ResponseEntity<Page<DeviceResponse>> getAllDevices(
             @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por modelo")
             @RequestParam(required = false) String model,
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por número de série")
-            @RequestParam(required = false) String serialNumber,
             @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID da marca")
             @RequestParam(required = false) Long brandId,
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do acessório")
-            @RequestParam(required = false) Long accessoryId,
             @Parameter(in = ParameterIn.QUERY, description = "Número da página (inicia em 0)")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(in = ParameterIn.QUERY, description = "Quantidade de itens por página")
@@ -151,10 +147,6 @@ public interface DeviceApi {
             @RequestParam Long brandId,
             @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por modelo")
             @RequestParam(required = false) String model,
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por número de série")
-            @RequestParam(required = false) String serialNumber,
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do acessório")
-            @RequestParam(required = false) Long accessoryId,
             @Parameter(in = ParameterIn.QUERY, description = "Número da página (inicia em 0)")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(in = ParameterIn.QUERY, description = "Quantidade de itens por página")

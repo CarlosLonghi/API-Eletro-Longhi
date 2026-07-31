@@ -34,7 +34,6 @@ public class RepairOrderController implements RepairOrderApi {
             @RequestParam(required = false) RepairOrderStatus status,
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) Long deviceId,
-            @RequestParam(required = false) String description,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdTo,
             @RequestParam(defaultValue = "0") int page,
@@ -47,7 +46,6 @@ public class RepairOrderController implements RepairOrderApi {
                         status,
                         customerId,
                         deviceId,
-                        description,
                         createdFrom,
                         createdTo,
                         pageable

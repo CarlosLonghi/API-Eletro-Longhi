@@ -51,9 +51,9 @@ Build / run / debug workflows (commands and gotchas)
   - `GET /brand`
   - `GET /accessory`
 - **Paginated + advanced filters** (shared params: `page`, `size`, `sortBy`, `direction`):
-  - `GET /device` and `GET /device/search` (filters: `model`, `serialNumber`, `brandId`, `accessoryId`)
+  - `GET /device` and `GET /device/search` (filters: `model`, `brandId`)
   - `GET /customer` (filters: `name`, `email`, `phone`)
-  - `GET /repair-order` (filters: `status`, `customerId`, `deviceId`, `description`, `createdFrom`, `createdTo`)
+  - `GET /repair-order` (filters: `status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`)
 - **Single-resource lookup (no pagination)**:
   - `GET /device/serial-number?serialNumber=...` (exact serial number)
 - Pagination builder utility: `controller/support/PaginationUtils.java`.
