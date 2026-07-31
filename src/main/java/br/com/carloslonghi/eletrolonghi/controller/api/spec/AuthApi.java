@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 
 import br.com.carloslonghi.eletrolonghi.controller.request.LoginRequest;
+import br.com.carloslonghi.eletrolonghi.controller.request.RefreshTokenRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.UserRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.LoginResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.UserResponse;
@@ -59,7 +60,8 @@ public interface AuthApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Email e(ou) senha incorreto(s)", content = @Content)
+            @ApiResponse(responseCode = "401", description = "Email e(ou) senha incorreto(s)", content = @Content),
+            @ApiResponse(responseCode = "429", description = "Muitas tentativas de login inválidas", content = @Content)
     })
     ResponseEntity<LoginResponse> login(
             @RequestBody(
@@ -70,6 +72,52 @@ public interface AuthApi {
                     )
             )
             LoginRequest request
+    );
+
+    @Operation(
+            summary = "Renovar token de acesso",
+            description = "Gera um novo token JWT a partir de um refresh token válido, sem exigir novo login"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Token renovado com sucesso",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = LoginResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Refresh token inválido, revogado ou expirado", content = @Content)
+    })
+    ResponseEntity<LoginResponse> refresh(
+            @RequestBody(
+                    description = "Refresh token emitido no login",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = RefreshTokenRequest.class)
+                    )
+            )
+            RefreshTokenRequest request
+    );
+
+    @Operation(
+            summary = "Encerrar sessão (logout)",
+            description = "Revoga o refresh token informado, impedindo sua reutilização para gerar novos tokens de acesso"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Logout realizado com sucesso", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content)
+    })
+    ResponseEntity<Void> logout(
+            @RequestBody(
+                    description = "Refresh token a ser revogado",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = RefreshTokenRequest.class)
+                    )
+            )
+            RefreshTokenRequest request
     );
 
 }
