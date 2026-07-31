@@ -10,7 +10,7 @@ Checklist for an agent run:
 Big picture (what matters)
 - Language & framework: Java 21 + Spring Boot 4. Project is organized by feature packages under `br.com.carloslonghi.eletrolonghi` (config, controller, service, repository, entity, mapper).
 - Flow: HTTP controllers accept record-based DTOs → controllers call Service layer (business rules) → Services use Spring Data JPA repositories → Entities persisted in PostgreSQL. Mappers convert between records and entities (see `mapper/DeviceMapper`).
-- Security: JWT-based. Token generation & verification live in `config/TokenService` and are enforced by `config/SecurityFilter`. Security policy is configured in `config/SecurityConfig` (stateless; `/auth/register` and `/auth/login` are public).
+- Security: JWT-based, with refresh tokens. Access-token generation & verification live in `config/TokenService`, enforced by `config/SecurityFilter`. Refresh tokens are persisted (`entity/RefreshToken`, `repository/RefreshTokenRepository`, `service/RefreshTokenService`) and issued/rotated/revoked via `/auth/login`, `/auth/refresh`, `/auth/logout`. Security policy is configured in `config/SecurityConfig` (stateless; `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` are public; unauthenticated/invalid-token requests get an explicit 401 via a custom `AuthenticationEntryPoint`). Users carry a `Role` (`entity/Role`: `ADMIN`, `USER`) mapped to a Spring `GrantedAuthority` (`ROLE_<name>`), embedded as a `role` claim in the JWT and rebuilt into authorities in `SecurityFilter`. Login brute-force protection is handled in-memory by `service/LoginAttemptService` (configurable max attempts / block duration).
 
 Project-specific conventions — important for automated edits
 - DTOs are Java records (e.g. `controller/request/DeviceRequest.java`). Expect accessor methods like `request.brand()` and immutable DTOs.
@@ -68,9 +68,16 @@ Build / run / debug workflows (commands and gotchas)
 
 ### Change JWT token claims
 Edit **both** methods together:
-- `config/TokenService.generateToken(JWTUserData)` — adds claims
-- `config/TokenService.verifyToken(String)` — extracts same claims
-- Ensure `config/SecurityFilter.java` still extracts `JWTUserData` correctly.
+- `config/TokenService.generateToken(User)` — adds claims (`userId`, `userName`, `role`)
+- `config/TokenService.verifyToken(String)` — extracts same claims into `JWTUserData`
+- Ensure `config/SecurityFilter.java` still extracts `JWTUserData` correctly and rebuilds `GrantedAuthority` from the `role` claim.
+
+### Auth endpoints & flows (login / refresh / logout)
+- `POST /auth/login` — validates credentials, checks `LoginAttemptService` (blocks after N failed attempts for a configurable window), returns `LoginResponse(token, refreshToken)`. Failed attempts are tracked per-email in-memory (not distributed — resets on app restart / doesn't work across multiple instances without a shared store like Redis).
+- `POST /auth/refresh` — accepts `RefreshTokenRequest(refreshToken)`, validates via `RefreshTokenService.findValidToken` (throws `InvalidRefreshTokenException` → 401 if missing/revoked/expired), issues a new access token **and rotates** the refresh token (old one is revoked when a new one is created for the same user).
+- `POST /auth/logout` — accepts `RefreshTokenRequest(refreshToken)`, revokes it (idempotent, no-op if already revoked/unknown), returns 204.
+- Refresh tokens are stored in `refresh_tokens` table (`entity/RefreshToken`); `RefreshTokenRepository.revokeAllByUser` is called whenever a new refresh token is minted, so a user only ever has one valid refresh token at a time.
+- New properties: `spring.security.access-token-expiration-seconds`, `spring.security.refresh-token-expiration-ms`, `spring.security.login.max-attempts`, `spring.security.login.block-duration-ms` (all in `application.properties`).
 
 ---
 
@@ -101,6 +108,9 @@ Edit **both** methods together:
   - Validation is enforced at the controller layer: `DeviceRequest.serialNumber` is `@NotBlank`.
 - **Optional Returns**: Services use `Optional<Entity>` for single lookups; controllers must check `isPresent()`.
 - **Listing Scope**: Keep `Brand` and `Accessory` as simple lists unless product requirements change (low-volume lookup entities).
+- **Refresh token rotation**: `RefreshTokenService.createRefreshToken` revokes all previous refresh tokens for that user first — a user can only have one active refresh token; calling `/auth/refresh` invalidates the previous refresh token immediately.
+- **Login attempt tracking is in-memory**: `LoginAttemptService` uses a `ConcurrentHashMap`, not shared across app instances/restarts. For multi-instance deployments, replace with a shared store (Redis) before relying on it in production.
+- **Users default to `Role.USER`**: existing rows get `USER` via migration default; assign `ADMIN` manually in DB until an admin-management endpoint exists.
 
 ---
 
@@ -124,4 +134,4 @@ Edit **both** methods together:
 ---
 
 **Last updated**: 2026-07-31  
-**Version**: 2.4 (updated Spring Boot 3 → 4.1.0; springdoc-openapi 2.x → 3.x)
+**Version**: 2.5 (added refresh tokens, role-based authorities, login rate-limiting, explicit 401 on invalid/expired token)
