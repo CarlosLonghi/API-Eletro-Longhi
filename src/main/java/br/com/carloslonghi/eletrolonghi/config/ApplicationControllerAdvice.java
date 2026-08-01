@@ -1,5 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,18 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(UsernameOrPasswordInvalidException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public String handleAuthException(UsernameOrPasswordInvalidException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public String handleInvalidRefreshTokenException(InvalidRefreshTokenException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public String handleTooManyLoginAttemptsException(TooManyLoginAttemptsException exception) {
         return exception.getMessage();
     }
 
