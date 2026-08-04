@@ -7,6 +7,14 @@ Checklist for an agent run:
 - Read DTOs (records) and mappers before changing endpoints (`controller/request`, `controller/response`, `mapper/*`).
 - Verify DB migrations and properties before touching schema (`src/main/resources/db/migration` and `application.properties`).
 
+## 🚨 Critical Discovery — Always Validate Before Documentation Edits
+
+**When editing `AGENTS.md` or removing references to `.agents/*` files:**
+1. **Validate `.agents/` package exists** via `list_dir` before removing any references to `.agents/ARCHITECTURE.md`, `.agents/GLOSSARY.md`, or `.agents/PLANS.md`
+2. **Always check actual migration file count** in `src/main/resources/db/migration/` (currently V1..V13); never cite migration ranges from memory
+3. **Validate DB name in `application.properties`** (currently `eletrolonghi`, no underscore) before citing README examples
+4. **When in doubt, use `list_dir` or `read_file`** — don't assume based on prior search results; repo structure is foundational to agent guidance
+
 Big picture (what matters)
 - Language & framework: Java 21 + Spring Boot 4. Project is organized by feature packages under `br.com.carloslonghi.eletrolonghi` (config, controller, service, repository, entity, mapper).
 - Flow: HTTP controllers accept record-based DTOs → controllers call Service layer (business rules) → Services use Spring Data JPA repositories → Entities persisted in PostgreSQL. Mappers convert between records and entities (see `mapper/DeviceMapper`).
@@ -27,7 +35,7 @@ Build / run / debug workflows (commands and gotchas)
 - Build package: `./mvnw -q -DskipTests package` or full build `./mvnw package`.
 - Run locally: `./mvnw spring-boot:run`. The app reads `src/main/resources/application.properties` for DB and JWT secret.
 - Docker: repository includes `docker-compose.yml` (defines `db` service using postgres:16). Note: current compose exposes only the DB; the app isn't containerized here — run the app locally or add a Dockerfile to containerize it.
-- Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V10). Before running locally, create the DB (README shows `CREATE DATABASE eletro_longhi;`) or use docker compose to start Postgres. Lookup-table seed data (like `Brand` and `Accessory`) should go in new append-only migrations.
+- Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V13). Before running locally, create the DB (README shows `CREATE DATABASE eletrolonghi;`) or use docker compose to start Postgres. Lookup-table seed data (like `Brand` and `Accessory`) should go in new append-only migrations.
 - Tests: standard Maven tests `./mvnw test`. There are currently no extensive test suites in repo (README lists tests as future work).
 
 ## 📦 External Dependencies & Integration Points
@@ -133,5 +141,5 @@ Edit **both** methods together:
 
 ---
 
-**Last updated**: 2026-07-31  
-**Version**: 2.5 (added refresh tokens, role-based authorities, login rate-limiting, explicit 401 on invalid/expired token)
+**Last updated**: 2026-08-04
+**Version**: 2.7 (added Critical Discovery section to force .agents validation)
