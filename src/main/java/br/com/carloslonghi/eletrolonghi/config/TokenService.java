@@ -20,18 +20,18 @@ public class TokenService {
     @Value("${spring.security.access-token-expiration-seconds:3600}")
     private long accessTokenExpirationSeconds;
 
-    private final String userId = "userId";
-    private final String userName = "userName";
-    private final String userRole = "role";
+    private static final String USER_ID = "userId";
+    private static final String USER_NAME = "userName";
+    private static final String USER_ROLE = "role";
 
     public String generateToken(User user) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
 
         return JWT.create()
                 .withSubject(user.getEmail())
-                .withClaim(userId, user.getId())
-                .withClaim(userName, user.getName())
-                .withClaim(userRole, user.getRole().name())
+                .withClaim(USER_ID, user.getId())
+                .withClaim(USER_NAME, user.getName())
+                .withClaim(USER_ROLE, user.getRole().name())
                 .withExpiresAt(Instant.now().plusSeconds(accessTokenExpirationSeconds))
                 .withIssuedAt(Instant.now())
                 .withIssuer("API-EletroLonghi")
@@ -48,10 +48,10 @@ public class TokenService {
 
             JWTUserData jwtUserData = JWTUserData
                     .builder()
-                    .id(jwt.getClaim(userId).asLong())
-                    .name(jwt.getClaim(userName).asString())
+                    .id(jwt.getClaim(USER_ID).asLong())
+                    .name(jwt.getClaim(USER_NAME).asString())
                     .email(jwt.getSubject())
-                    .role(jwt.getClaim(userRole).asString())
+                    .role(jwt.getClaim(USER_ROLE).asString())
                     .build();
 
             return Optional.of(jwtUserData);

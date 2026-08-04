@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
+import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
@@ -44,6 +45,12 @@ public class ApplicationControllerAdvice {
         );
 
         return errors;
+    }
+
+    @ExceptionHandler(DeviceAlreadyInRepairException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handleDeviceAlreadyInRepairException(DeviceAlreadyInRepairException exception) {
+        return exception.getMessage();
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

@@ -44,7 +44,7 @@ public interface RepairOrderApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Aparelho já vinculado a outro Reparo", content = @Content)
+            @ApiResponse(responseCode = "422", description = "Aparelho já possui uma ordem de reparo ativa. A ordem anterior deve estar com status DEVICE_COLLECTED para criar uma nova.", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> createRepairOrder(
             @RequestBody(
@@ -131,7 +131,7 @@ public interface RepairOrderApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Aparelho já vinculado a outro Reparo", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrder(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)

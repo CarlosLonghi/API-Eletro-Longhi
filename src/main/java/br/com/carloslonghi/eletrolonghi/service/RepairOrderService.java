@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,13 @@ public class RepairOrderService {
 
         Device device = this.findDevice(repairOrder.getDevice());
         repairOrder.setDevice(device);
+
+        boolean hasActiveOrder = repairOrderRepository
+                .existsByDeviceIdAndStatusNot(device.getId(), RepairOrderStatus.DEVICE_COLLECTED);
+
+        if (hasActiveOrder) {
+            throw new DeviceAlreadyInRepairException(device.getId());
+        }
 
         return repairOrderRepository.save(repairOrder);
     }

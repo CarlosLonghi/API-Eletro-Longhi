@@ -39,7 +39,7 @@ public class RepairOrder {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @OneToOne(optional = false)
-    @JoinColumn(name = "device_id", unique = true, nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "device_id", nullable = false)
     private Device device;
 }
