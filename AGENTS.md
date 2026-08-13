@@ -42,6 +42,7 @@ Build / run / debug workflows (commands and gotchas)
 
 - **PostgreSQL**: JDBC URL in `application.properties`; Flyway migrations apply at startup.
 - **JWT**: Auth0 Java JWT library; secret from `spring.security.secret` property (set in `application.properties` or env).
+- **CORS**: Allowed browser origins come from `spring.security.cors.allowed-origins` in `application.properties` and are enforced in `config/SecurityConfig.corsConfigurationSource`.
 - **OpenAPI/Swagger**: Springdoc-enabled; UI at `/swagger-ui/index.html`.
 - **MapStruct**: Generates code at compile time; processor configured in `pom.xml`.
 
@@ -68,7 +69,7 @@ Build / run / debug workflows (commands and gotchas)
 
 ### Add a new request field (e.g., "color" to Device)
 1. **Entity** (`entity/Device.java`): Add `private String color;`
-2. **Migration** (`db/migration/V11__*.sql`): `ALTER TABLE devices ADD COLUMN color VARCHAR(100);`
+2. **Migration** (`db/migration/V14__*.sql` or next version): `ALTER TABLE devices ADD COLUMN color VARCHAR(100);`
 3. **Request DTO** (`controller/request/DeviceRequest.java`): Add `String color` field with `@NotNull` if required.
 4. **Response DTO** (`controller/response/DeviceResponse.java`): Add `String color` field.
 5. **Mapper** (`mapper/DeviceMapper.java`): MapStruct auto-maps; no code changes needed.
@@ -119,6 +120,7 @@ Edit **both** methods together:
 - **Refresh token rotation**: `RefreshTokenService.createRefreshToken` revokes all previous refresh tokens for that user first — a user can only have one active refresh token; calling `/auth/refresh` invalidates the previous refresh token immediately.
 - **Login attempt tracking is in-memory**: `LoginAttemptService` uses a `ConcurrentHashMap`, not shared across app instances/restarts. For multi-instance deployments, replace with a shared store (Redis) before relying on it in production.
 - **Users default to `Role.USER`**: existing rows get `USER` via migration default; assign `ADMIN` manually in DB until an admin-management endpoint exists.
+- **CORS is allowlist-based**: if front-end host/port changes, update `spring.security.cors.allowed-origins` or browser calls will fail before reaching controllers.
 
 ---
 
@@ -141,5 +143,5 @@ Edit **both** methods together:
 
 ---
 
-**Last updated**: 2026-08-04
-**Version**: 2.7 (added Critical Discovery section to force .agents validation)
+**Last updated**: 2026-08-13
+**Version**: 2.8 (added CORS integration/gotcha and corrected migration example versioning)
