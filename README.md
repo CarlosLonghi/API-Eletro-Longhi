@@ -29,6 +29,8 @@ Funcionalidades implementadas:
 | Springdoc OpenAPI (Swagger UI) | 3.0.0 |
 | Auth0 Java JWT | 4.4.0 |
 | Lombok | (gerenciado pelo Spring Boot) |
+| Testcontainers (PostgreSQL) | 1.21.4 |
+| JaCoCo (Code Coverage) | 0.8.12 |
 | Docker & Docker Compose | — |
 
 ---
@@ -51,7 +53,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 
 src/main/resources/
 ├── application.properties
-└── db/migration/     # Migrations Flyway (V1..V10)
+└── db/migration/     # Migrations Flyway (V1..V13)
 ```
 
 ---
@@ -106,12 +108,17 @@ src/main/resources/
 ### Build
 
 ```bash
-# Build completo (com testes)
+# Build completo (com testes unitários e integração)
 ./mvnw package
 
 # Build sem testes
 ./mvnw -DskipTests package
+
+# Build com relatório de cobertura de testes (JaCoCo)
+./mvnw verify
 ```
+
+> **Nota:** Testes de integração requerem Docker para usar Testcontainers (PostgreSQL). O comando `./mvnw verify` executa todos os testes e gera relatório de cobertura; falha se a cobertura cair abaixo de 80% (configurável em `pom.xml`).
 
 ---
 
@@ -200,9 +207,9 @@ Parâmetros de paginação: `page`, `size`, `sortBy`, `direction`
 ### Melhorias Futuras
 
 * Implementar enums nativos no banco (PostgreSQL) com driver customizado.
-* Adicionar testes unitários e de integração (Testcontainers já configurado como dependência).
 * Pipeline CI/CD e métricas de performance.
 * Containerizar a aplicação no `docker-compose.yml`.
+* Expandir cobertura de testes unitários (atualmente em 80%, com suporte a integração via Testcontainers).
 
 ---
 

@@ -36,7 +36,7 @@ Build / run / debug workflows (commands and gotchas)
 - Run locally: `./mvnw spring-boot:run`. The app reads `src/main/resources/application.properties` for DB and JWT secret.
 - Docker: repository includes `docker-compose.yml` (defines `db` service using postgres:16). Note: current compose exposes only the DB; the app isn't containerized here — run the app locally or add a Dockerfile to containerize it.
 - Database: Flyway migrations are in `src/main/resources/db/migration` (V1..V13). Before running locally, create the DB (README shows `CREATE DATABASE eletrolonghi;`) or use docker compose to start Postgres. Lookup-table seed data (like `Brand` and `Accessory`) should go in new append-only migrations.
-- Tests: standard Maven tests `./mvnw test`. There are currently no extensive test suites in repo (README lists tests as future work).
+- Tests: run `./mvnw test` for the current suite (controller/service unit tests plus repository integration tests). Integration tests use Testcontainers (PostgreSQL) and require a working Docker daemon. Run `./mvnw verify` when you need Jacoco report + coverage gate enforcement.
 
 ## 📦 External Dependencies & Integration Points
 
@@ -45,6 +45,8 @@ Build / run / debug workflows (commands and gotchas)
 - **CORS**: Allowed browser origins come from `spring.security.cors.allowed-origins` in `application.properties` and are enforced in `config/SecurityConfig.corsConfigurationSource`.
 - **OpenAPI/Swagger**: Springdoc-enabled; UI at `/swagger-ui/index.html`.
 - **MapStruct**: Generates code at compile time; processor configured in `pom.xml`.
+- **Testcontainers**: Repository integration tests use `org.testcontainers:postgresql` to boot PostgreSQL dynamically (see `src/test/java/.../repository/support/AbstractPostgresIntegrationTest.java`).
+- **JaCoCo**: `mvn verify` enforces a minimum line coverage ratio (`coverage.minimum` in `pom.xml`, currently `0.80`).
 
 ---
 
@@ -110,8 +112,10 @@ Edit **both** methods together:
 ## ⚠️ Known Gotchas
 
 - **Docker Compose**: Only spins up DB, not the app. Run app locally via `./mvnw spring-boot:run`.
+- **Integration tests need Docker**: repository integration tests start PostgreSQL via Testcontainers; if Docker is unavailable, those tests fail before assertions run.
 - **JWT Secret**: Must be set in `application.properties` or environment; used in CI/CD.
 - **MapStruct Timing**: Implementations generated only at compile time; always run `./mvnw compile` after changing mappers.
+- **Coverage gate on `verify`**: `./mvnw verify` runs Jacoco `check` and can fail the build when line coverage falls below `coverage.minimum` (`0.80`).
 - **Migrations**: Append-only; never edit old `V*.sql` files; create new ones for schema or seed-data changes.
 - **Device Serial Number**: `devices.serial_number` now has DB-level `NOT NULL` + uniqueness; missing or duplicate values will fail on insert/update.
   - Validation is enforced at the controller layer: `DeviceRequest.serialNumber` is `@NotBlank`.
@@ -143,5 +147,5 @@ Edit **both** methods together:
 
 ---
 
-**Last updated**: 2026-08-13
-**Version**: 2.8 (added CORS integration/gotcha and corrected migration example versioning)
+**Last updated**: 2026-08-14
+**Version**: 2.9 (updated testing workflow/dependencies and coverage/testcontainers gotchas)
