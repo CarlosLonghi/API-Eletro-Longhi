@@ -30,7 +30,9 @@
 		<java.version>21</java.version>
 		<org.mapstruct.version>1.6.3</org.mapstruct.version>
 		<springdoc.version>3.0.0</springdoc.version>
-		<testcontainers.version>1.20.3</testcontainers.version>
+		<testcontainers.version>1.21.4</testcontainers.version>
+		<jacoco.version>0.8.12</jacoco.version>
+		<coverage.minimum>0.80</coverage.minimum>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -124,6 +126,76 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+							<excludes>
+								<exclude>**/entity/**</exclude>
+								<exclude>**/repository/**</exclude>
+								<exclude>**/repository/specification/**</exclude>
+								<exclude>**/mapper/**</exclude>
+								<exclude>**/controller/request/**</exclude>
+								<exclude>**/controller/response/**</exclude>
+								<exclude>**/controller/api/spec/**</exclude>
+								<exclude>**/exception/**</exclude>
+								<exclude>**/config/SecurityConfig*</exclude>
+								<exclude>**/config/SwaggerConfig*</exclude>
+								<exclude>**/EletrolonghiApplication*</exclude>
+								<exclude>**/config/JWTUserData*</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+					<execution>
+						<id>check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>${coverage.minimum}</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+							<excludes>
+								<exclude>**/entity/**</exclude>
+								<exclude>**/repository/**</exclude>
+								<exclude>**/repository/specification/**</exclude>
+								<exclude>**/mapper/**</exclude>
+								<exclude>**/controller/request/**</exclude>
+								<exclude>**/controller/response/**</exclude>
+								<exclude>**/controller/api/spec/**</exclude>
+								<exclude>**/exception/**</exclude>
+								<exclude>**/config/SecurityConfig*</exclude>
+								<exclude>**/config/SwaggerConfig*</exclude>
+								<exclude>**/EletrolonghiApplication*</exclude>
+								<exclude>**/config/JWTUserData*</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
