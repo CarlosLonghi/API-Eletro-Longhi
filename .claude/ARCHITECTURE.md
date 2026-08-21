@@ -9,7 +9,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 ├── EletrolonghiApplication.java
 │
 ├── config/
-│   ├── SecurityConfig.java              # Stateless JWT policy; public /auth/*
+│   ├── SecurityConfig.java              # Stateless JWT policy; public /auth/*; ADMIN-only create/delete on Brand/Accessory, delete on Customer/Device/RepairOrder
 │   ├── SecurityFilter.java              # Extracts JWT claims → SecurityContext
 │   ├── TokenService.java                # Generate/verify access tokens
 │   ├── JWTUserData.java                 # DTO for decoded JWT claims
@@ -69,7 +69,7 @@ src/main/resources/
 
 ## Architectural invariants
 
-- **I1 — JWT is the only auth mechanism.** No sessions. Public endpoints: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, Swagger paths. New endpoints require auth unless explicitly marked public in `SecurityConfig`.
+- **I1 — JWT is the only auth mechanism.** No sessions. Public endpoints: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, Swagger paths. New endpoints require auth unless explicitly marked public in `SecurityConfig`. URL-based role rules (no `@PreAuthorize`/method security in this codebase) additionally require `ADMIN` for: `POST`/`DELETE /brand`, `POST`/`DELETE /accessory`, `DELETE /customer/{id}`, `DELETE /device/{id}`, `DELETE /repair-order/{id}`. New ADMIN-only endpoints must add a `requestMatchers(...).hasRole("ADMIN")` rule in `SecurityConfig` before `anyRequest().authenticated()`, and document the restriction in the operation's `*Api.java` `@Operation`/`@ApiResponse` 403 text.
 - **I2 — Controllers never expose entities.** Always map via `mapper.toResponse(entity)`. `return entity;` in a controller is a bug.
 - **I3 — Services return `Optional` for single-entity lookups.** Controllers decide 200 vs 404 from `isPresent()`/`ifPresentOrElse`. Never return `null`.
 - **I4 — Repositories use Spring Data derived-query naming first.** Reach for `Specification` before a custom `@Query`.

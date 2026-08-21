@@ -144,13 +144,13 @@ public interface CustomerApi {
 
     @Operation(
             summary = "Deletar cliente por ID",
-            description = "Remove um cliente do sistema pelo seu ID"
+            description = "Remove um cliente do sistema pelo seu ID. Requer perfil ADMIN."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cliente deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content),
             @ApiResponse(responseCode = "409", description = "Cliente não deletado, pois está relacionado a um serviço", content = @Content)
     })
     ResponseEntity<Void> deleteCustomerById(

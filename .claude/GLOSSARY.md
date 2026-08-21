@@ -26,7 +26,7 @@ Service ticket tracking a device repair. `id`, `description`, `status` (enum, re
 - Paginated + filterable listing (`status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`).
 
 ### User
-`entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. No admin-management endpoint exists yet — promote a user to `ADMIN` manually in the DB.
+`entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. No admin-management endpoint exists yet — promote a user to `ADMIN` manually in the DB. `ADMIN` is required for create/delete on `Brand`/`Accessory` and delete on `Customer`/`Device`/`RepairOrder` — see `config/SecurityConfig`.
 
 ### RefreshToken
 `entity/RefreshToken` — persisted refresh tokens (`repository/RefreshTokenRepository`, `service/RefreshTokenService`). Minting a new one revokes all previous tokens for that user, so a user has at most one valid refresh token at a time.
@@ -57,6 +57,7 @@ Shared across `Device`, `Customer`, `RepairOrder` listings: `page`, `size`, `sor
 |------|------|
 | Repair order workflow | `entity/enums/RepairOrderStatus.java` |
 | Role enum | `entity/enums/Role.java` |
+| Role-based authorization rules | `config/SecurityConfig.java` |
 | Refresh token entity | `entity/RefreshToken.java` |
 | JWT claims | `config/TokenService.java`, `config/JWTUserData.java` |
 | Login throttling | `service/LoginAttemptService.java` |

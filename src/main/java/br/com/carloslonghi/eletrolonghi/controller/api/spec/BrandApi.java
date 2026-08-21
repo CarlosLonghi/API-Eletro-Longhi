@@ -26,7 +26,7 @@ import java.util.List;
 public interface BrandApi {
     @Operation(
             summary = "Cadastrar nova marca",
-            description = "Cria uma nova marca (ex: LG, Samsung, etc.)"
+            description = "Cria uma nova marca (ex: LG, Samsung, etc.). Requer perfil ADMIN."
     )
     @ApiResponses({
             @ApiResponse(
@@ -39,7 +39,7 @@ public interface BrandApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content),
             @ApiResponse(responseCode = "409", description = "Marca já cadastrada", content = @Content)
     })
     ResponseEntity<BrandResponse> createBrand(
@@ -97,13 +97,13 @@ public interface BrandApi {
 
     @Operation(
             summary = "Deletar marca por ID",
-            description = "Remove uma marca do sistema pelo seu ID"
+            description = "Remove uma marca do sistema pelo seu ID. Requer perfil ADMIN."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Marca deletada com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Marca não encontrada", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content),
             @ApiResponse(responseCode = "409", description = "Marca não deletada, pois está relacionada a um aparelho", content = @Content)
     })
     ResponseEntity<Void> deleteBrandById(

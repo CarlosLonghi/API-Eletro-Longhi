@@ -185,13 +185,13 @@ public interface RepairOrderApi {
 
     @Operation(
             summary = "Deletar reparo por ID",
-            description = "Remove um reparo do sistema pelo seu ID"
+            description = "Remove um reparo do sistema pelo seu ID. Requer perfil ADMIN."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Reparo deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content)
     })
     ResponseEntity<Void> deleteRepairOrderById(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
