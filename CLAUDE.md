@@ -1,0 +1,64 @@
+# Eletro Longhi API
+
+Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in devices, staff track repair orders through a status workflow. Package root: `br.com.carloslonghi.eletrolonghi`.
+
+## Build / run / test
+
+- Run locally: `./mvnw spring-boot:run` (reads `src/main/resources/application.properties`)
+- Compile only: `./mvnw -q -DskipTests package` — always recompile after touching a `mapper/*.java` interface, since MapStruct generates the implementation at compile time.
+- Tests: `./mvnw test` (unit + Testcontainers-backed repository integration tests — needs a working Docker daemon).
+- `./mvnw verify` additionally runs JaCoCo `check` and **fails the build below `coverage.minimum` (0.80)** — run this before considering a change done.
+- `docker compose up -d` starts only Postgres (`db` service, postgres:16); the app itself is not containerized, run it with the Maven command above.
+- DB must exist beforehand: `CREATE DATABASE eletrolonghi;` (or let docker compose provide it). Flyway applies pending migrations from `src/main/resources/db/migration` on startup.
+- Swagger UI: `/swagger-ui/index.html`. OpenAPI docs path: `/api/api-docs` (see `springdoc.*` in `application.properties`).
+
+## Layered architecture
+
+`controller` (record DTOs, `@Valid`) → `service` (business rules) → `repository` (Spring Data JPA) → `entity` (JPA POJOs), with `mapper/*` (MapStruct, `@Mapper(componentModel = "spring")`) converting DTO ↔ entity.
+
+- Controllers implement OpenAPI contract interfaces in `controller/api/spec/*Api.java` — update the interface signature/docs together with the controller method when changing an endpoint contract.
+- Controllers never return entities directly, always `mapper.toResponse(entity)`.
+- Mappers expose `toEntity(RequestRecord)` and `toResponse(Entity)`; some carry default helper methods for id → placeholder-entity resolution (e.g. `brandFromId`, `accessoryFromId`) and `List<Long>` → `List<Entity>` conversions. Don't hand-write static mapper utility classes — MapStruct generates the implementation.
+- Services return `Optional<Entity>` for single lookups; controllers translate to 200/404.
+- Listing strategy is deliberately split:
+  - `Brand`, `Accessory` — small lookup tables, plain `List`, no pagination (`GET /brand`, `GET /accessory`).
+  - `Device`, `Customer`, `RepairOrder` — operational listings, `Pageable` + `JpaSpecificationExecutor`-backed filters (`repository/specification/*`), return `Page`. Shared params: `page`, `size`, `sortBy`, `direction`. Keep this split unless product requirements explicitly change it.
+- Repositories use Spring Data derived-query naming (e.g. `DeviceRepository.findDevicesByBrandId`); reach for `Specification` before a custom `@Query`.
+- Global exception translation lives in `config/ApplicationControllerAdvice`: `MethodArgumentNotValidException` → 400 + field-errors map, `DataIntegrityViolationException` → 409. Add new validation via `@Valid`/Bean Validation annotations on the request record, not ad hoc checks in services.
+
+## Domain model
+
+- **Brand** — device manufacturer, unique name. One brand → many devices.
+- **Device** — unique `serialNumber` (`@NotBlank` + DB unique constraint), FK to `Brand`, many-to-many `Accessory`.
+- **Accessory** — lookup table (name, price), many-to-many with `Device`.
+- **Customer** — top-level entity (`name`, `phone`, unique `email`), own repository/controller — not embedded in `RepairOrder`.
+- **RepairOrder** — `@ManyToOne` to both `Customer` and `Device` (as of `V13`, a device can have more than one repair order over its lifetime; a new order for the same device is only allowed once the previous one reached `DEVICE_COLLECTED` — enforced in `RepairOrderService`, not the DB). Status is `entity/enums/RepairOrderStatus`, a workflow, not a free enum: `AWAITING_EVALUATION → IN_EVALUATION → AWAITING_APPROVAL → APPROVED → AWAITING_PARTS → IN_REPAIR → REPAIR_COMPLETED → PAYMENT_RECEIVED → DEVICE_COLLECTED`. There's a dedicated `PATCH`-style status endpoint using `RepairOrderStatusUpdateRequest`.
+- **User** — `entity/User implements UserDetails`; `name`, unique `email`, `password` (hashed), `role` (`entity/enums/Role`: `ADMIN`, `USER`, defaults to `USER`) mapped to a `ROLE_<name>` `GrantedAuthority`. No admin-management endpoint yet — promote to `ADMIN` manually in the DB.
+- Migrations are append-only under `src/main/resources/db/migration` (currently V1–V13) — never edit an existing `V*.sql`, always add the next `V{n}`. Confirm the actual current max version with `ls` before citing a number; don't trust stale docs or memory.
+
+## Auth (JWT + refresh tokens)
+
+- `config/TokenService` generates/verifies access tokens; `config/SecurityFilter` extracts claims into `SecurityContext`; `config/SecurityConfig` is stateless and marks `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` public — everything else needs `Authorization: Bearer <token>`. Invalid/missing tokens get an explicit 401 via a custom `AuthenticationEntryPoint`.
+- `POST /auth/login` — checks `service/LoginAttemptService` first (in-memory `ConcurrentHashMap`, not shared across instances/restarts — replace with Redis or similar before relying on it in a multi-instance deploy); returns `LoginResponse(token, refreshToken)`.
+- `POST /auth/refresh` — validates via `RefreshTokenService.findValidToken` (401 on missing/revoked/expired), issues a new access token **and rotates** the refresh token; `RefreshTokenService.createRefreshToken` revokes all previous tokens for that user first, so a user only ever has one valid refresh token.
+- `POST /auth/logout` — revokes the given refresh token, idempotent, 204.
+- Relevant properties (`application.properties`): `spring.security.secret`, `spring.security.access-token-expiration-seconds`, `spring.security.refresh-token-expiration-ms`, `spring.security.login.max-attempts`, `spring.security.login.block-duration-ms`, `spring.security.cors.allowed-origins`.
+- When changing JWT claims, keep `TokenService.generateToken` and `TokenService.verifyToken` in sync, and check `SecurityFilter` still rebuilds `GrantedAuthority` from the `role` claim correctly.
+
+## Testing conventions
+
+- Unit tests mirror the main package layout under `src/test/java/.../{config,controller,service}`.
+- Repository tests are real Postgres integration tests via Testcontainers, extending `repository/support/AbstractPostgresIntegrationTest` — they need Docker and will fail before assertions run if it's unavailable.
+- Shared fixtures live in `support/TestFixtures.java`.
+- JaCoCo enforces `coverage.minimum` (0.80) on `./mvnw verify`; check coverage before calling a change complete, not just `./mvnw test`.
+
+## Deeper-dive references
+
+For domain detail and structural invariants beyond this file's summary, see `.claude/GLOSSARY.md` and `.claude/ARCHITECTURE.md`. For features crossing 3+ modules, a migration, or an auth/workflow change, consider writing an ExecPlan first — see `.claude/PLANS.md` and copy `.claude/execplans/TEMPLATE.md`.
+
+## Gotchas
+
+- Docker Compose only starts the DB — run the Spring Boot app itself locally.
+- MapStruct implementations only regenerate on compile — always `./mvnw compile` (or a full build) after touching a mapper interface.
+- `devices.serial_number` has DB-level `NOT NULL` + uniqueness; duplicate/missing values fail on insert/update, and it's also `@NotBlank`-validated at the controller boundary.
+- CORS is allowlist-based (`spring.security.cors.allowed-origins`) — a frontend host/port change needs this updated or requests fail before reaching a controller.
