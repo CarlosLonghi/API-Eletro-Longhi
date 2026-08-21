@@ -38,6 +38,7 @@ public interface BrandApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Marca já cadastrada", content = @Content)
     })
@@ -67,6 +68,7 @@ public interface BrandApi {
                             )
                     )
             ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<List<BrandResponse>> getAllBrands();
@@ -85,6 +87,7 @@ public interface BrandApi {
                     )
             ),
             @ApiResponse(responseCode = "404", description = "Marca não encontrada", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<BrandResponse> getBrandById(
@@ -99,6 +102,7 @@ public interface BrandApi {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Marca deletada com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Marca não encontrada", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Marca não deletada, pois está relacionada a um aparelho", content = @Content)
     })

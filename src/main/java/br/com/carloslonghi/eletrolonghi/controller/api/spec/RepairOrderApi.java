@@ -43,6 +43,7 @@ public interface RepairOrderApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "422", description = "Aparelho já possui uma ordem de reparo ativa. A ordem anterior deve estar com status DEVICE_COLLECTED para criar uma nova.", content = @Content)
     })
@@ -72,10 +73,11 @@ public interface RepairOrderApi {
                             )
                     )
             ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<Page<RepairOrderResponse>> getAllRepairOrders(
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro por status do reparo")
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro por status do reparo", schema = @Schema(implementation = RepairOrderStatus.class))
             @RequestParam(required = false) RepairOrderStatus status,
             @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do cliente")
             @RequestParam(required = false) Long customerId,
@@ -109,6 +111,7 @@ public interface RepairOrderApi {
                     )
             ),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> getRepairOrderById(
@@ -130,6 +133,7 @@ public interface RepairOrderApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
     })
@@ -161,6 +165,7 @@ public interface RepairOrderApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Status inválido ou ausente", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
     })
@@ -185,6 +190,7 @@ public interface RepairOrderApi {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Reparo deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<Void> deleteRepairOrderById(

@@ -7,10 +7,13 @@ import lombok.Builder;
 @Schema(description = "Detalhes de um usuário retornado pela API")
 @Builder
 public record UserResponse(
-        @Schema(description = "Identificador único do usuário")
+        @Schema(description = "Identificador único do usuário", example = "1")
         Long id,
 
+        @Schema(description = "Nome do usuário", example = "Maria Souza")
         String name,
+
+        @Schema(description = "E-mail do usuário", example = "maria.souza@email.com")
         String email,
 
         @Schema(description = "Papel do usuário na aplicação")

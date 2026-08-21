@@ -4,10 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Token de autenticação retornado após login")
 public record LoginResponse(
-        @Schema(description = "Token JWT para autenticação")
+        @Schema(description = "Token JWT para autenticação", example = "eyJhbGciOiJIUzI1NiJ9...")
         String token,
 
-        @Schema(description = "Refresh token usado para obter um novo token JWT sem novo login")
+        @Schema(description = "Refresh token usado para obter um novo token JWT sem novo login", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
         String refreshToken
 ) {
 }

@@ -38,6 +38,7 @@ public interface CustomerApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             //  @ApiResponse(responseCode = "409", description = "Cliente já cadastrado", content = @Content)
     })
@@ -67,6 +68,7 @@ public interface CustomerApi {
                             )
                     )
             ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<Page<CustomerResponse>> getAllCustomers(
@@ -100,6 +102,7 @@ public interface CustomerApi {
                     )
             ),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<CustomerResponse> getCustomerById(
@@ -121,6 +124,7 @@ public interface CustomerApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             //@ApiResponse(responseCode = "409", description = "Cliente já cadastrado", content = @Content)
     })
@@ -145,6 +149,7 @@ public interface CustomerApi {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cliente deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Cliente não deletado, pois está relacionado a um serviço", content = @Content)
     })

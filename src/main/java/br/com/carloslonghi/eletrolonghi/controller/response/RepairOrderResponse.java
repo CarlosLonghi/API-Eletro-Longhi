@@ -7,10 +7,10 @@ import lombok.Builder;
 @Builder
 @Schema(description = "Detalhes de uma ordem de reparo retornada pela API")
 public record RepairOrderResponse(
-        @Schema(description = "Identificador único da ordem de reparo")
+        @Schema(description = "Identificador único da ordem de reparo", example = "1")
         Long id,
 
-        @Schema(description = "Detalhes do serviço solicitado")
+        @Schema(description = "Detalhes do serviço solicitado", example = "Tela trincada, não liga")
         String description,
 
         @Schema(description = "Estado atual do serviço", enumAsRef = true)

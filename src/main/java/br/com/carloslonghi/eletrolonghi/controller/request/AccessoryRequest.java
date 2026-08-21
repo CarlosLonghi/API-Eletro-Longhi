@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @Schema(description = "Dados para criar ou atualizar um acessório")
 public record AccessoryRequest (
+        @Schema(description = "Nome do acessório", example = "Controle remoto")
         @NotBlank(message = "O nome do acessório é obrigatório.")
         String name
 ) {

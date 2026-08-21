@@ -38,6 +38,7 @@ public interface AccessoryApi {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Acessório já cadastrado", content = @Content)
     })
@@ -67,6 +68,7 @@ public interface AccessoryApi {
                             )
                     )
             ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<List<AccessoryResponse>> getAllAccessories();
@@ -85,6 +87,7 @@ public interface AccessoryApi {
                     )
             ),
             @ApiResponse(responseCode = "404", description = "Acessório não encontrado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<AccessoryResponse> getAccessoryById(
@@ -99,6 +102,7 @@ public interface AccessoryApi {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Acessório deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Acessório não encontrado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "409", description = "Acessório não deletado, pois está relacionado a um aparelho", content = @Content)
     })

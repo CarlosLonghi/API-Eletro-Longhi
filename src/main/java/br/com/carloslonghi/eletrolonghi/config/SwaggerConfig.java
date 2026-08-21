@@ -27,7 +27,13 @@ public class SwaggerConfig {
         Info info = new Info();
         info.title("API Eletro Longhi");
         info.version("v1");
-        info.description("API para sistema de gerenciamento de serviços");
+        info.description("""
+                API para sistema de gerenciamento de serviços de uma assistência técnica: \
+                cadastro de clientes, aparelhos, marcas, acessórios e acompanhamento de ordens de reparo.
+
+                Autenticação: registre um usuário em POST /auth/register (ou peça a um admin) e faça login em \
+                POST /auth/login para obter o token JWT. Clique em "Authorize" acima e informe o token \
+                (sem o prefixo "Bearer") para autenticar as chamadas dos demais endpoints.""");
         info.contact(contact);
 
         return new OpenAPI().info(info);

@@ -8,19 +8,19 @@ import java.util.List;
 
 @Schema(description = "Dados para criar ou atualizar um aparelho")
 public record DeviceRequest(
-        @Schema(description = "Modelo do aparelho")
+        @Schema(description = "Modelo do aparelho", example = "Galaxy S23")
         @NotBlank(message = "O modelo do aparelho é obrigatório.")
         String model,
 
-        @Schema(description = "Número de série do aparelho")
+        @Schema(description = "Número de série do aparelho", example = "SN-2024-00123")
         @NotBlank(message = "O número de série do aparelho é obrigatório.")
         String serialNumber,
 
-        @Schema(description = "ID da marca do aparelho")
+        @Schema(description = "ID da marca do aparelho", example = "1")
         @NotNull(message = "A marca do aparelho é obrigatória.")
         Long brand,
 
-        @Schema(description = "Lista de IDs dos acessórios do aparelho")
+        @Schema(description = "Lista de IDs dos acessórios do aparelho", example = "[1, 2]")
         @NotNull(message = "A lista de acessórios do aparelho é obrigatória.")
         List<Long> accessories
 ) {

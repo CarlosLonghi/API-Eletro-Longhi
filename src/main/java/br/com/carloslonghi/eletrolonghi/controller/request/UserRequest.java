@@ -5,12 +5,15 @@ import jakarta.validation.constraints.NotBlank;
 
 @Schema(description = "Dados para criar ou atualizar um usuário")
 public record UserRequest(
+        @Schema(description = "Nome do usuário", example = "Maria Souza")
         @NotBlank(message = "O nome do usuário é obrigatório.")
         String name,
 
+        @Schema(description = "E-mail do usuário", example = "maria.souza@email.com")
         @NotBlank(message = "O e-mail do usuário é obrigatório.")
         String email,
 
+        @Schema(description = "Senha do usuário", example = "SenhaForte123")
         @NotBlank(message = "A senha do usuário é obrigatória.")
         String password
 ) {

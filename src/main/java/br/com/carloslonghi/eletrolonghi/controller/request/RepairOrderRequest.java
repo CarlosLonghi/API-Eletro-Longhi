@@ -6,18 +6,18 @@ import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Dados para criar ou atualizar um serviço de reparo")
 public record RepairOrderRequest(
-        @Schema(description = "Detalhes do serviço solicitado")
+        @Schema(description = "Detalhes do serviço solicitado", example = "Tela trincada, não liga")
         String description,
 
         @Schema(description = "Estado atual do serviço", enumAsRef = true)
         @NotNull(message = "RepairOrder 'status' is required.")
         RepairOrderStatus status,
 
-        @Schema(description = "ID do cliente que solicitou o serviço")
+        @Schema(description = "ID do cliente que solicitou o serviço", example = "1")
         @NotNull(message = "RepairOrder 'customer' is required.")
         Long customer,
 
-        @Schema(description = "ID do aparelho para o serviço")
+        @Schema(description = "ID do aparelho para o serviço", example = "1")
         @NotNull(message = "RepairOrder 'device' is required.")
         Long device
 ) {
