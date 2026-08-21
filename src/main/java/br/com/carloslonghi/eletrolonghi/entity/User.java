@@ -37,6 +37,10 @@ public class User implements UserDetails {
     @Builder.Default
     private Role role = Role.USER;
 
+    @Column(name = "is_seed_admin", nullable = false)
+    @Builder.Default
+    private boolean seedAdmin = false;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
