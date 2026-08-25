@@ -17,6 +17,9 @@ public record UserResponse(
         String email,
 
         @Schema(description = "Papel do usuário na aplicação")
-        Role role
+        Role role,
+
+        @Schema(description = "Indica se o usuário está habilitado a acessar o sistema", example = "true")
+        boolean enabled
 ) {
 }
