@@ -61,6 +61,7 @@ public interface AuthApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Email e(ou) senha incorreto(s)", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Conta aguardando ativação por um administrador", content = @Content),
             @ApiResponse(responseCode = "429", description = "Muitas tentativas de login inválidas", content = @Content)
     })
     ResponseEntity<LoginResponse> login(

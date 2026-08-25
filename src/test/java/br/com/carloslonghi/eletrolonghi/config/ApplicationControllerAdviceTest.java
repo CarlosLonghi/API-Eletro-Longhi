@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
+import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
@@ -30,6 +31,12 @@ class ApplicationControllerAdviceTest {
     void shouldReturnRefreshTokenMessage() {
         String message = advice.handleInvalidRefreshTokenException(new InvalidRefreshTokenException("bad token"));
         assertThat(message).isEqualTo("bad token");
+    }
+
+    @Test
+    void shouldReturnAccountNotActivatedMessage() {
+        String message = advice.handleAccountNotActivatedException(new AccountNotActivatedException("aguardando ativação"));
+        assertThat(message).isEqualTo("aguardando ativação");
     }
 
     @Test

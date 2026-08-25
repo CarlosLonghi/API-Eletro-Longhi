@@ -9,6 +9,7 @@ import br.com.carloslonghi.eletrolonghi.controller.response.LoginResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.UserResponse;
 import br.com.carloslonghi.eletrolonghi.entity.RefreshToken;
 import br.com.carloslonghi.eletrolonghi.entity.User;
+import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import br.com.carloslonghi.eletrolonghi.mapper.UserMapper;
 import br.com.carloslonghi.eletrolonghi.service.LoginAttemptService;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -76,6 +78,11 @@ public class AuthController implements AuthApi {
             log.info("Login bem-sucedido para o usuário: {}", email);
 
             return ResponseEntity.ok(new LoginResponse(token, refreshToken.getToken()));
+        } catch (DisabledException exception) {
+            loginAttemptService.loginFailed(email);
+            log.warn("Tentativa de login para conta ainda não ativada: {}", email);
+
+            throw new AccountNotActivatedException("Conta aguardando ativação por um administrador.");
         } catch (BadCredentialsException exception) {
             loginAttemptService.loginFailed(email);
             log.warn("Tentativa de login inválida para o e-mail: {}", email);

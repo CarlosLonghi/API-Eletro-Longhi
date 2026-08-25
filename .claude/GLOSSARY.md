@@ -26,7 +26,7 @@ Service ticket tracking a device repair. `id`, `description`, `status` (enum, re
 - Paginated + filterable listing (`status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`).
 
 ### User
-`entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. No admin-management endpoint exists yet — promote a user to `ADMIN` manually in the DB. `ADMIN` is required for create/delete on `Brand`/`Accessory` and delete on `Customer`/`Device`/`RepairOrder` — see `config/SecurityConfig`.
+`entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `enabled` (defaults `true` at the entity/DB level, but `UserService.save` forces it `false` on every self-registration), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. Admin management: `GET /user` (paginated + filterable by `name`/`email`/`role`/`enabled`), `PATCH /user/{id}/role` (role-only), `PATCH /user/{id}/status` (enabled-only). `ADMIN` is required for create/delete on `Brand`/`Accessory`, delete on `Customer`/`Device`/`RepairOrder`, and all three `/user` admin endpoints above — see `config/SecurityConfig`.
 
 ### RefreshToken
 `entity/RefreshToken` — persisted refresh tokens (`repository/RefreshTokenRepository`, `service/RefreshTokenService`). Minting a new one revokes all previous tokens for that user, so a user has at most one valid refresh token at a time.
@@ -35,6 +35,9 @@ Service ticket tracking a device repair. `id`, `description`, `status` (enum, re
 
 ### JWT + refresh tokens
 Stateless access tokens generated/verified by `config/TokenService`; claims extracted into `SecurityContext` by `config/SecurityFilter` on every request. Refresh tokens are a separate, longer-lived, DB-persisted credential used only to mint new access tokens via `POST /auth/refresh` (which also rotates the refresh token). See root `CLAUDE.md` "Auth" section for the endpoint contracts.
+
+### Account activation & suspension
+A self-registered user (`POST /auth/register`) starts `enabled=false` — forced in `UserService.save`, regardless of the entity's own `true` default — and cannot log in until an ADMIN both activates it (`PATCH /user/{id}/status`, `enabled:true`) and sets its role (`PATCH /user/{id}/role`). A disabled user's login attempt fails via Spring Security's built-in `DisabledException`, caught in `AuthController.login` and translated to `exception/AccountNotActivatedException` (403). Suspending an active user reuses the same `PATCH /user/{id}/status` endpoint with `enabled:false`. The effect is **not instant**: `SecurityFilter` still trusts JWT claims only (no per-request DB lookup — see "JWT + refresh tokens" above), so an already-issued access token stays valid until it expires. `RefreshTokenService.findValidToken` checks `user.isEnabled()`, so the refresh token stops working immediately, and a new login attempt is rejected immediately — only the current, still-live access token has a delayed cutoff.
 
 ### DTO (record-based)
 Request/response payloads are Java records under `controller/request` and `controller/response`. Controllers never return entities directly — always `mapper.toResponse(entity)`.
@@ -49,7 +52,7 @@ Request/response payloads are Java records under `controller/request` and `contr
 Dynamic predicate composition for the three paginated resources: `repository/specification/{Device,Customer,RepairOrder}Specification.java`. Optional filters only add predicates when the corresponding request param is present.
 
 ### Pagination
-Shared across `Device`, `Customer`, `RepairOrder` listings: `page`, `size`, `sortBy`, `direction` params, built via `controller/support/PaginationUtils`. `Brand` and `Accessory` deliberately stay plain `List` — see `[[architecture]]` invariant I4.1.
+Shared across `Device`, `Customer`, `RepairOrder`, `User` listings: `page`, `size`, `sortBy`, `direction` params, built via `controller/support/PaginationUtils`. `Brand` and `Accessory` deliberately stay plain `List` — see `[[architecture]]` invariant I4.1.
 
 ## Quick lookups
 
@@ -58,6 +61,8 @@ Shared across `Device`, `Customer`, `RepairOrder` listings: `page`, `size`, `sor
 | Repair order workflow | `entity/enums/RepairOrderStatus.java` |
 | Role enum | `entity/enums/Role.java` |
 | Role-based authorization rules | `config/SecurityConfig.java` |
+| User admin endpoints (list/role/status) | `controller/UserController.java` |
+| Account activation exception | `exception/AccountNotActivatedException.java` |
 | Refresh token entity | `entity/RefreshToken.java` |
 | JWT claims | `config/TokenService.java`, `config/JWTUserData.java` |
 | Login throttling | `service/LoginAttemptService.java` |
