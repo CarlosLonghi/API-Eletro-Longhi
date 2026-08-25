@@ -23,7 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
+import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 
 import java.time.Instant;
 
@@ -64,7 +66,7 @@ class AuthControllerTest {
     void shouldRegisterUser() {
         UserRequest request = new UserRequest("User", "user@mail.com", "123");
         User user = TestFixtures.user(1L);
-        UserResponse response = new UserResponse(1L, "User", "user@mail.com", Role.USER);
+        UserResponse response = new UserResponse(1L, "User", "user@mail.com", Role.USER, false);
 
         when(userMapper.toEntity(request)).thenReturn(user);
         when(userService.save(user)).thenReturn(user);
@@ -101,6 +103,17 @@ class AuthControllerTest {
         assertThatThrownBy(() -> authController.login(new LoginRequest("user@mail.com", "wrong")))
                 .isInstanceOf(UsernameOrPasswordInvalidException.class)
                 .hasMessageContaining("inválido");
+
+        verify(loginAttemptService).loginFailed("user@mail.com");
+    }
+
+    @Test
+    void shouldFailLoginWithDisabledAccount() {
+        when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("disabled"));
+
+        assertThatThrownBy(() -> authController.login(new LoginRequest("user@mail.com", "senha")))
+                .isInstanceOf(AccountNotActivatedException.class)
+                .hasMessageContaining("ativação");
 
         verify(loginAttemptService).loginFailed("user@mail.com");
     }

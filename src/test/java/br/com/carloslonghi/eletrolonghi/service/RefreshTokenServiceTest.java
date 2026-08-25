@@ -71,6 +71,18 @@ class RefreshTokenServiceTest {
     }
 
     @Test
+    void shouldFailForDisabledUser() {
+        User disabledUser = TestFixtures.user(1L);
+        disabledUser.setEnabled(false);
+        RefreshToken token = TestFixtures.refreshToken("rt", disabledUser, Instant.now().plusSeconds(10), false);
+        when(refreshTokenRepository.findByToken("rt")).thenReturn(Optional.of(token));
+
+        assertThatThrownBy(() -> refreshTokenService.findValidToken("rt"))
+                .isInstanceOf(InvalidRefreshTokenException.class)
+                .hasMessageContaining("desativado");
+    }
+
+    @Test
     void shouldFailForExpiredToken() {
         RefreshToken token = TestFixtures.refreshToken("rt", TestFixtures.user(1L), Instant.now().minusSeconds(10), false);
         when(refreshTokenRepository.findByToken("rt")).thenReturn(Optional.of(token));
