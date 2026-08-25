@@ -35,6 +35,7 @@ public class AdminUserSeeder implements CommandLineRunner {
         admin.setEmail(adminEmail);
         admin.setRole(Role.ADMIN);
         admin.setSeedAdmin(true);
+        admin.setEnabled(true);
 
         if (admin.getPassword() == null || !passwordEncoder.matches(adminPassword, admin.getPassword())) {
             admin.setPassword(passwordEncoder.encode(adminPassword));

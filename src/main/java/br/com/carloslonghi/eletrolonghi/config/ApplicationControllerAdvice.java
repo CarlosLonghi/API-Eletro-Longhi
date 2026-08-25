@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
+import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
@@ -27,6 +28,12 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(InvalidRefreshTokenException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public String handleInvalidRefreshTokenException(InvalidRefreshTokenException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(AccountNotActivatedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public String handleAccountNotActivatedException(AccountNotActivatedException exception) {
         return exception.getMessage();
     }
 
