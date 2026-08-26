@@ -106,13 +106,6 @@ class RepairOrderServiceTest {
     }
 
     @Test
-    void shouldReturnAllRepairOrders() {
-        when(repairOrderRepository.findAll()).thenReturn(List.of(TestFixtures.repairOrder(1L)));
-
-        assertThat(repairOrderService.findAll()).hasSize(1);
-    }
-
-    @Test
     void shouldFindByIdAndDelete() {
         RepairOrder order = TestFixtures.repairOrder(1L);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));

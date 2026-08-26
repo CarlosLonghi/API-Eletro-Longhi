@@ -15,7 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,10 +25,6 @@ public class RepairOrderService {
 
     private final CustomerService customerService;
     private final DeviceService deviceService;
-
-    public List<RepairOrder> findAll() {
-        return repairOrderRepository.findAll();
-    }
 
     public Page<RepairOrder> findAll(
             RepairOrderStatus status,

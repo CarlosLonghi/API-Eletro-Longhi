@@ -23,10 +23,6 @@ public class DeviceService {
     private final AccessoryService accessoryService;
     private final BrandService brandService;
 
-    public List<Device> findAll() {
-        return deviceRepository.findAll();
-    }
-
     public Page<Device> findAll(
             String model,
             Long brandId,

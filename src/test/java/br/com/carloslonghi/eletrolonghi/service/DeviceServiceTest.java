@@ -92,13 +92,6 @@ class DeviceServiceTest {
     }
 
     @Test
-    void shouldReturnAllDevices() {
-        when(deviceRepository.findAll()).thenReturn(List.of(TestFixtures.device(1L)));
-
-        assertThat(deviceService.findAll()).hasSize(1);
-    }
-
-    @Test
     void shouldFindByIdAndSerialAndBrandDelegates() {
         Device device = TestFixtures.device(1L);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));

@@ -30,13 +30,6 @@ class CustomerServiceTest {
     private CustomerService customerService;
 
     @Test
-    void shouldFindAllCustomers() {
-        when(customerRepository.findAll()).thenReturn(List.of(TestFixtures.customer(1L)));
-
-        assertThat(customerService.findAll()).hasSize(1);
-    }
-
-    @Test
     void shouldFindCustomersWithFilters() {
         Page<Customer> page = new PageImpl<>(List.of(TestFixtures.customer(1L)));
         when(customerRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(PageRequest.class)))
