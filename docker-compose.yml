@@ -4,9 +4,9 @@ services:
     container_name: eletrolonghi-db
     restart: on-failure
     environment:
-      POSTGRES_DB: eletrolonghi
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-eletrolonghi}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
