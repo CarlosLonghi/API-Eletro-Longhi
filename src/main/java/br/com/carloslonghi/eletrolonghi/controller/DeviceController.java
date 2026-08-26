@@ -90,20 +90,4 @@ public class DeviceController implements DeviceApi {
 
         return ResponseEntity.notFound().build();
     }
-
-    @GetMapping("/search")
-    public ResponseEntity<Page<DeviceResponse>> getDevicesByBrandId(
-            @RequestParam Long brandId,
-            @RequestParam(required = false) String model,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction
-    ) {
-        Pageable pageable = PaginationUtils.createPageable(page, size, sortBy, direction);
-        Page<DeviceResponse> devices = deviceService.findAll(model, brandId, pageable)
-                .map(deviceMapper::toResponse);
-
-        return ResponseEntity.ok(devices);
-    }
 }

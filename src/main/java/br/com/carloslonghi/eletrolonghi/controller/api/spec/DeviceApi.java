@@ -131,39 +131,6 @@ public interface DeviceApi {
     );
 
     @Operation(
-            summary = "Listar aparelhos pelo ID da marca",
-            description = "Retorna uma lista de aparelhos cadastrados de apenas uma marca, com base no ID da marca"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Lista retornada com sucesso",
-                    content = @Content(
-                            mediaType = "application/json",
-                            array = @ArraySchema(
-                                    schema = @Schema(implementation = DeviceResponse.class)
-                            )
-                    )
-            ),
-            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
-    })
-    ResponseEntity<Page<DeviceResponse>> getDevicesByBrandId(
-            @Parameter(in = ParameterIn.QUERY, description = "ID da marca", required = true)
-            @RequestParam Long brandId,
-            @Parameter(in = ParameterIn.QUERY, description = "Filtro parcial por modelo")
-            @RequestParam(required = false) String model,
-            @Parameter(in = ParameterIn.QUERY, description = "Número da página (inicia em 0)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(in = ParameterIn.QUERY, description = "Quantidade de itens por página")
-            @RequestParam(defaultValue = "10") int size,
-            @Parameter(in = ParameterIn.QUERY, description = "Campo para ordenação")
-            @RequestParam(defaultValue = "id") String sortBy,
-            @Parameter(in = ParameterIn.QUERY, description = "Direção da ordenação: asc ou desc")
-            @RequestParam(defaultValue = "asc") String direction
-    );
-
-    @Operation(
             summary = "Atualizar um Aparelho",
             description = "Atualiza os dados de um aparelho pelo seu ID"
     )
