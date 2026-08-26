@@ -3,6 +3,8 @@ package br.com.carloslonghi.eletrolonghi.config;
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -57,6 +59,18 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(DeviceAlreadyInRepairException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public String handleDeviceAlreadyInRepairException(DeviceAlreadyInRepairException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(ReferencedEntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String handleReferencedEntityNotFoundException(ReferencedEntityNotFoundException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(InvalidRepairOrderStatusTransitionException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handleInvalidRepairOrderStatusTransitionException(InvalidRepairOrderStatusTransitionException exception) {
         return exception.getMessage();
     }
 

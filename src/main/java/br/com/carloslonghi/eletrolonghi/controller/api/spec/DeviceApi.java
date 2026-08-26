@@ -39,7 +39,8 @@ public interface DeviceApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Marca ou acessório referenciado não encontrado", content = @Content)
     })
     ResponseEntity<DeviceResponse> createDevice(
             @RequestBody(
@@ -177,7 +178,8 @@ public interface DeviceApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Aparelho, marca ou acessório referenciado não encontrado", content = @Content)
     })
     ResponseEntity<DeviceResponse> updateDevice(
             @Parameter(in = ParameterIn.PATH, description = "ID do aparelho", required = true)

@@ -3,6 +3,7 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.DeviceSpecification;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -87,16 +87,14 @@ public class DeviceService {
     }
 
     private List<Accessory> findAccessories(List<Accessory> accessories) {
-        List<Accessory> accessoriesFound = new ArrayList<>();
-
-        accessories.forEach(accessory -> {
-            accessoryService.findById(accessory.getId()).ifPresent(accessoriesFound::add);
-        });
-
-        return accessoriesFound;
+        return accessories.stream()
+                .map(accessory -> accessoryService.findById(accessory.getId())
+                        .orElseThrow(() -> new ReferencedEntityNotFoundException("Accessory", accessory.getId())))
+                .toList();
     }
 
     private Brand findBrand(Brand brand) {
-        return brandService.findById(brand.getId()).orElse(null);
+        return brandService.findById(brand.getId())
+                .orElseThrow(() -> new ReferencedEntityNotFoundException("Brand", brand.getId()));
     }
 }

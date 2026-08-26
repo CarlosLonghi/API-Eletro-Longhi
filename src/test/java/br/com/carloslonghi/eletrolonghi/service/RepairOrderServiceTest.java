@@ -3,6 +3,8 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -87,11 +89,20 @@ class RepairOrderServiceTest {
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(repairOrderRepository.save(order)).thenReturn(order);
 
-        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR);
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.IN_EVALUATION);
 
         assertThat(updated).isPresent();
-        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.IN_REPAIR);
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.IN_EVALUATION);
         verify(repairOrderRepository).save(order);
+    }
+
+    @Test
+    void shouldRejectStatusTransitionThatSkipsSteps() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR))
+                .isInstanceOf(InvalidRepairOrderStatusTransitionException.class);
     }
 
     @Test
@@ -115,7 +126,7 @@ class RepairOrderServiceTest {
     void shouldUpdateRepairOrderWhenFound() {
         RepairOrder existing = TestFixtures.repairOrder(1L);
         RepairOrder incoming = TestFixtures.repairOrder(2L);
-        incoming.setStatus(RepairOrderStatus.IN_REPAIR);
+        incoming.setStatus(RepairOrderStatus.IN_EVALUATION);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(customerService.findById(1L)).thenReturn(Optional.of(existing.getCustomer()));
         when(deviceService.findById(1L)).thenReturn(Optional.of(existing.getDevice()));
@@ -124,7 +135,37 @@ class RepairOrderServiceTest {
         Optional<RepairOrder> updated = repairOrderService.update(1L, incoming);
 
         assertThat(updated).isPresent();
-        assertThat(existing.getStatus()).isEqualTo(RepairOrderStatus.IN_REPAIR);
+        assertThat(existing.getStatus()).isEqualTo(RepairOrderStatus.IN_EVALUATION);
+    }
+
+    @Test
+    void shouldRejectRepairOrderUpdateWithStatusSkip() {
+        RepairOrder existing = TestFixtures.repairOrder(1L);
+        RepairOrder incoming = TestFixtures.repairOrder(2L);
+        incoming.setStatus(RepairOrderStatus.IN_REPAIR);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> repairOrderService.update(1L, incoming))
+                .isInstanceOf(InvalidRepairOrderStatusTransitionException.class);
+    }
+
+    @Test
+    void shouldThrowWhenCustomerMissingOnSave() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        when(customerService.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> repairOrderService.save(order))
+                .isInstanceOf(ReferencedEntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowWhenDeviceMissingOnSave() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        when(customerService.findById(1L)).thenReturn(Optional.of(order.getCustomer()));
+        when(deviceService.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> repairOrderService.save(order))
+                .isInstanceOf(ReferencedEntityNotFoundException.class);
     }
 
     @Test
