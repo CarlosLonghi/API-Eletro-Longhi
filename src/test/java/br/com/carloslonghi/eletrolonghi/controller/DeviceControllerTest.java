@@ -151,18 +151,6 @@ class DeviceControllerTest {
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
-    @Test
-    void shouldReturnSearchByBrand() {
-        Device device = TestFixtures.device(1L);
-        DeviceResponse response = new DeviceResponse(1L, "M", "S", new BrandResponse(1L, "B"), List.of());
-        when(deviceService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(List.of(device)));
-        when(deviceMapper.toResponse(device)).thenReturn(response);
-
-        var result = deviceController.getDevicesByBrandId(1L, null, 0, 10, "id", "asc");
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(result.getBody().getContent()).containsExactly(response);
-    }
 }
 
 

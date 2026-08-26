@@ -3,6 +3,8 @@ package br.com.carloslonghi.eletrolonghi.config;
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -60,9 +62,21 @@ public class ApplicationControllerAdvice {
         return exception.getMessage();
     }
 
+    @ExceptionHandler(ReferencedEntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String handleReferencedEntityNotFoundException(ReferencedEntityNotFoundException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(InvalidRepairOrderStatusTransitionException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handleInvalidRepairOrderStatusTransitionException(InvalidRepairOrderStatusTransitionException exception) {
+        return exception.getMessage();
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public String handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
-        return exception.getMessage();
+        return "Violação de integridade de dados. Verifique se os dados enviados não conflitam com um registro já existente.";
     }
 }

@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.controller.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 @Schema(description = "Dados para criar ou atualizar um cliente")
@@ -14,6 +15,7 @@ public record CustomerRequest(
         String phone,
 
         @Schema(description = "E-mail do cliente", example = "joao.silva@email.com")
+        @Email(message = "O e-mail do cliente deve ser válido.")
         String email
 ) {
 }

@@ -52,9 +52,12 @@ class ApplicationControllerAdviceTest {
     }
 
     @Test
-    void shouldReturnDataIntegrityMessage() {
-        String message = advice.handleDataIntegrityViolationException(new DataIntegrityViolationException("dup"));
-        assertThat(message).contains("dup");
+    void shouldReturnGenericDataIntegrityMessage() {
+        String message = advice.handleDataIntegrityViolationException(
+                new DataIntegrityViolationException("duplicate key value violates unique constraint \"users_email_key\""));
+
+        assertThat(message).doesNotContain("users_email_key");
+        assertThat(message).isNotBlank();
     }
 
     @Test

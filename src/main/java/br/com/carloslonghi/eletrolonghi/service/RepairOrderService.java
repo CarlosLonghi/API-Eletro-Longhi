@@ -5,6 +5,8 @@ import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,10 +25,6 @@ public class RepairOrderService {
 
     private final CustomerService customerService;
     private final DeviceService deviceService;
-
-    public List<RepairOrder> findAll() {
-        return repairOrderRepository.findAll();
-    }
 
     public Page<RepairOrder> findAll(
             RepairOrderStatus status,
@@ -74,10 +71,12 @@ public class RepairOrderService {
         Optional<RepairOrder> optionalRepairOrder = repairOrderRepository.findById(id);
 
         if (optionalRepairOrder.isPresent()) {
+            RepairOrder repairOrderToUpdate = optionalRepairOrder.get();
+            validateStatusTransition(repairOrderToUpdate.getStatus(), repairOrder.getStatus());
+
             Customer customer = this.findCustomer(repairOrder.getCustomer());
             Device device = this.findDevice(repairOrder.getDevice());
 
-            RepairOrder repairOrderToUpdate = optionalRepairOrder.get();
             repairOrderToUpdate.setDescription(repairOrder.getDescription());
             repairOrderToUpdate.setStatus(repairOrder.getStatus());
             repairOrderToUpdate.setCustomer(customer);
@@ -92,9 +91,18 @@ public class RepairOrderService {
 
     public Optional<RepairOrder> updateStatus(Long id, RepairOrderStatus status) {
         return repairOrderRepository.findById(id).map(repairOrder -> {
+            validateStatusTransition(repairOrder.getStatus(), status);
             repairOrder.setStatus(status);
             return repairOrderRepository.save(repairOrder);
         });
+    }
+
+    private void validateStatusTransition(RepairOrderStatus current, RepairOrderStatus next) {
+        int distance = Math.abs(next.ordinal() - current.ordinal());
+
+        if (distance != 1) {
+            throw new InvalidRepairOrderStatusTransitionException(current, next);
+        }
     }
 
     public void deleteById(Long id) {
@@ -102,10 +110,12 @@ public class RepairOrderService {
     }
 
     private Customer findCustomer(Customer customer) {
-        return customerService.findById(customer.getId()).orElse(null);
+        return customerService.findById(customer.getId())
+                .orElseThrow(() -> new ReferencedEntityNotFoundException("Customer", customer.getId()));
     }
 
     private Device findDevice(Device device) {
-        return deviceService.findById(device.getId()).orElse(null);
+        return deviceService.findById(device.getId())
+                .orElseThrow(() -> new ReferencedEntityNotFoundException("Device", device.getId()));
     }
 }

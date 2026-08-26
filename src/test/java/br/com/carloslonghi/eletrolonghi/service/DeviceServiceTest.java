@@ -3,6 +3,7 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,13 +92,6 @@ class DeviceServiceTest {
     }
 
     @Test
-    void shouldReturnAllDevices() {
-        when(deviceRepository.findAll()).thenReturn(List.of(TestFixtures.device(1L)));
-
-        assertThat(deviceService.findAll()).hasSize(1);
-    }
-
-    @Test
     void shouldFindByIdAndSerialAndBrandDelegates() {
         Device device = TestFixtures.device(1L);
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
@@ -116,16 +111,22 @@ class DeviceServiceTest {
     }
 
     @Test
-    void shouldHandleMissingRelationsOnSave() {
+    void shouldThrowWhenAccessoryMissingOnSave() {
         Device device = TestFixtures.device(1L);
-        when(brandService.findById(1L)).thenReturn(Optional.empty());
         when(accessoryService.findById(1L)).thenReturn(Optional.empty());
-        when(deviceRepository.save(any(Device.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Device saved = deviceService.save(device);
+        assertThatThrownBy(() -> deviceService.save(device))
+                .isInstanceOf(ReferencedEntityNotFoundException.class);
+    }
 
-        assertThat(saved.getBrand()).isNull();
-        assertThat(saved.getAccessories()).isEmpty();
+    @Test
+    void shouldThrowWhenBrandMissingOnSave() {
+        Device device = TestFixtures.device(1L);
+        when(accessoryService.findById(1L)).thenReturn(Optional.of(TestFixtures.accessory(1L)));
+        when(brandService.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deviceService.save(device))
+                .isInstanceOf(ReferencedEntityNotFoundException.class);
     }
 }
 

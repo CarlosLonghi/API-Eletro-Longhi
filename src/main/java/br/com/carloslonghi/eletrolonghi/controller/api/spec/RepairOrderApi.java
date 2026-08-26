@@ -45,6 +45,7 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Cliente ou aparelho referenciado não encontrado", content = @Content),
             @ApiResponse(responseCode = "422", description = "Aparelho já possui uma ordem de reparo ativa. A ordem anterior deve estar com status DEVICE_COLLECTED para criar uma nova.", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> createRepairOrder(
@@ -135,7 +136,8 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Reparo, cliente ou aparelho referenciado não encontrado", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Transição de status inválida — só é permitido avançar ou retroceder uma etapa por vez no fluxo", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrder(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
@@ -167,7 +169,8 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "400", description = "Status inválido ou ausente", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Transição de status inválida — só é permitido avançar ou retroceder uma etapa por vez no fluxo", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
