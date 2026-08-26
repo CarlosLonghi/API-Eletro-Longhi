@@ -77,6 +77,6 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public String handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
-        return exception.getMessage();
+        return "Violação de integridade de dados. Verifique se os dados enviados não conflitam com um registro já existente.";
     }
 }
