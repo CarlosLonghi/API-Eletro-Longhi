@@ -12,6 +12,13 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 - DB must exist beforehand: `CREATE DATABASE eletrolonghi;` (or let docker compose provide it). Flyway applies pending migrations from `src/main/resources/db/migration` on startup.
 - Swagger UI: `/swagger-ui/index.html`. OpenAPI docs path: `/api/api-docs` (see `springdoc.*` in `application.properties`).
 
+## Commit convention
+
+- **Semantic commits** (Conventional Commits): `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`, `build:`, `ci:`. Keep the subject line imperative and concise.
+- **Split the work into smaller, cohesive commits** — never one giant commit with the whole feature. Each commit should stand on its own and group related changes (e.g. persistence model, service layer, endpoints, docs). Don't over-granularize: group what belongs together, don't commit file by file.
+- **Do not add AI credits** to commits: no `Co-Authored-By: Claude`, `Generated with Claude Code`, `Claude-Session:` or equivalent trailers.
+- The commit body (when useful) explains the *why* of the change, not a restatement of the diff.
+
 ## Layered architecture
 
 `controller` (record DTOs, `@Valid`) → `service` (business rules) → `repository` (Spring Data JPA) → `entity` (JPA POJOs), with `mapper/*` (MapStruct, `@Mapper(componentModel = "spring")`) converting DTO ↔ entity.
