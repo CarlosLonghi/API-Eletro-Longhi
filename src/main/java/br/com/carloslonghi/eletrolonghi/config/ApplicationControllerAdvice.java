@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
+import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
@@ -71,6 +72,12 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(InvalidRepairOrderStatusTransitionException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public String handleInvalidRepairOrderStatusTransitionException(InvalidRepairOrderStatusTransitionException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(PaymentAlreadyExistsForRepairOrderException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handlePaymentAlreadyExistsForRepairOrderException(PaymentAlreadyExistsForRepairOrderException exception) {
         return exception.getMessage();
     }
 

@@ -10,9 +10,12 @@ import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundExcept
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -20,6 +23,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class RepairOrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(RepairOrderService.class);
 
     private final RepairOrderRepository repairOrderRepository;
 
@@ -94,6 +99,25 @@ public class RepairOrderService {
             validateStatusTransition(repairOrder.getStatus(), status);
             repairOrder.setStatus(status);
             return repairOrderRepository.save(repairOrder);
+        });
+    }
+
+    /**
+     * Avanço automático disparado ao aprovar um pagamento: move a ordem de
+     * {@code REPAIR_COMPLETED} para {@code PAYMENT_RECEIVED}. Em qualquer outro estado
+     * (ou ordem inexistente) apenas registra e não faz nada — pagamento e workflow
+     * não devem se bloquear mutuamente.
+     */
+    @Transactional
+    public void markPaymentReceived(Long repairOrderId) {
+        repairOrderRepository.findById(repairOrderId).ifPresent(order -> {
+            if (order.getStatus() == RepairOrderStatus.REPAIR_COMPLETED) {
+                order.setStatus(RepairOrderStatus.PAYMENT_RECEIVED);
+                repairOrderRepository.save(order);
+            } else {
+                log.info("Pagamento aprovado para a ordem {} em status {}; avanço automático ignorado.",
+                        repairOrderId, order.getStatus());
+            }
         });
     }
 
