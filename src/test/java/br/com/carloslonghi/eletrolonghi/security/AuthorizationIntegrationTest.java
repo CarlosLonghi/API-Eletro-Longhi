@@ -6,14 +6,18 @@ import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.entity.RefreshToken;
+import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.User;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.repository.AccessoryRepository;
 import br.com.carloslonghi.eletrolonghi.repository.BrandRepository;
 import br.com.carloslonghi.eletrolonghi.repository.CustomerRepository;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
+import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RefreshTokenRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.UserRepository;
@@ -28,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -68,6 +73,9 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -261,6 +269,35 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    void shouldAllowUserToCreatePayment() throws Exception {
+        RepairOrder repairOrder = createRepairOrder("SN-PAY-USER-001", "cliente.pay1@mail.com");
+
+        mockMvc.perform(post("/payment")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":150.00,\"method\":\"CASH\",\"repairOrder\":" + repairOrder.getId() + "}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void shouldForbidUserFromDeletingPayment() throws Exception {
+        Payment payment = createPayment("SN-PAY-DEL-001", "cliente.pay2@mail.com");
+
+        mockMvc.perform(delete("/payment/{id}", payment.getId())
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdminToDeletePayment() throws Exception {
+        Payment payment = createPayment("SN-PAY-DEL-002", "cliente.pay3@mail.com");
+
+        mockMvc.perform(delete("/payment/{id}", payment.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void shouldForbidUserFromListingUsers() throws Exception {
         mockMvc.perform(get("/user")
                         .header("Authorization", "Bearer " + userToken))
@@ -352,6 +389,17 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + refreshToken.getToken() + "\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private Payment createPayment(String serialNumber, String customerEmail) {
+        RepairOrder repairOrder = createRepairOrder(serialNumber, customerEmail);
+        return paymentRepository.save(Payment.builder()
+                .amount(new BigDecimal("150.00"))
+                .method(PaymentMethod.CASH)
+                .status(PaymentStatus.PENDING)
+                .installments(1)
+                .repairOrder(repairOrder)
+                .build());
     }
 
     private RepairOrder createRepairOrder(String serialNumber, String customerEmail) {
