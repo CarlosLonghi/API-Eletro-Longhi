@@ -4,12 +4,16 @@ import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
+import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RefreshToken;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.User;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -52,6 +56,17 @@ public final class TestFixtures {
                 .status(RepairOrderStatus.AWAITING_EVALUATION)
                 .customer(customer(1L))
                 .device(device(1L))
+                .build();
+    }
+
+    public static Payment payment(Long id) {
+        return Payment.builder()
+                .id(id)
+                .amount(new BigDecimal("100.00"))
+                .method(PaymentMethod.CASH)
+                .status(PaymentStatus.PENDING)
+                .installments(1)
+                .repairOrder(repairOrder(1L))
                 .build();
     }
 
