@@ -25,8 +25,16 @@ Service ticket tracking a device repair. `id`, `description`, `status` (enum, re
 - A device may have more than one repair order over time, but a new order for a device is only allowed once its previous order reached `DEVICE_COLLECTED`. This rule is enforced in `RepairOrderService`, **not** a DB constraint.
 - Paginated + filterable listing (`status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`).
 
+### Payment
+The payment of a repair order. `id`, `amount` (`BigDecimal`, `NUMERIC(12,2)`), `method` (`entity/enums/PaymentMethod`: `CASH` | `CARD` | `PIX` | `BOLETO`), `status` (`entity/enums/PaymentStatus`: `PENDING` | `APPROVED` | `REJECTED` | `REFUNDED` | `CANCELLED`), `installments` (>1 only for `CARD`; `PaymentService` normalizes it to 1 otherwise), `description`, `payerName`/`payerDocument` (printed on the receipt), `externalReference`/`gatewayPaymentId` (nullable, reserved for the future Mercado Pago integration), `repairOrder` (`@ManyToOne`, required), `paidAt`, `createdAt`, `updatedAt`.
+- **One payment per repair order** — `repair_order_id` is `UNIQUE NOT NULL`; a second payment for the same order is rejected in `PaymentService` (`PaymentAlreadyExistsForRepairOrderException` → 422), see `[[architecture]]` invariant I10.
+- `PaymentStatus` is **not** a strict workflow. Moving to `APPROVED` (create or `PATCH /payment/{id}/status`) stamps `paidAt` and calls `RepairOrderService.markPaymentReceived` — advances the order `REPAIR_COMPLETED → PAYMENT_RECEIVED`, no-op + log otherwise.
+- `GET /payment/{id}/receipt` → non-fiscal PDF receipt (`service/PaymentReceiptService`, OpenPDF), store data from `config/ShopProperties` (`shop.*`).
+- Paginated + filterable listing (`status`, `method`, `repairOrderId`, `createdFrom`, `createdTo`). `DELETE /payment/{id}` is ADMIN-only.
+- `client/MercadoPagoClient` is a **skeleton** for the future physical-card-machine integration (Mercado Pago **Point** API; confirmation by webhook once hosted, or polling). Only `getPayment` (polling) is implemented; `mercadopago.*` config lives in `config/MercadoPagoProperties`.
+
 ### User
-`entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `enabled` (defaults `true` at the entity/DB level, but `UserService.save` forces it `false` on every self-registration), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. Admin management: `GET /user` (paginated + filterable by `name`/`email`/`role`/`enabled`), `PATCH /user/{id}/role` (role-only), `PATCH /user/{id}/status` (enabled-only). `ADMIN` is required for create/delete on `Brand`/`Accessory`, delete on `Customer`/`Device`/`RepairOrder`, and all three `/user` admin endpoints above — see `config/SecurityConfig`.
+`entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `enabled` (defaults `true` at the entity/DB level, but `UserService.save` forces it `false` on every self-registration), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. Admin management: `GET /user` (paginated + filterable by `name`/`email`/`role`/`enabled`), `PATCH /user/{id}/role` (role-only), `PATCH /user/{id}/status` (enabled-only). `ADMIN` is required for create/delete on `Brand`/`Accessory`, delete on `Customer`/`Device`/`RepairOrder`/`Payment`, and all three `/user` admin endpoints above — see `config/SecurityConfig`.
 
 ### RefreshToken
 `entity/RefreshToken` — persisted refresh tokens (`repository/RefreshTokenRepository`, `service/RefreshTokenService`). Minting a new one revokes all previous tokens for that user, so a user has at most one valid refresh token at a time.
@@ -49,16 +57,20 @@ Request/response payloads are Java records under `controller/request` and `contr
 `src/main/resources/db/migration/V*.sql`, applied automatically on startup, tracked in `flyway_schema_history`. Append-only — never edit an existing `V*.sql`. Confirm the current max version with `ls` before citing a number in docs or code; don't trust a hardcoded count (this file will go stale too).
 
 ### Specification (Spring Data JPA)
-Dynamic predicate composition for the three paginated resources: `repository/specification/{Device,Customer,RepairOrder}Specification.java`. Optional filters only add predicates when the corresponding request param is present.
+Dynamic predicate composition for the paginated resources: `repository/specification/{Device,Customer,RepairOrder,Payment,User}Specification.java`. Optional filters only add predicates when the corresponding request param is present.
 
 ### Pagination
-Shared across `Device`, `Customer`, `RepairOrder`, `User` listings: `page`, `size`, `sortBy`, `direction` params, built via `controller/support/PaginationUtils`. `Brand` and `Accessory` deliberately stay plain `List` — see `[[architecture]]` invariant I4.1.
+Shared across `Device`, `Customer`, `RepairOrder`, `Payment`, `User` listings: `page`, `size`, `sortBy`, `direction` params, built via `controller/support/PaginationUtils`. `Brand` and `Accessory` deliberately stay plain `List` — see `[[architecture]]` invariant I4.1.
 
 ## Quick lookups
 
 | Term | File |
 |------|------|
 | Repair order workflow | `entity/enums/RepairOrderStatus.java` |
+| Payment method / status enums | `entity/enums/PaymentMethod.java`, `entity/enums/PaymentStatus.java` |
+| Payment → order auto-advance | `RepairOrderService.markPaymentReceived` |
+| Payment receipt (PDF) | `service/PaymentReceiptService.java`, `config/ShopProperties.java` |
+| Mercado Pago client (skeleton) | `client/MercadoPagoClient.java`, `config/MercadoPagoProperties.java` |
 | Role enum | `entity/enums/Role.java` |
 | Role-based authorization rules | `config/SecurityConfig.java` |
 | User admin endpoints (list/role/status) | `controller/UserController.java` |
