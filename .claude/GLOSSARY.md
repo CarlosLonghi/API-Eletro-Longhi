@@ -26,12 +26,13 @@ Service ticket tracking a device repair. `id`, `description`, `status` (enum, re
 - Paginated + filterable listing (`status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`).
 
 ### Payment
-The payment of a repair order. `id`, `amount` (`BigDecimal`, `NUMERIC(12,2)`), `method` (`entity/enums/PaymentMethod`: `CASH` | `CARD` | `PIX` | `BOLETO`), `status` (`entity/enums/PaymentStatus`: `PENDING` | `APPROVED` | `REJECTED` | `REFUNDED` | `CANCELLED`), `installments` (>1 only for `CARD`; `PaymentService` normalizes it to 1 otherwise), `description`, `payerName`/`payerDocument` (printed on the receipt), `externalReference`/`gatewayPaymentId` (nullable, reserved for the future Mercado Pago integration), `repairOrder` (`@ManyToOne`, required), `paidAt`, `createdAt`, `updatedAt`.
+The payment of a repair order. `id`, `amount` (`BigDecimal`, `NUMERIC(12,2)`), `method` (`entity/enums/PaymentMethod`: `CASH` | `CARD` | `PIX` | `BOLETO` | `MERCADO_PAGO_CHECKOUT`), `status` (`entity/enums/PaymentStatus`: `PENDING` | `APPROVED` | `REJECTED` | `REFUNDED` | `CANCELLED`), `installments` (>1 only for `CARD`; `PaymentService` normalizes it to 1 otherwise), `description`, `payerName`/`payerDocument` (printed on the receipt), `externalReference` (`payment-<id>`, set when a Checkout Pro link is generated), `gatewayPaymentId` (real MP payment id, set on sync), `repairOrder` (`@ManyToOne`, required), `paidAt`, `createdAt`, `updatedAt`.
 - **One payment per repair order** — `repair_order_id` is `UNIQUE NOT NULL`; a second payment for the same order is rejected in `PaymentService` (`PaymentAlreadyExistsForRepairOrderException` → 422), see `[[architecture]]` invariant I10.
 - `PaymentStatus` is **not** a strict workflow. Moving to `APPROVED` (create or `PATCH /payment/{id}/status`) stamps `paidAt` and calls `RepairOrderService.markPaymentReceived` — advances the order `REPAIR_COMPLETED → PAYMENT_RECEIVED`, no-op + log otherwise.
 - `GET /payment/{id}/receipt` → non-fiscal PDF receipt (`service/PaymentReceiptService`, OpenPDF), store data from `config/ShopProperties` (`shop.*`).
 - Paginated + filterable listing (`status`, `method`, `repairOrderId`, `createdFrom`, `createdTo`). `DELETE /payment/{id}` is ADMIN-only.
-- `client/MercadoPagoClient` is a **skeleton** for the future physical-card-machine integration (Mercado Pago **Point** API; confirmation by webhook once hosted, or polling). Only `getPayment` (polling) is implemented; `mercadopago.*` config lives in `config/MercadoPagoProperties`.
+- **Checkout Pro (link de pagamento)** — `POST /payment/{id}/checkout` creates a Mercado Pago *preference* (`MercadoPagoClient.createCheckoutPreference`) for a pending `MERCADO_PAGO_CHECKOUT` payment, returns the `init_point` link and stamps `externalReference`. `POST /payment/{id}/sync` polls MP (`findPaymentByExternalReference`) and reapplies the mapped status — the polling substitute for a webhook (app not hosted). `InvalidPaymentCheckoutException` → 422 (wrong method / not pending / no link yet), `PaymentGatewayException` → 502 (MP unreachable or `mercadopago.access-token` unset).
+- `client/MercadoPagoClient`: `createCheckoutPreference` + `findPaymentByExternalReference` + `getPayment` implemented; `mercadopago.*` config in `config/MercadoPagoProperties`. The **physical card machine** (Mercado Pago **Point** API) is still a TODO — needs production credentials + a Point Smart device.
 
 ### User
 `entity/User implements UserDetails`. `id`, `name`, `email` (unique), `password` (hashed), `role` (`entity/enums/Role`: `ADMIN` | `USER`, defaults to `USER`), `enabled` (defaults `true` at the entity/DB level, but `UserService.save` forces it `false` on every self-registration), `createdAt`, `updatedAt`. Role maps to a `ROLE_<name>` Spring `GrantedAuthority`. Admin management: `GET /user` (paginated + filterable by `name`/`email`/`role`/`enabled`), `PATCH /user/{id}/role` (role-only), `PATCH /user/{id}/status` (enabled-only). `ADMIN` is required for create/delete on `Brand`/`Accessory`, delete on `Customer`/`Device`/`RepairOrder`/`Payment`, and all three `/user` admin endpoints above — see `config/SecurityConfig`.
@@ -70,7 +71,8 @@ Shared across `Device`, `Customer`, `RepairOrder`, `Payment`, `User` listings: `
 | Payment method / status enums | `entity/enums/PaymentMethod.java`, `entity/enums/PaymentStatus.java` |
 | Payment → order auto-advance | `RepairOrderService.markPaymentReceived` |
 | Payment receipt (PDF) | `service/PaymentReceiptService.java`, `config/ShopProperties.java` |
-| Mercado Pago client (skeleton) | `client/MercadoPagoClient.java`, `config/MercadoPagoProperties.java` |
+| Mercado Pago client | `client/MercadoPagoClient.java`, `config/MercadoPagoProperties.java` |
+| Checkout Pro link / polling sync | `PaymentService.createCheckoutLink` / `PaymentService.syncWithGateway` |
 | Role enum | `entity/enums/Role.java` |
 | Role-based authorization rules | `config/SecurityConfig.java` |
 | User admin endpoints (list/role/status) | `controller/UserController.java` |
