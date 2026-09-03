@@ -19,6 +19,8 @@ Funcionalidades implementadas:
 * CRUD de **Acessórios** (`/accessory`).
 * CRUD de **Ordens de Reparo** (`/repair-order`) com listagem paginada, filtros (status, cliente, aparelho, intervalo de criação) e **endpoint dedicado de transição de status** (`PATCH /repair-order/{id}/status`), com o fluxo validado (só é permitido avançar/retroceder uma etapa por vez).
 * **Regra de negócio de ciclo do aparelho**: um aparelho só pode receber uma nova ordem de reparo depois que a anterior chegou ao status `DEVICE_COLLECTED` (violação → 422).
+* CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX ou boleto), listagem paginada/filtrável, transição de situação por `PATCH /payment/{id}/status` e **avanço automático** da ordem para `PAYMENT_RECEIVED` ao aprovar o pagamento.
+* **Recibo de pagamento em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal com os dados da loja (`shop.*`). Integração com o gateway do Mercado Pago (maquininha via API Point) está preparada como esqueleto para quando a aplicação for hospedada.
 * **CORS por allowlist** de origens (front-end web / renderer Electron).
 * **Controle de integridade**: tratamento global de conflitos (409), validações (`@Valid` → 400), regras de negócio (→ 422) e 401 explícito para token ausente/inválido.
 * **CI no GitHub Actions** rodando a suíte de testes em todo push/PR para `main`, com merge bloqueado enquanto os testes não passam.
@@ -37,6 +39,7 @@ Funcionalidades implementadas:
 | MapStruct | 1.6.3 |
 | Springdoc OpenAPI (Swagger UI) | 3.0.0 |
 | Auth0 Java JWT | 4.4.0 |
+| OpenPDF (recibo em PDF) | 2.0.3 |
 | Lombok | (gerenciado pelo Spring Boot) |
 | Testcontainers (PostgreSQL) | 1.21.4 |
 | JaCoCo (Code Coverage) | 0.8.12 |
@@ -50,7 +53,9 @@ Funcionalidades implementadas:
 ```text
 src/main/java/br/com/carloslonghi/eletrolonghi/
 ├── config/           # Security, JWT (TokenService/SecurityFilter), CORS, Swagger,
-│                     #   ControllerAdvice global e AdminUserSeeder (bootstrap do ADMIN)
+│                     #   ControllerAdvice global, AdminUserSeeder e @ConfigurationProperties
+│                     #   (ShopProperties, MercadoPagoProperties)
+├── client/           # MercadoPagoClient (esqueleto do gateway) + DTOs do gateway
 ├── controller/       # Controllers REST (implementam interfaces *Api)
 │   ├── api/spec/     # Interfaces de contrato OpenAPI (@Operation, @ApiResponse…)
 │   ├── request/      # Request DTOs (Java records + @Valid)
@@ -58,13 +63,13 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   └── support/      # Utilitários de paginação (PaginationUtils)
 ├── exception/        # Exceções personalizadas
 ├── mapper/           # Mappers MapStruct (toEntity / toResponse)
-├── entity/           # Entidades JPA + enums (RepairOrderStatus, Role)
+├── entity/           # Entidades JPA + enums (RepairOrderStatus, PaymentStatus, PaymentMethod, Role)
 ├── repository/       # Repositórios Spring Data + Specifications (filtros dinâmicos)
-└── service/          # Regras de negócio (inclui RefreshTokenService, LoginAttemptService)
+└── service/          # Regras de negócio (inclui PaymentReceiptService, RefreshTokenService, LoginAttemptService)
 
 src/main/resources/
 ├── application.properties
-└── db/migration/     # Migrations Flyway (V1..V15, append-only)
+└── db/migration/     # Migrations Flyway (V1..V16, append-only)
 
 .github/workflows/
 └── ci.yml            # Pipeline de CI (build + testes + cobertura)
@@ -89,7 +94,7 @@ src/main/resources/
    cp .env.example .env
    ```
 
-   O `.env` alimenta o `docker-compose.yml` e o `application.properties` (banco, `JWT_SECRET`, conta ADMIN inicial). Ele **nunca** é commitado.
+   O `.env` alimenta o `docker-compose.yml` e o `application.properties` (banco, `JWT_SECRET`, conta ADMIN inicial, dados da loja para o recibo `SHOP_*` e, quando a aplicação for hospedada, as credenciais do Mercado Pago `MP_*`). Ele **nunca** é commitado.
 
 2. Suba o banco de dados via Docker Compose (apenas o serviço `db`):
 
@@ -245,6 +250,18 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 | `PATCH` | `/repair-order/{id}/status` | Transição de status (uma etapa por vez) | 200 / 400 / 401 / 404 / 422 |
 | `DELETE` | `/repair-order/{id}` | Remove reparo — **ADMIN** | 204 / 401 / 403 / 404 |
 
+#### Pagamento (`/payment`)
+
+| Método | Endpoint | Descrição | Status |
+|---|---|---|---|
+| `GET` | `/payment` | Lista pagamentos (paginado + filtros: `status`, `method`, `repairOrderId`, `createdFrom`, `createdTo`) | 200 / 401 |
+| `GET` | `/payment/{id}` | Busca pagamento por ID | 200 / 401 / 404 |
+| `POST` | `/payment` | Registra pagamento de uma ordem (um por ordem) | 201 / 400 / 401 / 404 / 422 |
+| `PUT` | `/payment/{id}` | Atualiza dados do pagamento | 200 / 400 / 401 / 404 |
+| `PATCH` | `/payment/{id}/status` | Altera a situação; `APPROVED` avança a ordem para `PAYMENT_RECEIVED` | 200 / 400 / 401 / 404 |
+| `GET` | `/payment/{id}/receipt` | Recibo do pagamento em PDF (não-fiscal) | 200 / 401 / 404 |
+| `DELETE` | `/payment/{id}` | Remove pagamento — **ADMIN** | 204 / 401 / 403 / 404 |
+
 ---
 
 ### Decisões de Design
@@ -257,7 +274,8 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 * **Autorização por URL, sem method security**: os papéis são aplicados em `SecurityConfig` com `requestMatchers(...).hasRole("ADMIN")` — não há `@PreAuthorize` no projeto.
 * **Refresh token com rotação e revogação**: cada usuário mantém no máximo um refresh token válido; suspender a conta interrompe a emissão de novos access tokens imediatamente.
 * **Ativação de conta por ADMIN**: contas auto-registradas começam bloqueadas, evitando acesso não supervisionado.
-* **Paginação avançada**: `Device`, `Customer`, `RepairOrder` e `User` usam `JpaSpecificationExecutor` para filtros dinâmicos; `Brand` e `Accessory` (tabelas de lookup) retornam lista simples.
+* **Paginação avançada**: `Device`, `Customer`, `RepairOrder`, `Payment` e `User` usam `JpaSpecificationExecutor` para filtros dinâmicos; `Brand` e `Accessory` (tabelas de lookup) retornam lista simples.
+* **Pagamento desacoplado do reparo**: grupo de rotas `/payment` próprio (1 pagamento por ordem), recibo em PDF via OpenPDF e cliente do Mercado Pago como esqueleto — a maquininha física usa a API Point e será ligada quando a aplicação estiver hospedada (confirmação por webhook ou polling).
 * **Status de reparo como workflow**: enum ordenado com endpoint `PATCH` dedicado, em vez de aceitar qualquer valor no `PUT`.
 * **ENUM no banco como VARCHAR**: simplicidade sem dependências externas.
 * **Migrations append-only**: nunca editar arquivos `V*.sql` existentes; alterações sempre em novos scripts.

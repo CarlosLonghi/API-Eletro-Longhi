@@ -23,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -167,6 +168,40 @@ class RepairOrderServiceTest {
 
         assertThat(repairOrderService.update(1L, TestFixtures.repairOrder(1L))).isEmpty();
         assertThat(repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR)).isEmpty();
+    }
+
+    @Test
+    void shouldAdvanceToPaymentReceivedWhenOrderIsRepairCompleted() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(repairOrderRepository.save(order)).thenReturn(order);
+
+        repairOrderService.markPaymentReceived(1L);
+
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.PAYMENT_RECEIVED);
+        verify(repairOrderRepository).save(order);
+    }
+
+    @Test
+    void shouldNotAdvanceWhenOrderIsNotRepairCompleted() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.IN_REPAIR);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        repairOrderService.markPaymentReceived(1L);
+
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.IN_REPAIR);
+        verify(repairOrderRepository, never()).save(any(RepairOrder.class));
+    }
+
+    @Test
+    void shouldIgnoreMarkPaymentReceivedWhenOrderMissing() {
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.empty());
+
+        repairOrderService.markPaymentReceived(1L);
+
+        verify(repairOrderRepository, never()).save(any(RepairOrder.class));
     }
 }
 

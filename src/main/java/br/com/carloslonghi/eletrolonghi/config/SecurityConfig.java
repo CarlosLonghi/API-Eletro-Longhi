@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/customer/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/device/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/repair-order/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/payment/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/user").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/user/{id}/role").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/user/{id}/status").hasRole("ADMIN")
