@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentStatusUpdateRequest;
+import br.com.carloslonghi.eletrolonghi.controller.response.CheckoutLinkResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.PaymentResponse;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
@@ -177,6 +178,56 @@ public interface PaymentApi {
                     content = @Content(schema = @Schema(implementation = PaymentStatusUpdateRequest.class))
             )
             PaymentStatusUpdateRequest request
+    );
+
+    @Operation(
+            summary = "Gerar link de pagamento (Checkout Pro)",
+            description = "Cria uma preferência no Mercado Pago e devolve o link (init_point) para o "
+                    + "cliente pagar. Requer um pagamento pendente com forma MERCADO_PAGO_CHECKOUT."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Link gerado com sucesso",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CheckoutLinkResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Pagamento não encontrado", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Pagamento não é MERCADO_PAGO_CHECKOUT ou não está pendente", content = @Content),
+            @ApiResponse(responseCode = "502", description = "Falha ao se comunicar com o Mercado Pago", content = @Content)
+    })
+    ResponseEntity<CheckoutLinkResponse> createCheckoutLink(
+            @Parameter(in = ParameterIn.PATH, description = "ID do pagamento", required = true)
+            @PathVariable Long id
+    );
+
+    @Operation(
+            summary = "Conciliar o pagamento com o Mercado Pago",
+            description = "Consulta a situação do pagamento no Mercado Pago pelo external_reference e "
+                    + "atualiza o status local (polling). Aprovar avança a ordem para PAYMENT_RECEIVED."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Pagamento conciliado (pode não ter mudado)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PaymentResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Pagamento não encontrado", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Pagamento não possui link do Checkout Pro", content = @Content),
+            @ApiResponse(responseCode = "502", description = "Falha ao se comunicar com o Mercado Pago", content = @Content)
+    })
+    ResponseEntity<PaymentResponse> syncPayment(
+            @Parameter(in = ParameterIn.PATH, description = "ID do pagamento", required = true)
+            @PathVariable Long id
     );
 
     @Operation(

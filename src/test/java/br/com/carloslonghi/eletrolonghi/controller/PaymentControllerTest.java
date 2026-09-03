@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.client.dto.CheckoutPreference;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.PaymentResponse;
@@ -131,6 +132,42 @@ class PaymentControllerTest {
 
         assertThat(paymentController.updatePaymentStatus(1L, new PaymentStatusUpdateRequest(PaymentStatus.APPROVED))
                 .getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldReturnCheckoutLinkWhenFound() {
+        when(paymentService.createCheckoutLink(1L))
+                .thenReturn(Optional.of(new CheckoutPreference("pref-1", "https://mp/checkout", "https://mp/sandbox")));
+
+        var result = paymentController.createCheckoutLink(1L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().initPoint()).isEqualTo("https://mp/checkout");
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenCreatingCheckoutLinkForMissingPayment() {
+        when(paymentService.createCheckoutLink(1L)).thenReturn(Optional.empty());
+
+        assertThat(paymentController.createCheckoutLink(1L).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldSyncPaymentWhenFound() {
+        Payment entity = TestFixtures.payment(1L);
+        when(paymentService.syncWithGateway(1L)).thenReturn(Optional.of(entity));
+        when(paymentMapper.toResponse(entity)).thenReturn(response);
+
+        var result = paymentController.syncPayment(1L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenSyncingMissingPayment() {
+        when(paymentService.syncWithGateway(1L)).thenReturn(Optional.empty());
+
+        assertThat(paymentController.syncPayment(1L).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
