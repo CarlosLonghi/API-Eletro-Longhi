@@ -2,7 +2,9 @@ package br.com.carloslonghi.eletrolonghi.config;
 
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,20 @@ class ApplicationControllerAdviceTest {
     void shouldReturnDeviceAlreadyInRepairMessage() {
         String message = advice.handleDeviceAlreadyInRepairException(new DeviceAlreadyInRepairException(9L));
         assertThat(message).contains("9");
+    }
+
+    @Test
+    void shouldReturnInvalidPaymentCheckoutMessage() {
+        String message = advice.handleInvalidPaymentCheckoutException(
+                new InvalidPaymentCheckoutException("pagamento não é checkout"));
+        assertThat(message).isEqualTo("pagamento não é checkout");
+    }
+
+    @Test
+    void shouldReturnPaymentGatewayMessage() {
+        String message = advice.handlePaymentGatewayException(
+                new PaymentGatewayException("Mercado Pago indisponível"));
+        assertThat(message).isEqualTo("Mercado Pago indisponível");
     }
 
     @Test
