@@ -3,6 +3,7 @@ package br.com.carloslonghi.eletrolonghi.controller;
 import br.com.carloslonghi.eletrolonghi.controller.api.spec.PaymentApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentStatusUpdateRequest;
+import br.com.carloslonghi.eletrolonghi.controller.response.CheckoutLinkResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.PaymentResponse;
 import br.com.carloslonghi.eletrolonghi.controller.support.PaginationUtils;
 import br.com.carloslonghi.eletrolonghi.entity.Payment;
@@ -82,6 +83,21 @@ public class PaymentController implements PaymentApi {
     @PatchMapping("/{id}/status")
     public ResponseEntity<PaymentResponse> updatePaymentStatus(@PathVariable Long id, @Valid @RequestBody PaymentStatusUpdateRequest request) {
         return paymentService.updateStatus(id, request.status())
+                .map(payment -> ResponseEntity.ok(paymentMapper.toResponse(payment)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/checkout")
+    public ResponseEntity<CheckoutLinkResponse> createCheckoutLink(@PathVariable Long id) {
+        return paymentService.createCheckoutLink(id)
+                .map(preference -> ResponseEntity.ok(
+                        CheckoutLinkResponse.builder().initPoint(preference.initPoint()).build()))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/sync")
+    public ResponseEntity<PaymentResponse> syncPayment(@PathVariable Long id) {
+        return paymentService.syncWithGateway(id)
                 .map(payment -> ResponseEntity.ok(paymentMapper.toResponse(payment)))
                 .orElse(ResponseEntity.notFound().build());
     }

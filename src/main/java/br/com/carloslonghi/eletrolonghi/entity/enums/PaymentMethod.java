@@ -7,7 +7,8 @@ public enum PaymentMethod {
     CASH("Dinheiro"),
     CARD("Cartão"),
     PIX("PIX"),
-    BOLETO("Boleto");
+    BOLETO("Boleto"),
+    MERCADO_PAGO_CHECKOUT("Link de pagamento (Mercado Pago)");
 
     private final String description;
 

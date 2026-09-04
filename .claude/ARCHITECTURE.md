@@ -19,8 +19,8 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   └── SwaggerConfig.java               # OpenAPI/Springdoc config
 │
 ├── client/
-│   ├── MercadoPagoClient.java           # skeleton HTTP client (only getPayment/polling implemented)
-│   └── dto/GatewayPaymentSnapshot.java
+│   ├── MercadoPagoClient.java           # HTTP client: Checkout Pro preference + payment search/get (Point API still TODO)
+│   └── dto/                             # GatewayPaymentSnapshot, CheckoutPreference, Preference{Request,Item}, PaymentSearchResponse
 │
 ├── controller/
 │   ├── api/spec/                        # OpenAPI contract interfaces (*Api.java)
@@ -33,14 +33,14 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   ├── DeviceController.java            # /device — paginated + filters
 │   ├── CustomerController.java          # /customer — paginated + filters
 │   ├── RepairOrderController.java       # /repair-order — paginated + filters + status PATCH
-│   ├── PaymentController.java           # /payment — paginated + filters + status PATCH + /{id}/receipt (PDF)
+│   ├── PaymentController.java           # /payment — CRUD + status PATCH + /{id}/checkout + /{id}/sync + /{id}/receipt (PDF)
 │   └── UserController.java              # /user — paginated + filters (ADMIN); role PATCH + status PATCH (ADMIN)
 │
 ├── service/
 │   ├── BrandService.java / AccessoryService.java     # simple CRUD
 │   ├── DeviceService.java / CustomerService.java      # CRUD + Pageable/Specification filters
 │   ├── RepairOrderService.java          # CRUD + filters + status-workflow + "one open order per device" rule + markPaymentReceived
-│   ├── PaymentService.java              # CRUD + filters + "one payment per order" rule + auto-advance order on APPROVED
+│   ├── PaymentService.java              # CRUD + filters + "one payment per order" + auto-advance on APPROVED + Checkout Pro link/sync
 │   ├── PaymentReceiptService.java       # non-fiscal PDF receipt (OpenPDF)
 │   ├── AuthService.java                 # UserDetailsService (login-time user lookup)
 │   ├── UserService.java                 # registration (forces enabled=false), role/status updates, filtered listing
@@ -89,7 +89,7 @@ src/main/resources/
 - **I6 — Deletion returns 204 No Content.** `ResponseEntity.noContent().build()`, no body.
 - **I7 — Migrations are append-only.** Never edit an existing `V*.sql`; always add `V{n+1}`. Confirm the actual current max version with `ls` before citing one.
 - **I8 — RepairOrder status is a workflow, not a free enum.** Transitions and the "one active order per device" rule live in `RepairOrderService`, not the DB. Status changes go through the dedicated `RepairOrderStatusUpdateRequest` endpoint, not the general update endpoint.
-- **I10 — One payment per repair order.** `Payment.repairOrder` is `@ManyToOne` but `repair_order_id` is `UNIQUE NOT NULL` and `PaymentService.save` rejects a duplicate (`PaymentAlreadyExistsForRepairOrderException` → 422). `PaymentStatus` is **not** a strict workflow (unlike `RepairOrderStatus`), but moving a payment to `APPROVED` (via create or the `PATCH /payment/{id}/status` endpoint) stamps `paidAt` and calls `RepairOrderService.markPaymentReceived`, which advances the order `REPAIR_COMPLETED → PAYMENT_RECEIVED` and no-ops (with a log) in any other state — payment and workflow never block each other.
+- **I10 — One payment per repair order.** `Payment.repairOrder` is `@ManyToOne` but `repair_order_id` is `UNIQUE NOT NULL` and `PaymentService.save` rejects a duplicate (`PaymentAlreadyExistsForRepairOrderException` → 422). `PaymentStatus` is **not** a strict workflow (unlike `RepairOrderStatus`), but moving a payment to `APPROVED` (via create or the `PATCH /payment/{id}/status` endpoint) stamps `paidAt` and calls `RepairOrderService.markPaymentReceived`, which advances the order `REPAIR_COMPLETED → PAYMENT_RECEIVED` and no-ops (with a log) in any other state — payment and workflow never block each other. Mercado Pago **Checkout Pro** payments (`method=MERCADO_PAGO_CHECKOUT`) get a link via `POST /payment/{id}/checkout` and are reconciled by manual polling via `POST /payment/{id}/sync` (no webhook — app not hosted); the same `applyStatus` path fires the auto-advance.
 
 ## Data flow
 

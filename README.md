@@ -19,8 +19,9 @@ Funcionalidades implementadas:
 * CRUD de **Acessórios** (`/accessory`).
 * CRUD de **Ordens de Reparo** (`/repair-order`) com listagem paginada, filtros (status, cliente, aparelho, intervalo de criação) e **endpoint dedicado de transição de status** (`PATCH /repair-order/{id}/status`), com o fluxo validado (só é permitido avançar/retroceder uma etapa por vez).
 * **Regra de negócio de ciclo do aparelho**: um aparelho só pode receber uma nova ordem de reparo depois que a anterior chegou ao status `DEVICE_COLLECTED` (violação → 422).
-* CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX ou boleto), listagem paginada/filtrável, transição de situação por `PATCH /payment/{id}/status` e **avanço automático** da ordem para `PAYMENT_RECEIVED` ao aprovar o pagamento.
-* **Recibo de pagamento em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal com os dados da loja (`shop.*`). Integração com o gateway do Mercado Pago (maquininha via API Point) está preparada como esqueleto para quando a aplicação for hospedada.
+* CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX, boleto ou link do Mercado Pago), listagem paginada/filtrável, transição de situação por `PATCH /payment/{id}/status` e **avanço automático** da ordem para `PAYMENT_RECEIVED` ao aprovar o pagamento.
+* **Gateway Mercado Pago (Checkout Pro)** — `POST /payment/{id}/checkout` gera o link de pagamento (`init_point`) para o cliente pagar online; `POST /payment/{id}/sync` concilia a situação por *polling* (sem webhook, pois a aplicação ainda não está hospedada). A maquininha física (API Point) permanece como TODO no `MercadoPagoClient`.
+* **Recibo de pagamento em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal com os dados da loja (`shop.*`).
 * **CORS por allowlist** de origens (front-end web / renderer Electron).
 * **Controle de integridade**: tratamento global de conflitos (409), validações (`@Valid` → 400), regras de negócio (→ 422) e 401 explícito para token ausente/inválido.
 * **CI no GitHub Actions** rodando a suíte de testes em todo push/PR para `main`, com merge bloqueado enquanto os testes não passam.
@@ -259,6 +260,8 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 | `POST` | `/payment` | Registra pagamento de uma ordem (um por ordem) | 201 / 400 / 401 / 404 / 422 |
 | `PUT` | `/payment/{id}` | Atualiza dados do pagamento | 200 / 400 / 401 / 404 |
 | `PATCH` | `/payment/{id}/status` | Altera a situação; `APPROVED` avança a ordem para `PAYMENT_RECEIVED` | 200 / 400 / 401 / 404 |
+| `POST` | `/payment/{id}/checkout` | Gera o link de pagamento do Checkout Pro (pagamento pendente com forma `MERCADO_PAGO_CHECKOUT`) | 200 / 401 / 404 / 422 / 502 |
+| `POST` | `/payment/{id}/sync` | Concilia a situação com o Mercado Pago por polling | 200 / 401 / 404 / 422 / 502 |
 | `GET` | `/payment/{id}/receipt` | Recibo do pagamento em PDF (não-fiscal) | 200 / 401 / 404 |
 | `DELETE` | `/payment/{id}` | Remove pagamento — **ADMIN** | 204 / 401 / 403 / 404 |
 
@@ -275,7 +278,7 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 * **Refresh token com rotação e revogação**: cada usuário mantém no máximo um refresh token válido; suspender a conta interrompe a emissão de novos access tokens imediatamente.
 * **Ativação de conta por ADMIN**: contas auto-registradas começam bloqueadas, evitando acesso não supervisionado.
 * **Paginação avançada**: `Device`, `Customer`, `RepairOrder`, `Payment` e `User` usam `JpaSpecificationExecutor` para filtros dinâmicos; `Brand` e `Accessory` (tabelas de lookup) retornam lista simples.
-* **Pagamento desacoplado do reparo**: grupo de rotas `/payment` próprio (1 pagamento por ordem), recibo em PDF via OpenPDF e cliente do Mercado Pago como esqueleto — a maquininha física usa a API Point e será ligada quando a aplicação estiver hospedada (confirmação por webhook ou polling).
+* **Pagamento desacoplado do reparo**: grupo de rotas `/payment` próprio (1 pagamento por ordem), recibo em PDF via OpenPDF e gateway Mercado Pago via Checkout Pro (link de pagamento + conciliação por polling, sem webhook enquanto a app não está hospedada). A maquininha física (API Point) é o próximo passo, quando houver credenciais de produção e um Point Smart.
 * **Status de reparo como workflow**: enum ordenado com endpoint `PATCH` dedicado, em vez de aceitar qualquer valor no `PUT`.
 * **ENUM no banco como VARCHAR**: simplicidade sem dependências externas.
 * **Migrations append-only**: nunca editar arquivos `V*.sql` existentes; alterações sempre em novos scripts.

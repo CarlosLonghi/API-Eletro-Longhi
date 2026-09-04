@@ -3,8 +3,10 @@ package br.com.carloslonghi.eletrolonghi.config;
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
+import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
@@ -78,6 +80,18 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(PaymentAlreadyExistsForRepairOrderException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public String handlePaymentAlreadyExistsForRepairOrderException(PaymentAlreadyExistsForRepairOrderException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(InvalidPaymentCheckoutException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handleInvalidPaymentCheckoutException(InvalidPaymentCheckoutException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(PaymentGatewayException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public String handlePaymentGatewayException(PaymentGatewayException exception) {
         return exception.getMessage();
     }
 
