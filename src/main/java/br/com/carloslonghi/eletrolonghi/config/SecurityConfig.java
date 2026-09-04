@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/api-docs.yaml").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui/**" ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/brand").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/brand/{id}").hasRole("ADMIN")
