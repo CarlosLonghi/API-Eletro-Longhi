@@ -56,7 +56,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 ├── config/           # Security, JWT (TokenService/SecurityFilter), CORS, Swagger,
 │                     #   ControllerAdvice global, AdminUserSeeder e @ConfigurationProperties
 │                     #   (ShopProperties, MercadoPagoProperties)
-├── client/           # MercadoPagoClient (esqueleto do gateway) + DTOs do gateway
+├── client/           # MercadoPagoClient (Checkout Pro: preference + busca de pagamento) + DTOs do gateway
 ├── controller/       # Controllers REST (implementam interfaces *Api)
 │   ├── api/spec/     # Interfaces de contrato OpenAPI (@Operation, @ApiResponse…)
 │   ├── request/      # Request DTOs (Java records + @Valid)

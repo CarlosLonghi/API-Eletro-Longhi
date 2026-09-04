@@ -15,7 +15,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │   ├── JWTUserData.java                 # DTO for decoded JWT claims
 │   ├── ApplicationControllerAdvice.java # Global exception → HTTP translator
 │   ├── ShopProperties.java              # shop.* — store data for the payment receipt
-│   ├── MercadoPagoProperties.java       # mercadopago.* — reserved for the future Point integration
+│   ├── MercadoPagoProperties.java       # mercadopago.* — access token / base URL for the Checkout Pro client (Point creds still unused)
 │   └── SwaggerConfig.java               # OpenAPI/Springdoc config
 │
 ├── client/
