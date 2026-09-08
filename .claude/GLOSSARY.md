@@ -19,16 +19,18 @@ Top-level entity, not embedded in `RepairOrder`. `id`, `name`, `phone`, `email` 
 ### RepairOrder
 Service ticket tracking a device repair. `id`, `description`, `status` (enum, required), `customer` (`@ManyToOne`, required), `device` (`@ManyToOne`, required), `createdAt`, `updatedAt`.
 - **Status is a workflow, not a free enum** (`entity/enums/RepairOrderStatus`):
-  `AWAITING_EVALUATION → IN_EVALUATION → AWAITING_APPROVAL → APPROVED → AWAITING_PARTS → IN_REPAIR → REPAIR_COMPLETED → PAYMENT_RECEIVED → DEVICE_COLLECTED`.
+  `AWAITING_EVALUATION → IN_EVALUATION → AWAITING_APPROVAL → APPROVED → AWAITING_PARTS → IN_REPAIR → REPAIR_COMPLETED → DEVICE_COLLECTED`.
   Each value carries a Portuguese `description` (e.g. `APPROVED` → "Aprovado").
 - Status changes go through a dedicated `PATCH`-style endpoint using `RepairOrderStatusUpdateRequest` — don't update status via the general update endpoint.
 - A device may have more than one repair order over time, but a new order for a device is only allowed once its previous order reached `DEVICE_COLLECTED`. This rule is enforced in `RepairOrderService`, **not** a DB constraint.
-- Paginated + filterable listing (`status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`).
+- Marking an order `DEVICE_COLLECTED` requires its linked `Payment` to be `APPROVED` — otherwise `RepairOrderNotPaidException` → 422 (`RepairOrderService`, checked on both the `PATCH /status` and `PUT` paths).
+- 1:1 with `Payment` via the inverse `@OneToOne(mappedBy = "repairOrder")`; the listing query eager-loads it with an `@EntityGraph`.
+- Paginated + filterable listing (`status`, `paymentStatus`, `customerId`, `deviceId`, `createdFrom`, `createdTo`). Response carries `paymentStatus` + `paymentId` (both null when the order has no payment yet).
 
 ### Payment
-The payment of a repair order. `id`, `amount` (`BigDecimal`, `NUMERIC(12,2)`), `method` (`entity/enums/PaymentMethod`: `CASH` | `CARD` | `PIX` | `BOLETO` | `MERCADO_PAGO_CHECKOUT`), `status` (`entity/enums/PaymentStatus`: `PENDING` | `APPROVED` | `REJECTED` | `REFUNDED` | `CANCELLED`), `installments` (>1 only for `CARD`; `PaymentService` normalizes it to 1 otherwise), `description`, `payerName`/`payerDocument` (printed on the receipt), `externalReference` (`payment-<id>`, set when a Checkout Pro link is generated), `gatewayPaymentId` (real MP payment id, set on sync), `repairOrder` (`@ManyToOne`, required), `paidAt`, `createdAt`, `updatedAt`.
-- **One payment per repair order** — `repair_order_id` is `UNIQUE NOT NULL`; a second payment for the same order is rejected in `PaymentService` (`PaymentAlreadyExistsForRepairOrderException` → 422), see `[[architecture]]` invariant I10.
-- `PaymentStatus` is **not** a strict workflow. Moving to `APPROVED` (create or `PATCH /payment/{id}/status`) stamps `paidAt` and calls `RepairOrderService.markPaymentReceived` — advances the order `REPAIR_COMPLETED → PAYMENT_RECEIVED`, no-op + log otherwise.
+The payment of a repair order. `id`, `amount` (`BigDecimal`, `NUMERIC(12,2)`), `method` (`entity/enums/PaymentMethod`: `CASH` | `CARD` | `PIX` | `BOLETO` | `MERCADO_PAGO_CHECKOUT`), `status` (`entity/enums/PaymentStatus`: `PENDING` | `APPROVED` | `REJECTED` | `REFUNDED` | `CANCELLED`), `installments` (>1 only for `CARD`; `PaymentService` normalizes it to 1 otherwise), `description`, `payerName`/`payerDocument` (printed on the receipt), `externalReference` (`payment-<id>`, set when a Checkout Pro link is generated), `gatewayPaymentId` (real MP payment id, set on sync), `repairOrder` (`@OneToOne`, required, owns `repair_order_id`), `paidAt`, `createdAt`, `updatedAt`.
+- **One payment per repair order** — `repair_order_id` is `UNIQUE NOT NULL`; a second payment for the same order is rejected in `PaymentService` (`PaymentAlreadyExistsForRepairOrderException` → 422), see `[[architecture]]` invariant I10. `RepairOrder` sees it back through `@OneToOne(mappedBy = "repairOrder")`.
+- `PaymentStatus` is **not** a strict workflow. Moving to `APPROVED` (create or `PATCH /payment/{id}/status`) stamps `paidAt`; the linked repair order's status is not changed.
 - `GET /payment/{id}/receipt` → non-fiscal PDF receipt (`service/PaymentReceiptService`, OpenPDF), store data from `config/ShopProperties` (`shop.*`).
 - Paginated + filterable listing (`status`, `method`, `repairOrderId`, `createdFrom`, `createdTo`). `DELETE /payment/{id}` is ADMIN-only.
 - **Checkout Pro (link de pagamento)** — `POST /payment/{id}/checkout` creates a Mercado Pago *preference* (`MercadoPagoClient.createCheckoutPreference`) for a pending `MERCADO_PAGO_CHECKOUT` payment, returns the `init_point` link and stamps `externalReference`. `POST /payment/{id}/sync` polls MP (`findPaymentByExternalReference`) and reapplies the mapped status — the polling substitute for a webhook (app not hosted). `InvalidPaymentCheckoutException` → 422 (wrong method / not pending / no link yet), `PaymentGatewayException` → 502 (MP unreachable or `mercadopago.access-token` unset).
@@ -69,7 +71,7 @@ Shared across `Device`, `Customer`, `RepairOrder`, `Payment`, `User` listings: `
 |------|------|
 | Repair order workflow | `entity/enums/RepairOrderStatus.java` |
 | Payment method / status enums | `entity/enums/PaymentMethod.java`, `entity/enums/PaymentStatus.java` |
-| Payment → order auto-advance | `RepairOrderService.markPaymentReceived` |
+| Payment status on the repair-order listing | `RepairOrderMapper.toResponse` (`paymentStatus` / `paymentId`) |
 | Payment receipt (PDF) | `service/PaymentReceiptService.java`, `config/ShopProperties.java` |
 | Mercado Pago client | `client/MercadoPagoClient.java`, `config/MercadoPagoProperties.java` |
 | Checkout Pro link / polling sync | `PaymentService.createCheckoutLink` / `PaymentService.syncWithGateway` |

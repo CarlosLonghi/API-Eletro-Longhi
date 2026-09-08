@@ -3,6 +3,7 @@ package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -80,6 +81,8 @@ public interface RepairOrderApi {
     ResponseEntity<Page<RepairOrderResponse>> getAllRepairOrders(
             @Parameter(in = ParameterIn.QUERY, description = "Filtro por status do reparo", schema = @Schema(implementation = RepairOrderStatus.class))
             @RequestParam(required = false) RepairOrderStatus status,
+            @Parameter(in = ParameterIn.QUERY, description = "Filtro pela situação do pagamento vinculado", schema = @Schema(implementation = PaymentStatus.class))
+            @RequestParam(required = false) PaymentStatus paymentStatus,
             @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do cliente")
             @RequestParam(required = false) Long customerId,
             @Parameter(in = ParameterIn.QUERY, description = "Filtro por ID do aparelho")
@@ -137,7 +140,7 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo, cliente ou aparelho referenciado não encontrado", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Transição de status inválida — só é permitido avançar ou retroceder uma etapa por vez no fluxo", content = @Content)
+            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez) ou tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrder(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
@@ -170,7 +173,7 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Transição de status inválida — só é permitido avançar ou retroceder uma etapa por vez no fluxo", content = @Content)
+            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez) ou tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)

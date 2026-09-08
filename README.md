@@ -19,7 +19,7 @@ Funcionalidades implementadas:
 * CRUD de **Acessórios** (`/accessory`).
 * CRUD de **Ordens de Reparo** (`/repair-order`) com listagem paginada, filtros (status, cliente, aparelho, intervalo de criação) e **endpoint dedicado de transição de status** (`PATCH /repair-order/{id}/status`), com o fluxo validado (só é permitido avançar/retroceder uma etapa por vez).
 * **Regra de negócio de ciclo do aparelho**: um aparelho só pode receber uma nova ordem de reparo depois que a anterior chegou ao status `DEVICE_COLLECTED` (violação → 422).
-* CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX, boleto ou link do Mercado Pago), listagem paginada/filtrável, transição de situação por `PATCH /payment/{id}/status` e **avanço automático** da ordem para `PAYMENT_RECEIVED` ao aprovar o pagamento.
+* CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX, boleto ou link do Mercado Pago), listagem paginada/filtrável e transição de situação por `PATCH /payment/{id}/status`. A situação do pagamento aparece na listagem de reparos (`paymentStatus`) e o reparo só pode ser marcado como coletado com o pagamento aprovado.
 * **Gateway Mercado Pago (Checkout Pro)** — `POST /payment/{id}/checkout` gera o link de pagamento (`init_point`) para o cliente pagar online; `POST /payment/{id}/sync` concilia a situação por *polling* (sem webhook, pois a aplicação ainda não está hospedada). A maquininha física (API Point) permanece como TODO no `MercadoPagoClient`.
 * **Recibo de pagamento em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal com os dados da loja (`shop.*`).
 * **CORS por allowlist** de origens (front-end web / renderer Electron).
@@ -171,10 +171,10 @@ O status é um fluxo ordenado (`entity/enums/RepairOrderStatus`), não um enum l
 
 ```
 AWAITING_EVALUATION → IN_EVALUATION → AWAITING_APPROVAL → APPROVED
-→ AWAITING_PARTS → IN_REPAIR → REPAIR_COMPLETED → PAYMENT_RECEIVED → DEVICE_COLLECTED
+→ AWAITING_PARTS → IN_REPAIR → REPAIR_COMPLETED → DEVICE_COLLECTED
 ```
 
-A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrderStatusUpdateRequest`) e também é validada no `PUT`: só é permitido avançar ou retroceder **uma etapa por vez** — transições fora de ordem retornam `422`. Um aparelho só pode ter uma nova ordem aberta quando a ordem anterior atingiu `DEVICE_COLLECTED` (caso contrário, `422`).
+A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrderStatusUpdateRequest`) e também é validada no `PUT`: só é permitido avançar ou retroceder **uma etapa por vez** — transições fora de ordem retornam `422`. Marcar a ordem como `DEVICE_COLLECTED` exige um pagamento `APPROVED` vinculado (caso contrário, `422`). Um aparelho só pode ter uma nova ordem aberta quando a ordem anterior atingiu `DEVICE_COLLECTED` (caso contrário, `422`).
 
 ---
 
@@ -244,7 +244,7 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 
 | Método | Endpoint | Descrição | Status |
 |---|---|---|---|
-| `GET` | `/repair-order` | Lista reparos (paginado + filtros: `status`, `customerId`, `deviceId`, `createdFrom`, `createdTo`) | 200 / 401 |
+| `GET` | `/repair-order` | Lista reparos (paginado + filtros: `status`, `paymentStatus`, `customerId`, `deviceId`, `createdFrom`, `createdTo`) | 200 / 401 |
 | `GET` | `/repair-order/{id}` | Busca reparo por ID | 200 / 401 / 404 |
 | `POST` | `/repair-order` | Cria reparo | 201 / 400 / 401 / 404 / 422 |
 | `PUT` | `/repair-order/{id}` | Atualiza reparo | 200 / 400 / 401 / 404 / 422 |
@@ -259,7 +259,7 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 | `GET` | `/payment/{id}` | Busca pagamento por ID | 200 / 401 / 404 |
 | `POST` | `/payment` | Registra pagamento de uma ordem (um por ordem) | 201 / 400 / 401 / 404 / 422 |
 | `PUT` | `/payment/{id}` | Atualiza dados do pagamento | 200 / 400 / 401 / 404 |
-| `PATCH` | `/payment/{id}/status` | Altera a situação; `APPROVED` avança a ordem para `PAYMENT_RECEIVED` | 200 / 400 / 401 / 404 |
+| `PATCH` | `/payment/{id}/status` | Altera a situação; `APPROVED` preenche `paidAt` (não altera o status da ordem) | 200 / 400 / 401 / 404 |
 | `POST` | `/payment/{id}/checkout` | Gera o link de pagamento do Checkout Pro (pagamento pendente com forma `MERCADO_PAGO_CHECKOUT`) | 200 / 401 / 404 / 422 / 502 |
 | `POST` | `/payment/{id}/sync` | Concilia a situação com o Mercado Pago por polling | 200 / 401 / 404 / 422 / 502 |
 | `GET` | `/payment/{id}/receipt` | Recibo do pagamento em PDF (não-fiscal) | 200 / 401 / 404 |

@@ -151,8 +151,9 @@ public interface PaymentApi {
 
     @Operation(
             summary = "Atualizar a situação de um pagamento",
-            description = "Atualiza apenas a situação do pagamento. Ao mudar para APPROVED, a ordem de "
-                    + "reparo vinculada avança de REPAIR_COMPLETED para PAYMENT_RECEIVED automaticamente."
+            description = "Atualiza apenas a situação do pagamento. Ao mudar para APPROVED, o campo "
+                    + "paidAt é preenchido; o status da ordem de reparo não é alterado, mas a listagem "
+                    + "de reparos passa a expor o pagamento como aprovado (paymentStatus)."
     )
     @ApiResponses({
             @ApiResponse(
@@ -208,7 +209,8 @@ public interface PaymentApi {
     @Operation(
             summary = "Conciliar o pagamento com o Mercado Pago",
             description = "Consulta a situação do pagamento no Mercado Pago pelo external_reference e "
-                    + "atualiza o status local (polling). Aprovar avança a ordem para PAYMENT_RECEIVED."
+                    + "atualiza o status local (polling). Aprovar preenche paidAt; o status da ordem "
+                    + "de reparo não é alterado."
     )
     @ApiResponses({
             @ApiResponse(

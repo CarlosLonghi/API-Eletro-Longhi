@@ -2,16 +2,17 @@ package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
+import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,8 +25,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class RepairOrderService {
 
-    private static final Logger log = LoggerFactory.getLogger(RepairOrderService.class);
-
     private final RepairOrderRepository repairOrderRepository;
 
     private final CustomerService customerService;
@@ -33,6 +32,7 @@ public class RepairOrderService {
 
     public Page<RepairOrder> findAll(
             RepairOrderStatus status,
+            PaymentStatus paymentStatus,
             Long customerId,
             Long deviceId,
             LocalDateTime createdFrom,
@@ -42,6 +42,7 @@ public class RepairOrderService {
         return repairOrderRepository.findAll(
                 RepairOrderSpecification.withFilters(
                         status,
+                        paymentStatus,
                         customerId,
                         deviceId,
                         createdFrom,
@@ -72,12 +73,14 @@ public class RepairOrderService {
         return repairOrderRepository.findById(id);
     }
 
+    @Transactional
     public Optional<RepairOrder> update(Long id, RepairOrder repairOrder) {
         Optional<RepairOrder> optionalRepairOrder = repairOrderRepository.findById(id);
 
         if (optionalRepairOrder.isPresent()) {
             RepairOrder repairOrderToUpdate = optionalRepairOrder.get();
             validateStatusTransition(repairOrderToUpdate.getStatus(), repairOrder.getStatus());
+            guardDeviceCollected(repairOrderToUpdate, repairOrder.getStatus());
 
             Customer customer = this.findCustomer(repairOrder.getCustomer());
             Device device = this.findDevice(repairOrder.getDevice());
@@ -94,30 +97,13 @@ public class RepairOrderService {
         return Optional.empty();
     }
 
+    @Transactional
     public Optional<RepairOrder> updateStatus(Long id, RepairOrderStatus status) {
         return repairOrderRepository.findById(id).map(repairOrder -> {
             validateStatusTransition(repairOrder.getStatus(), status);
+            guardDeviceCollected(repairOrder, status);
             repairOrder.setStatus(status);
             return repairOrderRepository.save(repairOrder);
-        });
-    }
-
-    /**
-     * Avanço automático disparado ao aprovar um pagamento: move a ordem de
-     * {@code REPAIR_COMPLETED} para {@code PAYMENT_RECEIVED}. Em qualquer outro estado
-     * (ou ordem inexistente) apenas registra e não faz nada — pagamento e workflow
-     * não devem se bloquear mutuamente.
-     */
-    @Transactional
-    public void markPaymentReceived(Long repairOrderId) {
-        repairOrderRepository.findById(repairOrderId).ifPresent(order -> {
-            if (order.getStatus() == RepairOrderStatus.REPAIR_COMPLETED) {
-                order.setStatus(RepairOrderStatus.PAYMENT_RECEIVED);
-                repairOrderRepository.save(order);
-            } else {
-                log.info("Pagamento aprovado para a ordem {} em status {}; avanço automático ignorado.",
-                        repairOrderId, order.getStatus());
-            }
         });
     }
 
@@ -126,6 +112,21 @@ public class RepairOrderService {
 
         if (distance != 1) {
             throw new InvalidRepairOrderStatusTransitionException(current, next);
+        }
+    }
+
+    /**
+     * A ordem só pode ir para {@code DEVICE_COLLECTED} se tiver um pagamento
+     * {@code APPROVED} vinculado — a garantia "não entrega aparelho não pago", agora
+     * com fonte no {@code Payment} (o status da ordem não é mais tocado pelo pagamento).
+     */
+    private void guardDeviceCollected(RepairOrder order, RepairOrderStatus next) {
+        if (next != RepairOrderStatus.DEVICE_COLLECTED) {
+            return;
+        }
+        Payment payment = order.getPayment();
+        if (payment == null || payment.getStatus() != PaymentStatus.APPROVED) {
+            throw new RepairOrderNotPaidException(order.getId());
         }
     }
 

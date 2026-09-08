@@ -42,4 +42,11 @@ public class RepairOrder {
     @ManyToOne(optional = false)
     @JoinColumn(name = "device_id", nullable = false)
     private Device device;
+
+    /**
+     * Pagamento da ordem — 1:1, lado inverso (a FK {@code repair_order_id} vive em
+     * {@code payments}). {@code null} enquanto a ordem não tem pagamento registrado.
+     */
+    @OneToOne(mappedBy = "repairOrder")
+    private Payment payment;
 }

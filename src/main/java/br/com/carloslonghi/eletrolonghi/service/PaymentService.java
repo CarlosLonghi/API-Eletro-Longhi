@@ -160,7 +160,6 @@ public class PaymentService {
 
     private void applyApproved(Payment payment) {
         payment.setPaidAt(LocalDateTime.now());
-        repairOrderService.markPaymentReceived(payment.getRepairOrder().getId());
     }
 
     private RepairOrder resolveRepairOrder(RepairOrder repairOrder) {

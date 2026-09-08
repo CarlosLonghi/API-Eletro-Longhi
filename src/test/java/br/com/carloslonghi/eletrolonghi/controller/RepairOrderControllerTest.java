@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.mapper.RepairOrderMapper;
 import br.com.carloslonghi.eletrolonghi.service.RepairOrderService;
@@ -21,6 +22,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,13 +43,23 @@ class RepairOrderControllerTest {
     void shouldReturnPagedRepairOrders() {
         RepairOrder order = TestFixtures.repairOrder(1L);
         RepairOrderResponse response = RepairOrderResponse.builder().id(1L).status(RepairOrderStatus.AWAITING_EVALUATION).build();
-        when(repairOrderService.findAll(any(), any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(List.of(order)));
+        when(repairOrderService.findAll(any(), any(), any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(List.of(order)));
         when(repairOrderMapper.toResponse(order)).thenReturn(response);
 
-        var result = repairOrderController.getAllRepairOrders(null, null, null, null, null, 0, 10, "id", "asc");
+        var result = repairOrderController.getAllRepairOrders(null, null, null, null, null, null, 0, 10, "id", "asc");
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getContent()).containsExactly(response);
+    }
+
+    @Test
+    void shouldPassPaymentStatusFilterToService() {
+        when(repairOrderService.findAll(any(), eq(PaymentStatus.APPROVED), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        repairOrderController.getAllRepairOrders(null, PaymentStatus.APPROVED, null, null, null, null, 0, 10, "id", "asc");
+
+        verify(repairOrderService).findAll(isNull(), eq(PaymentStatus.APPROVED), isNull(), isNull(), isNull(), isNull(), any());
     }
 
     @Test

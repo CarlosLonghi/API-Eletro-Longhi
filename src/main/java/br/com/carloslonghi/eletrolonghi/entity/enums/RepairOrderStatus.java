@@ -11,7 +11,6 @@ public enum RepairOrderStatus {
     AWAITING_PARTS("Aguardando peças"),
     IN_REPAIR("Em reparo"),
     REPAIR_COMPLETED("Reparo concluído"),
-    PAYMENT_RECEIVED("Pagamento recebido"),
     DEVICE_COLLECTED("Dispositivo coletado");
 
     private final String description;

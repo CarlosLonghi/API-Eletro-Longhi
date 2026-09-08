@@ -1,10 +1,12 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -23,7 +25,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +51,7 @@ class RepairOrderServiceTest {
 
         Page<RepairOrder> result = repairOrderService.findAll(
                 RepairOrderStatus.AWAITING_EVALUATION,
+                null,
                 1L,
                 1L,
                 LocalDateTime.now().minusDays(1),
@@ -171,37 +173,36 @@ class RepairOrderServiceTest {
     }
 
     @Test
-    void shouldAdvanceToPaymentReceivedWhenOrderIsRepairCompleted() {
-        RepairOrder order = TestFixtures.repairOrder(1L);
+    void shouldAllowDeviceCollectedWhenPaymentApproved() {
+        RepairOrder order = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.APPROVED);
         order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(repairOrderRepository.save(order)).thenReturn(order);
 
-        repairOrderService.markPaymentReceived(1L);
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED);
 
-        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.PAYMENT_RECEIVED);
-        verify(repairOrderRepository).save(order);
+        assertThat(updated).isPresent();
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.DEVICE_COLLECTED);
     }
 
     @Test
-    void shouldNotAdvanceWhenOrderIsNotRepairCompleted() {
-        RepairOrder order = TestFixtures.repairOrder(1L);
-        order.setStatus(RepairOrderStatus.IN_REPAIR);
+    void shouldRejectDeviceCollectedWhenPaymentNotApproved() {
+        RepairOrder order = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.PENDING);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        repairOrderService.markPaymentReceived(1L);
-
-        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.IN_REPAIR);
-        verify(repairOrderRepository, never()).save(any(RepairOrder.class));
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED))
+                .isInstanceOf(RepairOrderNotPaidException.class);
     }
 
     @Test
-    void shouldIgnoreMarkPaymentReceivedWhenOrderMissing() {
-        when(repairOrderRepository.findById(1L)).thenReturn(Optional.empty());
+    void shouldRejectDeviceCollectedWhenOrderHasNoPayment() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        repairOrderService.markPaymentReceived(1L);
-
-        verify(repairOrderRepository, never()).save(any(RepairOrder.class));
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED))
+                .isInstanceOf(RepairOrderNotPaidException.class);
     }
 }
 
