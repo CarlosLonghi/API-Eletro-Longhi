@@ -70,7 +70,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 
 src/main/resources/
 ├── application.properties
-└── db/migration/     # Migrations Flyway (V1..V16, append-only)
+└── db/migration/     # Migrations Flyway (V1..V17, append-only)
 
 .github/workflows/
 └── ci.yml            # Pipeline de CI (build + testes + cobertura)

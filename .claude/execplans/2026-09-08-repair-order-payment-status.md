@@ -41,9 +41,16 @@ pagamento `APPROVED`.
 
 ## Surprises & Discoveries
 
-**2026-09-08**: Nenhuma migração necessária — `repair_orders.status` é `VARCHAR(50)` sem
-check constraint, não há seed nem dado de teste em `PAYMENT_RECEIVED`, e a FK
-`payments.repair_order_id` já é `NOT NULL UNIQUE`.
+**2026-09-08**: Nenhuma migração de **schema** necessária — `repair_orders.status` é
+`VARCHAR(50)` sem check constraint, e a FK `payments.repair_order_id` já é `NOT NULL UNIQUE`.
+**2026-09-08 (pós-merge local)**: era necessária migração de **dados**. Não havia seed
+nos scripts, mas o banco de dev tinha a ordem #9 em `PAYMENT_RECEIVED` (populada à mão) —
+`@Enumerated(EnumType.STRING)` estoura `IllegalArgumentException` ao ler a linha → `GET
+/repair-order` 500 em qualquer página que a inclua. Corrigido com
+`V17__migrate_payment_received_repair_order_status.sql`
+(`UPDATE ... SET status = 'REPAIR_COMPLETED' WHERE status = 'PAYMENT_RECEIVED'`).
+**Lição**: `ls db/migration` não conta dados fora dos scripts — checar o banco em uso
+antes de afirmar "sem migração".
 **2026-09-08**: `PaymentService` mantém a dependência de `RepairOrderService` — ainda é
 usada em `resolveRepairOrder` (não só no auto-avanço removido).
 **2026-09-08**: `@OneToOne(mappedBy)` opcional não é lazy-proxiável sem bytecode
@@ -58,6 +65,7 @@ enhancement; sem `@EntityGraph` a listagem dispararia um SELECT extra por linha.
 | 2026-09-08 | `→ DEVICE_COLLECTED` exige `Payment` `APPROVED` → 422 (`RepairOrderNotPaidException`) | Preserva a garantia "não entrega aparelho não pago" que o workflow dava implicitamente, agora com fonte no `Payment` |
 | 2026-09-08 | Novo filtro `paymentStatus` em `GET /repair-order` | "listar reparos não pagos / pendentes" |
 | 2026-09-08 | `Payment.repairOrder` → `@OneToOne` + `@EntityGraph` na listagem | Mapeamento convencional; evita N+1 (e corrige o de `customer`/`device`) |
+| 2026-09-08 | `V17` faz `UPDATE ... SET status = 'REPAIR_COMPLETED' WHERE status = 'PAYMENT_RECEIVED'` | Ordens já pagas mas não coletadas: o "pago" fica no `Payment`; `REPAIR_COMPLETED` é o estado seguro (e `→ DEVICE_COLLECTED` agora exige pagamento aprovado) |
 
 ## Context & Orientation
 
@@ -150,8 +158,9 @@ BUILD SUCCESS  (testes 0 failures; JaCoCo check >= 0.80)
 `→ DEVICE_COLLECTED` exige pagamento `APPROVED` (`RepairOrderNotPaidException` → 422);
 aprovar um pagamento não altera mais o status da ordem. Um commit
 (`refactor: replace the PAYMENT_RECEIVED workflow step with a payment check`).
-**What we learned**: (1) sem migração — `status` é `VARCHAR` e não havia dado em
-`PAYMENT_RECEIVED`; (2) `@OneToOne(mappedBy)` não é lazy-proxiável → `@EntityGraph` no
+**What we learned**: (1) migração de schema desnecessária, mas o banco de dev tinha a
+ordem #9 em `PAYMENT_RECEIVED` (fora dos scripts de seed) → 500 no `GET /repair-order`;
+corrigido com `V17` (`UPDATE`), depois do merge local. Checar o banco em uso, não só `ls db/migration`; (2) `@OneToOne(mappedBy)` não é lazy-proxiável → `@EntityGraph` no
 `findAll` paginado resolve (e ainda corrige o N+1 pré-existente de `customer`/`device`);
 (3) testar o `@EntityGraph` num teste `@Transactional` exige `flush()`+`clear()` — senão
 a instância em cache volta com `payment == null`; (4) a mudança não se fatia em commits
