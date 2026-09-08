@@ -70,6 +70,24 @@ public final class TestFixtures {
                 .build();
     }
 
+    /**
+     * Ordem de reparo já com um pagamento vinculado nos dois sentidos
+     * ({@code order.getPayment()} e {@code payment.getRepairOrder()} apontam um para o outro).
+     */
+    public static RepairOrder repairOrderWithPayment(Long id, PaymentStatus paymentStatus) {
+        RepairOrder order = repairOrder(id);
+        Payment payment = Payment.builder()
+                .id(id)
+                .amount(new BigDecimal("100.00"))
+                .method(PaymentMethod.CASH)
+                .status(paymentStatus)
+                .installments(1)
+                .repairOrder(order)
+                .build();
+        order.setPayment(payment);
+        return order;
+    }
+
     public static User user(Long id) {
         return User.builder()
                 .id(id)

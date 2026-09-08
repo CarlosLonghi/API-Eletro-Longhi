@@ -6,6 +6,7 @@ import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpda
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.controller.support.PaginationUtils;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.mapper.RepairOrderMapper;
 import br.com.carloslonghi.eletrolonghi.service.RepairOrderService;
@@ -32,6 +33,7 @@ public class RepairOrderController implements RepairOrderApi {
     @GetMapping
     public ResponseEntity<Page<RepairOrderResponse>> getAllRepairOrders(
             @RequestParam(required = false) RepairOrderStatus status,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) Long deviceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdFrom,
@@ -44,6 +46,7 @@ public class RepairOrderController implements RepairOrderApi {
         Pageable pageable = PaginationUtils.createPageable(page, size, sortBy, direction);
         Page<RepairOrderResponse> repairOrders = repairOrderService.findAll(
                         status,
+                        paymentStatus,
                         customerId,
                         deviceId,
                         createdFrom,

@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller.response;
 
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -20,6 +21,12 @@ public record RepairOrderResponse(
         CustomerResponse customer,
 
         @Schema(description = "Informações do aparelho do serviço")
-        DeviceResponse device
+        DeviceResponse device,
+
+        @Schema(description = "Situação do pagamento vinculado; null se a ordem ainda não tem pagamento", enumAsRef = true)
+        PaymentStatus paymentStatus,
+
+        @Schema(description = "ID do pagamento vinculado; null se a ordem ainda não tem pagamento", example = "12")
+        Long paymentId
 ) {
 }

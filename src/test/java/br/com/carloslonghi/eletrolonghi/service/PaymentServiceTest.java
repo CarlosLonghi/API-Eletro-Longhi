@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,7 +75,6 @@ class PaymentServiceTest {
 
         assertThat(saved.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(saved.getPaidAt()).isNull();
-        verify(repairOrderService, never()).markPaymentReceived(any());
     }
 
     @Test
@@ -113,7 +111,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void shouldApproveOnSaveAndAdvanceRepairOrder() {
+    void shouldApproveOnSaveAndStampPaidAt() {
         Payment payment = TestFixtures.payment(1L);
         payment.setStatus(PaymentStatus.APPROVED);
         when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
@@ -123,11 +121,10 @@ class PaymentServiceTest {
         paymentService.save(payment);
 
         assertThat(payment.getPaidAt()).isNotNull();
-        verify(repairOrderService).markPaymentReceived(1L);
     }
 
     @Test
-    void shouldSetPaidAtAndAdvanceOrderWhenStatusBecomesApproved() {
+    void shouldStampPaidAtWhenStatusBecomesApproved() {
         Payment payment = TestFixtures.payment(1L);
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
         when(paymentRepository.save(payment)).thenReturn(payment);
@@ -136,20 +133,20 @@ class PaymentServiceTest {
 
         assertThat(updated).isPresent();
         assertThat(payment.getPaidAt()).isNotNull();
-        verify(repairOrderService).markPaymentReceived(1L);
     }
 
     @Test
-    void shouldNotReadvanceOrderWhenAlreadyPaid() {
+    void shouldNotRestampPaidAtWhenAlreadyPaid() {
         Payment payment = TestFixtures.payment(1L);
         payment.setStatus(PaymentStatus.APPROVED);
-        payment.setPaidAt(java.time.LocalDateTime.now().minusDays(1));
+        java.time.LocalDateTime paidAt = java.time.LocalDateTime.now().minusDays(1);
+        payment.setPaidAt(paidAt);
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
         when(paymentRepository.save(payment)).thenReturn(payment);
 
         paymentService.updateStatus(1L, PaymentStatus.APPROVED);
 
-        verify(repairOrderService, never()).markPaymentReceived(any());
+        assertThat(payment.getPaidAt()).isEqualTo(paidAt);
     }
 
     @Test
@@ -229,7 +226,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void shouldSyncApprovedGatewayPaymentAndAdvanceOrder() {
+    void shouldSyncApprovedGatewayPaymentAndStampPaidAt() {
         Payment payment = checkoutPayment();
         payment.setExternalReference("payment-1");
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
@@ -243,7 +240,6 @@ class PaymentServiceTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.APPROVED);
         assertThat(payment.getPaidAt()).isNotNull();
         assertThat(payment.getGatewayPaymentId()).isEqualTo("999");
-        verify(repairOrderService).markPaymentReceived(1L);
     }
 
     @Test
@@ -258,7 +254,7 @@ class PaymentServiceTest {
         paymentService.syncWithGateway(1L);
 
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REJECTED);
-        verify(repairOrderService, never()).markPaymentReceived(any());
+        assertThat(payment.getPaidAt()).isNull();
     }
 
     @Test
@@ -286,7 +282,6 @@ class PaymentServiceTest {
 
         assertThat(result).contains(payment);
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
-        verify(repairOrderService, never()).markPaymentReceived(any());
     }
 
     @Test

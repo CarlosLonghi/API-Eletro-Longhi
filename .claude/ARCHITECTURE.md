@@ -39,8 +39,8 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 ├── service/
 │   ├── BrandService.java / AccessoryService.java     # simple CRUD
 │   ├── DeviceService.java / CustomerService.java      # CRUD + Pageable/Specification filters
-│   ├── RepairOrderService.java          # CRUD + filters + status-workflow + "one open order per device" rule + markPaymentReceived
-│   ├── PaymentService.java              # CRUD + filters + "one payment per order" + auto-advance on APPROVED + Checkout Pro link/sync
+│   ├── RepairOrderService.java          # CRUD + filters + status-workflow + "one open order per device" rule + "paid before collected" guard
+│   ├── PaymentService.java              # CRUD + filters + "one payment per order" + paidAt stamp on APPROVED + Checkout Pro link/sync
 │   ├── PaymentReceiptService.java       # non-fiscal PDF receipt (OpenPDF)
 │   ├── AuthService.java                 # UserDetailsService (login-time user lookup)
 │   ├── UserService.java                 # registration (forces enabled=false), role/status updates, filtered listing
@@ -88,8 +88,8 @@ src/main/resources/
 - **I5 — Validation happens at the controller boundary.** `@Valid` + Bean Validation annotations on request records; `ApplicationControllerAdvice` maps `MethodArgumentNotValidException` → 400 + field-errors map. Don't duplicate validation in services.
 - **I6 — Deletion returns 204 No Content.** `ResponseEntity.noContent().build()`, no body.
 - **I7 — Migrations are append-only.** Never edit an existing `V*.sql`; always add `V{n+1}`. Confirm the actual current max version with `ls` before citing one.
-- **I8 — RepairOrder status is a workflow, not a free enum.** Transitions and the "one active order per device" rule live in `RepairOrderService`, not the DB. Status changes go through the dedicated `RepairOrderStatusUpdateRequest` endpoint, not the general update endpoint.
-- **I10 — One payment per repair order.** `Payment.repairOrder` is `@ManyToOne` but `repair_order_id` is `UNIQUE NOT NULL` and `PaymentService.save` rejects a duplicate (`PaymentAlreadyExistsForRepairOrderException` → 422). `PaymentStatus` is **not** a strict workflow (unlike `RepairOrderStatus`), but moving a payment to `APPROVED` (via create or the `PATCH /payment/{id}/status` endpoint) stamps `paidAt` and calls `RepairOrderService.markPaymentReceived`, which advances the order `REPAIR_COMPLETED → PAYMENT_RECEIVED` and no-ops (with a log) in any other state — payment and workflow never block each other. Mercado Pago **Checkout Pro** payments (`method=MERCADO_PAGO_CHECKOUT`) get a link via `POST /payment/{id}/checkout` and are reconciled by manual polling via `POST /payment/{id}/sync` (no webhook — app not hosted); the same `applyStatus` path fires the auto-advance.
+- **I8 — RepairOrder status is a workflow, not a free enum.** Transitions and the "one active order per device" rule live in `RepairOrderService`, not the DB. Status changes go through the dedicated `RepairOrderStatusUpdateRequest` endpoint, not the general update endpoint. `→ DEVICE_COLLECTED` additionally requires the linked `Payment` to be `APPROVED` (`RepairOrderNotPaidException` → 422); this guard runs on both the `PATCH /status` and `PUT` paths.
+- **I10 — One payment per repair order.** `Payment.repairOrder` is `@OneToOne` and `repair_order_id` is `UNIQUE NOT NULL`; `PaymentService.save` rejects a duplicate (`PaymentAlreadyExistsForRepairOrderException` → 422). `RepairOrder` reads it back via `@OneToOne(mappedBy = "repairOrder")` and the listing query pulls it in with `@EntityGraph`, exposing `paymentStatus` + `paymentId` on `RepairOrderResponse` (both null when there's no payment). `PaymentStatus` is **not** a strict workflow (unlike `RepairOrderStatus`); moving a payment to `APPROVED` (via create or the `PATCH /payment/{id}/status` endpoint) only stamps `paidAt` — the repair order's own status is never changed by a payment. Mercado Pago **Checkout Pro** payments (`method=MERCADO_PAGO_CHECKOUT`) get a link via `POST /payment/{id}/checkout` and are reconciled by manual polling via `POST /payment/{id}/sync` (no webhook — app not hosted).
 
 ## Data flow
 

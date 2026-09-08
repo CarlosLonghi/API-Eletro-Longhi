@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.repository.specification;
 
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
+import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -15,6 +16,7 @@ public final class RepairOrderSpecification {
 
     public static Specification<RepairOrder> withFilters(
             RepairOrderStatus status,
+            PaymentStatus paymentStatus,
             Long customerId,
             Long deviceId,
             LocalDateTime createdFrom,
@@ -25,6 +27,10 @@ public final class RepairOrderSpecification {
 
             if (status != null) {
                 predicates.add(builder.equal(root.get("status"), status));
+            }
+
+            if (paymentStatus != null) {
+                predicates.add(builder.equal(root.get("payment").get("status"), paymentStatus));
             }
 
             if (customerId != null) {

@@ -14,8 +14,11 @@ public interface RepairOrderMapper {
 
     @Mapping(target = "customer", source = "customer", qualifiedByName = "customerFromId")
     @Mapping(target = "device", source = "device", qualifiedByName = "deviceFromId")
+    @Mapping(target = "payment", ignore = true)
     RepairOrder toEntity(RepairOrderRequest dto);
 
+    @Mapping(target = "paymentStatus", source = "payment.status")
+    @Mapping(target = "paymentId", source = "payment.id")
     RepairOrderResponse toResponse(RepairOrder entity);
 
     @Named("customerFromId")

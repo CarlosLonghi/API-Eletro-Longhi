@@ -51,7 +51,7 @@ public class Payment {
     @Column(name = "gateway_payment_id")
     private String gatewayPaymentId;
 
-    @ManyToOne(optional = false)
+    @OneToOne(optional = false)
     @JoinColumn(name = "repair_order_id", nullable = false, unique = true)
     private RepairOrder repairOrder;
 
