@@ -60,7 +60,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 
 src/main/resources/
 ├── application.properties
-└── db/migration/V1..V16__*.sql   # confirm actual max with `ls` — append-only
+└── db/migration/V1..V17__*.sql   # confirm actual max with `ls` — append-only
 ```
 
 ## Module responsibilities
