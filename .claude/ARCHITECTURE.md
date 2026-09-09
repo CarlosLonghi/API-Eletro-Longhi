@@ -20,7 +20,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 │
 ├── client/
 │   ├── MercadoPagoClient.java           # HTTP client: Checkout Pro preference + payment search/get (Point API still TODO)
-│   └── dto/                             # GatewayPaymentSnapshot, CheckoutPreference, Preference{Request,Item}, PaymentSearchResponse
+│   └── dto/                             # GatewayPaymentSnapshot, CheckoutPreference, Preference{Request,Item,Payer,Identification}, PaymentSearchResponse
 │
 ├── controller/
 │   ├── api/spec/                        # OpenAPI contract interfaces (*Api.java)

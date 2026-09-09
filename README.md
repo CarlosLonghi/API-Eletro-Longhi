@@ -20,7 +20,7 @@ Funcionalidades implementadas:
 * CRUD de **Ordens de Reparo** (`/repair-order`) com listagem paginada, filtros (status, cliente, aparelho, intervalo de criação) e **endpoint dedicado de transição de status** (`PATCH /repair-order/{id}/status`), com o fluxo validado (só é permitido avançar/retroceder uma etapa por vez).
 * **Regra de negócio de ciclo do aparelho**: um aparelho só pode receber uma nova ordem de reparo depois que a anterior chegou ao status `DEVICE_COLLECTED` (violação → 422).
 * CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX, boleto ou link do Mercado Pago), listagem paginada/filtrável e transição de situação por `PATCH /payment/{id}/status`. A situação do pagamento aparece na listagem de reparos (`paymentStatus`) e o reparo só pode ser marcado como coletado com o pagamento aprovado.
-* **Gateway Mercado Pago (Checkout Pro)** — `POST /payment/{id}/checkout` gera o link de pagamento (`init_point`) para o cliente pagar online; `POST /payment/{id}/sync` concilia a situação por *polling* (sem webhook, pois a aplicação ainda não está hospedada). A maquininha física (API Point) permanece como TODO no `MercadoPagoClient`.
+* **Gateway Mercado Pago (Checkout Pro)** — `POST /payment/{id}/checkout` gera o link de pagamento (`init_point`) para o cliente pagar online, já enviando os dados do pagador (nome, e-mail e CPF/CNPJ) para facilitar o Pix; `POST /payment/{id}/sync` concilia a situação por *polling* (sem webhook, pois a aplicação ainda não está hospedada). A maquininha física (API Point) permanece como TODO no `MercadoPagoClient`.
 * **Recibo de pagamento em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal com os dados da loja (`shop.*`).
 * **CORS por allowlist** de origens (front-end web / renderer Electron).
 * **Controle de integridade**: tratamento global de conflitos (409), validações (`@Valid` → 400), regras de negócio (→ 422) e 401 explícito para token ausente/inválido.
@@ -56,7 +56,7 @@ src/main/java/br/com/carloslonghi/eletrolonghi/
 ├── config/           # Security, JWT (TokenService/SecurityFilter), CORS, Swagger,
 │                     #   ControllerAdvice global, AdminUserSeeder e @ConfigurationProperties
 │                     #   (ShopProperties, MercadoPagoProperties)
-├── client/           # MercadoPagoClient (Checkout Pro: preference + busca de pagamento) + DTOs do gateway
+├── client/           # MercadoPagoClient (Checkout Pro: preference com dados do pagador + busca de pagamento) + DTOs do gateway
 ├── controller/       # Controllers REST (implementam interfaces *Api)
 │   ├── api/spec/     # Interfaces de contrato OpenAPI (@Operation, @ApiResponse…)
 │   ├── request/      # Request DTOs (Java records + @Valid)

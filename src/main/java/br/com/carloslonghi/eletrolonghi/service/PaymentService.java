@@ -2,6 +2,9 @@ package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.client.MercadoPagoClient;
 import br.com.carloslonghi.eletrolonghi.client.dto.CheckoutPreference;
+import br.com.carloslonghi.eletrolonghi.client.dto.PreferenceIdentification;
+import br.com.carloslonghi.eletrolonghi.client.dto.PreferencePayer;
+import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
@@ -108,7 +111,7 @@ public class PaymentService {
 
             String externalReference = externalReferenceFor(payment);
             CheckoutPreference preference = mercadoPagoClient
-                    .createCheckoutPreference(checkoutTitle(payment), payment.getAmount(), externalReference)
+                    .createCheckoutPreference(checkoutTitle(payment), payment.getAmount(), externalReference, payerFor(payment))
                     .orElseThrow(() -> new PaymentGatewayException(
                             "Não foi possível gerar o link de pagamento no Mercado Pago."));
 
@@ -186,6 +189,57 @@ public class PaymentService {
             base = base + " - " + order.getDescription();
         }
         return base.length() > 250 ? base.substring(0, 250) : base;
+    }
+
+    /**
+     * Monta o {@code payer} da preference a partir do pagamento e do cliente da ordem.
+     * Nome: {@code payerName} do pagamento, ou o nome do cliente; e-mail: o do cliente;
+     * documento: {@code payerDocument} só quando tem 11 (CPF) ou 14 (CNPJ) dígitos —
+     * um documento malformado faria o Mercado Pago rejeitar a preference inteira.
+     */
+    private static PreferencePayer payerFor(Payment payment) {
+        Customer customer = payment.getRepairOrder().getCustomer();
+
+        String rawName = blankToNull(payment.getPayerName());
+        if (rawName == null && customer != null) {
+            rawName = blankToNull(customer.getName());
+        }
+        String[] name = splitName(rawName);
+        String email = customer == null ? null : blankToNull(customer.getEmail());
+        PreferenceIdentification identification = identificationFor(payment.getPayerDocument());
+
+        if (name[0] == null && email == null && identification == null) {
+            return null;
+        }
+        return new PreferencePayer(name[0], name[1], email, identification);
+    }
+
+    private static PreferenceIdentification identificationFor(String document) {
+        if (document == null) {
+            return null;
+        }
+        String digits = document.replaceAll("\\D", "");
+        return switch (digits.length()) {
+            case 11 -> new PreferenceIdentification("CPF", digits);
+            case 14 -> new PreferenceIdentification("CNPJ", digits);
+            default -> null;
+        };
+    }
+
+    private static String[] splitName(String fullName) {
+        if (fullName == null) {
+            return new String[]{null, null};
+        }
+        String trimmed = fullName.trim();
+        int space = trimmed.indexOf(' ');
+        if (space < 0) {
+            return new String[]{trimmed, null};
+        }
+        return new String[]{trimmed.substring(0, space), blankToNull(trimmed.substring(space + 1))};
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static PaymentStatus mapGatewayStatus(String gatewayStatus) {
