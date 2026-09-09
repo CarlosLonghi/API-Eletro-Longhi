@@ -35,7 +35,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private Role role = Role.USER;
+    private Role role = Role.PENDENTE;
 
     @Column(name = "is_seed_admin", nullable = false)
     @Builder.Default

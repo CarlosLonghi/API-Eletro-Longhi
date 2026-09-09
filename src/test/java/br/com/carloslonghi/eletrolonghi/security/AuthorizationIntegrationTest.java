@@ -22,12 +22,14 @@ import br.com.carloslonghi.eletrolonghi.repository.RefreshTokenRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.UserRepository;
 import br.com.carloslonghi.eletrolonghi.repository.support.AbstractPostgresIntegrationTest;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,12 +38,19 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Cobre a matriz de autorização por papel (ADMIN / GERENTE / ATENDENTE / TECNICO / PENDENTE)
+ * definida em {@code config/SecurityConfig}, além do comportamento de soft delete: todo
+ * {@code DELETE} da API marca a linha (não remove) e a gestão de dependências ativas retorna 409.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Transactional
@@ -52,6 +61,12 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private BrandRepository brandRepository;
@@ -81,290 +96,277 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
-    private String userToken;
+    private String gerenteToken;
+    private String atendenteToken;
+    private String tecnicoToken;
+    private String pendenteToken;
 
     @BeforeEach
     void setUpTokens() {
-        User admin = User.builder().id(1L).name("Admin").email("admin@mail.com").role(Role.ADMIN).build();
-        User user = User.builder().id(2L).name("User").email("user@mail.com").role(Role.USER).build();
-        adminToken = tokenService.generateToken(admin);
-        userToken = tokenService.generateToken(user);
+        adminToken = tokenFor(1L, Role.ADMIN);
+        gerenteToken = tokenFor(2L, Role.GERENTE);
+        atendenteToken = tokenFor(3L, Role.ATENDENTE);
+        tecnicoToken = tokenFor(4L, Role.TECNICO);
+        pendenteToken = tokenFor(5L, Role.PENDENTE);
     }
+
+    private String tokenFor(Long id, Role role) {
+        return tokenService.generateToken(User.builder()
+                .id(id).name(role.name()).email(role.name().toLowerCase() + "@mail.com").role(role).build());
+    }
+
+    private long countSoftDeleted(String table, Long id) {
+        entityManager.flush();
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM " + table + " WHERE id = ? AND deleted_at IS NOT NULL", Long.class, id);
+        return count == null ? 0 : count;
+    }
+
+    // --- Sem token -----------------------------------------------------------
 
     @Test
     void shouldRejectRequestWithoutTokenAsUnauthenticated() throws Exception {
-        mockMvc.perform(post("/brand")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Marca Teste Brand\"}"))
+        mockMvc.perform(get("/brand"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void shouldForbidUserFromCreatingBrand() throws Exception {
-        mockMvc.perform(post("/brand")
-                        .header("Authorization", "Bearer " + userToken)
+    void shouldForbidPendenteFromEverything() throws Exception {
+        mockMvc.perform(get("/brand").header("Authorization", "Bearer " + pendenteToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/repair-order").header("Authorization", "Bearer " + pendenteToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/customer").header("Authorization", "Bearer " + pendenteToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Marca Teste Brand\"}"))
+                        .content("{\"name\":\"X\",\"phone\":\"1\",\"email\":\"x@mail.com\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    // --- Brand / Accessory --------------------------------------------------
+
+    @Test
+    void atendenteReadsBrandsButCannotCreate() throws Exception {
+        mockMvc.perform(get("/brand").header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/brand").header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Marca A\"}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldAllowAdminToCreateBrand() throws Exception {
-        mockMvc.perform(post("/brand")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Marca Teste Brand\"}"))
+    void tecnicoHasNoAccessToBrands() throws Exception {
+        mockMvc.perform(get("/brand").header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void gerenteCreatesAndSoftDeletesBrand() throws Exception {
+        mockMvc.perform(post("/brand").header("Authorization", "Bearer " + gerenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Marca Gerente\"}"))
                 .andExpect(status().isCreated());
+
+        Brand brand = brandRepository.save(Brand.builder().name("Para apagar").build());
+        mockMvc.perform(delete("/brand/{id}", brand.getId()).header("Authorization", "Bearer " + gerenteToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(brandRepository.findById(brand.getId())).isEmpty();
+        assertThat(countSoftDeleted("brands", brand.getId())).isEqualTo(1);
     }
 
     @Test
-    void shouldForbidUserFromDeletingBrand() throws Exception {
-        Brand brand = brandRepository.save(Brand.builder().name("LG Teste").build());
+    void shouldRejectDeletingBrandThatStillHasDevices() throws Exception {
+        Brand brand = brandRepository.save(Brand.builder().name("Com aparelho").build());
+        deviceRepository.save(Device.builder()
+                .model("M").serialNumber("SN-INUSE-1").brand(brand).accessories(List.of()).build());
 
-        mockMvc.perform(delete("/brand/{id}", brand.getId())
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(delete("/brand/{id}", brand.getId()).header("Authorization", "Bearer " + gerenteToken))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void atendenteCannotDeleteAccessoryGerenteCan() throws Exception {
+        Accessory accessory = accessoryRepository.save(Accessory.builder().name("Cabo").build());
+
+        mockMvc.perform(delete("/accessory/{id}", accessory.getId()).header("Authorization", "Bearer " + atendenteToken))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToDeleteBrand() throws Exception {
-        Brand brand = brandRepository.save(Brand.builder().name("Motorola").build());
-
-        mockMvc.perform(delete("/brand/{id}", brand.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(delete("/accessory/{id}", accessory.getId()).header("Authorization", "Bearer " + gerenteToken))
                 .andExpect(status().isNoContent());
     }
 
-    @Test
-    void shouldForbidUserFromCreatingAccessory() throws Exception {
-        mockMvc.perform(post("/accessory")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Cabo USB\"}"))
-                .andExpect(status().isForbidden());
-    }
+    // --- Customer / Device -------------------------------------------------
 
     @Test
-    void shouldAllowAdminToCreateAccessory() throws Exception {
-        mockMvc.perform(post("/accessory")
-                        .header("Authorization", "Bearer " + adminToken)
+    void atendenteManagesCustomersButCannotDelete() throws Exception {
+        mockMvc.perform(post("/customer").header("Authorization", "Bearer " + atendenteToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Cabo USB\"}"))
+                        .content("{\"name\":\"Cliente\",\"phone\":\"11999990000\",\"email\":\"c@mail.com\"}"))
                 .andExpect(status().isCreated());
-    }
 
-    @Test
-    void shouldForbidUserFromDeletingAccessory() throws Exception {
-        Accessory accessory = accessoryRepository.save(Accessory.builder().name("Fone de ouvido").build());
-
-        mockMvc.perform(delete("/accessory/{id}", accessory.getId())
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToDeleteAccessory() throws Exception {
-        Accessory accessory = accessoryRepository.save(Accessory.builder().name("Carregador").build());
-
-        mockMvc.perform(delete("/accessory/{id}", accessory.getId())
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void shouldAllowUserToCreateCustomer() throws Exception {
-        mockMvc.perform(post("/customer")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Cliente Teste\",\"phone\":\"11999990000\",\"email\":\"cliente.teste@mail.com\"}"))
-                .andExpect(status().isCreated());
-    }
-
-    @Test
-    void shouldForbidUserFromDeletingCustomer() throws Exception {
         Customer customer = customerRepository.save(Customer.builder()
-                .name("Cliente Um").phone("11999990001").email("cliente.um@mail.com").build());
+                .name("Del").phone("1").email("del@mail.com").build());
+        mockMvc.perform(delete("/customer/{id}", customer.getId()).header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/customer/{id}", customer.getId()).header("Authorization", "Bearer " + gerenteToken))
+                .andExpect(status().isNoContent());
+        assertThat(countSoftDeleted("customers", customer.getId())).isEqualTo(1);
+    }
 
-        mockMvc.perform(delete("/customer/{id}", customer.getId())
-                        .header("Authorization", "Bearer " + userToken))
+    @Test
+    void tecnicoHasNoAccessToDevices() throws Exception {
+        mockMvc.perform(get("/device").header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isForbidden());
+
+        Brand brand = brandRepository.save(Brand.builder().name("B").build());
+        mockMvc.perform(post("/device").header("Authorization", "Bearer " + tecnicoToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"model\":\"M\",\"serialNumber\":\"SN-T-1\",\"brand\":" + brand.getId() + ",\"accessories\":[]}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldAllowAdminToDeleteCustomer() throws Exception {
-        Customer customer = customerRepository.save(Customer.builder()
-                .name("Cliente Dois").phone("11999990002").email("cliente.dois@mail.com").build());
-
-        mockMvc.perform(delete("/customer/{id}", customer.getId())
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void shouldAllowUserToCreateDevice() throws Exception {
+    void atendenteCreatesDevice() throws Exception {
         Brand brand = brandRepository.save(Brand.builder().name("Apple").build());
-
-        mockMvc.perform(post("/device")
-                        .header("Authorization", "Bearer " + userToken)
+        mockMvc.perform(post("/device").header("Authorization", "Bearer " + atendenteToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"model\":\"iPhone 15\",\"serialNumber\":\"SN-USER-001\",\"brand\":"
-                                + brand.getId() + ",\"accessories\":[]}"))
+                        .content("{\"model\":\"iPhone\",\"serialNumber\":\"SN-A-1\",\"brand\":" + brand.getId() + ",\"accessories\":[]}"))
+                .andExpect(status().isCreated());
+    }
+
+    // --- RepairOrder ------------------------------------------------------
+
+    @Test
+    void atendenteOpensRepairOrderTecnicoCannot() throws Exception {
+        Device device = device("SN-RO-1");
+        Customer customer = customerRepository.save(Customer.builder().name("C").phone("1").email("ro1@mail.com").build());
+        String body = "{\"description\":\"d\",\"status\":\"AWAITING_EVALUATION\",\"customer\":"
+                + customer.getId() + ",\"device\":" + device.getId() + "}";
+
+        mockMvc.perform(post("/repair-order").header("Authorization", "Bearer " + tecnicoToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/repair-order").header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
     }
 
     @Test
-    void shouldForbidUserFromDeletingDevice() throws Exception {
-        Brand brand = brandRepository.save(Brand.builder().name("Xiaomi").build());
-        Device device = deviceRepository.save(Device.builder()
-                .model("Redmi Note").serialNumber("SN-DEL-001").brand(brand).accessories(List.of()).build());
+    void tecnicoReadsRepairOrders() throws Exception {
+        mockMvc.perform(get("/repair-order").header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isOk());
+    }
 
-        mockMvc.perform(delete("/device/{id}", device.getId())
-                        .header("Authorization", "Bearer " + userToken))
+    @Test
+    void onlyTecnicoAndManagementChangeRepairOrderStatus() throws Exception {
+        RepairOrder order = createRepairOrder("SN-ST-1", "st1@mail.com");
+        String body = "{\"status\":\"IN_EVALUATION\"}";
+
+        mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + tecnicoToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + gerenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"AWAITING_APPROVAL\"}"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void shouldAllowAdminToDeleteDevice() throws Exception {
-        Brand brand = brandRepository.save(Brand.builder().name("Sony").build());
-        Device device = deviceRepository.save(Device.builder()
-                .model("Xperia").serialNumber("SN-DEL-002").brand(brand).accessories(List.of()).build());
+    void repairOrderPutDoesNotChangeStatus() throws Exception {
+        RepairOrder order = createRepairOrder("SN-PUT-1", "put1@mail.com");
+        String body = "{\"description\":\"nova desc\",\"status\":\"IN_EVALUATION\",\"customer\":"
+                + order.getCustomer().getId() + ",\"device\":" + order.getDevice().getId() + "}";
 
-        mockMvc.perform(delete("/device/{id}", device.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(put("/repair-order/{id}", order.getId())
+                        .header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+
+        assertThat(repairOrderRepository.findById(order.getId()))
+                .get()
+                .extracting(RepairOrder::getStatus)
+                .isEqualTo(RepairOrderStatus.AWAITING_EVALUATION);
+    }
+
+    @Test
+    void atendenteCannotDeleteRepairOrderGerenteCan() throws Exception {
+        RepairOrder order = createRepairOrder("SN-RO-DEL", "rodel@mail.com");
+
+        mockMvc.perform(delete("/repair-order/{id}", order.getId()).header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/repair-order/{id}", order.getId()).header("Authorization", "Bearer " + gerenteToken))
                 .andExpect(status().isNoContent());
+        assertThat(countSoftDeleted("repair_orders", order.getId())).isEqualTo(1);
     }
 
-    @Test
-    void shouldAllowUserToCreateRepairOrder() throws Exception {
-        Brand brand = brandRepository.save(Brand.builder().name("Nokia").build());
-        Device device = deviceRepository.save(Device.builder()
-                .model("Nokia 3310").serialNumber("SN-RO-USER-001").brand(brand).accessories(List.of()).build());
-        Customer customer = customerRepository.save(Customer.builder()
-                .name("Cliente Tres").phone("11999990003").email("cliente.tres@mail.com").build());
+    // --- Payment ---------------------------------------------------------
 
-        mockMvc.perform(post("/repair-order")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"description\":\"Tela quebrada\",\"status\":\"AWAITING_EVALUATION\",\"customer\":"
-                                + customer.getId() + ",\"device\":" + device.getId() + "}"))
+    @Test
+    void atendenteManagesPaymentsTecnicoCannot() throws Exception {
+        RepairOrder order = createRepairOrder("SN-PAY-1", "pay1@mail.com");
+        String body = "{\"amount\":150.00,\"method\":\"CASH\",\"repairOrder\":" + order.getId() + "}";
+
+        mockMvc.perform(post("/payment").header("Authorization", "Bearer " + tecnicoToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/payment").header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
+        Long paymentId = paymentRepository.findByRepairOrderId(order.getId()).orElseThrow().getId();
+
+        mockMvc.perform(patch("/payment/{id}/status", paymentId).header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"APPROVED\"}"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void shouldForbidUserFromDeletingRepairOrder() throws Exception {
-        RepairOrder repairOrder = createRepairOrder("SN-RO-DEL-001", "cliente.quatro@mail.com");
+    void atendenteCannotDeletePaymentGerenteCan() throws Exception {
+        Payment payment = createPayment("SN-PAY-DEL", "paydel@mail.com");
 
-        mockMvc.perform(delete("/repair-order/{id}", repairOrder.getId())
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(delete("/payment/{id}", payment.getId()).header("Authorization", "Bearer " + atendenteToken))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToDeleteRepairOrder() throws Exception {
-        RepairOrder repairOrder = createRepairOrder("SN-RO-DEL-002", "cliente.cinco@mail.com");
-
-        mockMvc.perform(delete("/repair-order/{id}", repairOrder.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(delete("/payment/{id}", payment.getId()).header("Authorization", "Bearer " + gerenteToken))
                 .andExpect(status().isNoContent());
+        assertThat(countSoftDeleted("payments", payment.getId())).isEqualTo(1);
     }
 
-    @Test
-    void shouldAllowUserToCreatePayment() throws Exception {
-        RepairOrder repairOrder = createRepairOrder("SN-PAY-USER-001", "cliente.pay1@mail.com");
-
-        mockMvc.perform(post("/payment")
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"amount\":150.00,\"method\":\"CASH\",\"repairOrder\":" + repairOrder.getId() + "}"))
-                .andExpect(status().isCreated());
-    }
+    // --- User (ADMIN-only, GERENTE excluído) ----------------------------
 
     @Test
-    void shouldForbidUserFromDeletingPayment() throws Exception {
-        Payment payment = createPayment("SN-PAY-DEL-001", "cliente.pay2@mail.com");
-
-        mockMvc.perform(delete("/payment/{id}", payment.getId())
-                        .header("Authorization", "Bearer " + userToken))
+    void onlyAdminListsUsers() throws Exception {
+        mockMvc.perform(get("/user").header("Authorization", "Bearer " + atendenteToken))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToDeletePayment() throws Exception {
-        Payment payment = createPayment("SN-PAY-DEL-002", "cliente.pay3@mail.com");
-
-        mockMvc.perform(delete("/payment/{id}", payment.getId())
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void shouldForbidUserFromListingUsers() throws Exception {
-        mockMvc.perform(get("/user")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/user").header("Authorization", "Bearer " + gerenteToken))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToListUsers() throws Exception {
-        mockMvc.perform(get("/user")
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(get("/user").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void shouldForbidUserFromUpdatingUserRole() throws Exception {
+    void onlyAdminUpdatesUserRole() throws Exception {
         User target = userRepository.save(User.builder()
-                .name("Alvo Role").email("alvo.role@mail.com").password("senha").role(Role.USER).build());
+                .name("Alvo").email("alvo@mail.com").password("senha").role(Role.PENDENTE).build());
 
-        mockMvc.perform(patch("/user/{id}/role", target.getId())
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"role\":\"ADMIN\"}"))
+        mockMvc.perform(patch("/user/{id}/role", target.getId()).header("Authorization", "Bearer " + gerenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ATENDENTE\"}"))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToUpdateUserRole() throws Exception {
-        User target = userRepository.save(User.builder()
-                .name("Alvo Role Admin").email("alvo.role.admin@mail.com").password("senha").role(Role.USER).build());
-
-        mockMvc.perform(patch("/user/{id}/role", target.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"role\":\"ADMIN\"}"))
+        mockMvc.perform(patch("/user/{id}/role", target.getId()).header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ATENDENTE\"}"))
                 .andExpect(status().isOk());
     }
 
-    @Test
-    void shouldForbidUserFromUpdatingUserStatus() throws Exception {
-        User target = userRepository.save(User.builder()
-                .name("Alvo Status").email("alvo.status@mail.com").password("senha").role(Role.USER).build());
-
-        mockMvc.perform(patch("/user/{id}/status", target.getId())
-                        .header("Authorization", "Bearer " + userToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"enabled\":false}"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void shouldAllowAdminToSuspendUser() throws Exception {
-        User target = userRepository.save(User.builder()
-                .name("Alvo Suspenso").email("alvo.suspenso@mail.com").password("senha").role(Role.USER).enabled(true).build());
-
-        mockMvc.perform(patch("/user/{id}/status", target.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"enabled\":false}"))
-                .andExpect(status().isOk());
-    }
+    // --- Disabled account -----------------------------------------------
 
     @Test
     void shouldRejectLoginForDisabledUser() throws Exception {
         userRepository.save(User.builder()
                 .name("Nao Ativado").email("nao.ativado@mail.com")
                 .password(passwordEncoder.encode("senha123"))
-                .role(Role.USER).enabled(false).build());
+                .role(Role.ATENDENTE).enabled(false).build());
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -377,7 +379,7 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
         User disabledUser = userRepository.save(User.builder()
                 .name("Suspenso Refresh").email("suspenso.refresh@mail.com")
                 .password(passwordEncoder.encode("senha123"))
-                .role(Role.USER).enabled(false).build());
+                .role(Role.ATENDENTE).enabled(false).build());
         RefreshToken refreshToken = refreshTokenRepository.save(RefreshToken.builder()
                 .token("valid-refresh-disabled-user")
                 .user(disabledUser)
@@ -389,6 +391,14 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + refreshToken.getToken() + "\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // --- Helpers -------------------------------------------------------
+
+    private Device device(String serialNumber) {
+        Brand brand = brandRepository.save(Brand.builder().name("Brand-" + serialNumber).build());
+        return deviceRepository.save(Device.builder()
+                .model("Modelo").serialNumber(serialNumber).brand(brand).accessories(List.of()).build());
     }
 
     private Payment createPayment(String serialNumber, String customerEmail) {
@@ -403,9 +413,7 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     private RepairOrder createRepairOrder(String serialNumber, String customerEmail) {
-        Brand brand = brandRepository.save(Brand.builder().name("Brand-" + serialNumber).build());
-        Device device = deviceRepository.save(Device.builder()
-                .model("Modelo").serialNumber(serialNumber).brand(brand).accessories(List.of()).build());
+        Device device = device(serialNumber);
         Customer customer = customerRepository.save(Customer.builder()
                 .name("Cliente").phone("11999990009").email(customerEmail).build());
         return repairOrderRepository.save(RepairOrder.builder()

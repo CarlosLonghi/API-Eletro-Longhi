@@ -85,7 +85,7 @@ class UserServiceTest {
 
         assertThat(updated).isPresent();
         assertThat(user.isEnabled()).isFalse();
-        assertThat(user.getRole()).isEqualTo(Role.USER);
+        assertThat(user.getRole()).isEqualTo(Role.ATENDENTE);
         verify(userRepository).save(user);
     }
 
@@ -102,7 +102,7 @@ class UserServiceTest {
         Page<User> page = new PageImpl<>(List.of(TestFixtures.user(1L)));
         when(userRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(page);
 
-        Page<User> result = userService.findAll("Usuario", "user1@mail.com", Role.USER, true, PageRequest.of(0, 10));
+        Page<User> result = userService.findAll("Usuario", "user1@mail.com", Role.ATENDENTE, true, PageRequest.of(0, 10));
 
         assertThat(result.getTotalElements()).isEqualTo(1);
     }

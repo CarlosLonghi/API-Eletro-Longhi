@@ -39,7 +39,7 @@ class SecurityFilterTest {
     @Test
     void shouldAuthenticateWhenBearerTokenIsValid() throws Exception {
         SecurityFilter filter = new SecurityFilter(tokenService);
-        JWTUserData jwtUserData = JWTUserData.builder().id(1L).email("user@mail.com").name("User").role("USER").build();
+        JWTUserData jwtUserData = JWTUserData.builder().id(1L).email("user@mail.com").name("User").role("ATENDENTE").build();
 
         when(request.getHeader("Authorization")).thenReturn("Bearer token");
         when(tokenService.verifyToken("token")).thenReturn(Optional.of(jwtUserData));

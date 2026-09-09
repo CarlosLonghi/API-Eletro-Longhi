@@ -40,7 +40,7 @@ class RefreshTokenRepositoryIntegrationTest extends AbstractPostgresIntegrationT
                 .name("Token User")
                 .email("token-user@mail.com")
                 .password("encoded")
-                .role(Role.USER)
+                .role(Role.ATENDENTE)
                 .build());
 
         refreshTokenRepository.save(RefreshToken.builder()
