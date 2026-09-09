@@ -2,6 +2,8 @@ package br.com.carloslonghi.eletrolonghi.client;
 
 import br.com.carloslonghi.eletrolonghi.client.dto.CheckoutPreference;
 import br.com.carloslonghi.eletrolonghi.client.dto.GatewayPaymentSnapshot;
+import br.com.carloslonghi.eletrolonghi.client.dto.PreferenceIdentification;
+import br.com.carloslonghi.eletrolonghi.client.dto.PreferencePayer;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -53,7 +55,7 @@ class MercadoPagoClientTest {
         MercadoPagoClient client = new MercadoPagoClient(RestClient.create(), false);
 
         assertThat(client.getPayment("123")).isEmpty();
-        assertThat(client.createCheckoutPreference("t", BigDecimal.TEN, "payment-1")).isEmpty();
+        assertThat(client.createCheckoutPreference("t", BigDecimal.TEN, "payment-1", null)).isEmpty();
         assertThat(client.findPaymentByExternalReference("payment-1")).isEmpty();
     }
 
@@ -77,15 +79,36 @@ class MercadoPagoClientTest {
                 .andExpect(jsonPath("$.external_reference").value("payment-1"))
                 .andExpect(jsonPath("$.items[0].unit_price").value(350.0))
                 .andExpect(jsonPath("$.items[0].currency_id").value("BRL"))
+                .andExpect(jsonPath("$.payer.name").value("Ana"))
+                .andExpect(jsonPath("$.payer.surname").value("Silva"))
+                .andExpect(jsonPath("$.payer.email").value("ana@mail.com"))
+                .andExpect(jsonPath("$.payer.identification.type").value("CPF"))
+                .andExpect(jsonPath("$.payer.identification.number").value("12345678909"))
                 .andRespond(withSuccess("""
                         {"id":"pref-1","init_point":"https://mp/checkout","sandbox_init_point":"https://mp/sandbox"}
                         """, MediaType.APPLICATION_JSON));
 
-        Optional<CheckoutPreference> preference =
-                client.createCheckoutPreference("Reparo #1", new BigDecimal("350.00"), "payment-1");
+        Optional<CheckoutPreference> preference = client.createCheckoutPreference(
+                "Reparo #1", new BigDecimal("350.00"), "payment-1",
+                new PreferencePayer("Ana", "Silva", "ana@mail.com", new PreferenceIdentification("CPF", "12345678909")));
 
         assertThat(preference).isPresent();
         assertThat(preference.get().initPoint()).isEqualTo("https://mp/checkout");
+        server.verify();
+    }
+
+    @Test
+    void shouldOmitPayerWhenNull() {
+        MercadoPagoClient client = configuredClient();
+
+        server.expect(requestTo("https://api.mercadopago.com/checkout/preferences"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.payer").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"id":"pref-1","init_point":"https://mp/checkout","sandbox_init_point":"https://mp/sandbox"}
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(client.createCheckoutPreference("Reparo #1", new BigDecimal("10.00"), "payment-1", null)).isPresent();
         server.verify();
     }
 

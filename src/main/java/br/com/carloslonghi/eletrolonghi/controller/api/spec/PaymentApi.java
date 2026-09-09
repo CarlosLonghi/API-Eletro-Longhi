@@ -184,7 +184,9 @@ public interface PaymentApi {
     @Operation(
             summary = "Gerar link de pagamento (Checkout Pro)",
             description = "Cria uma preferência no Mercado Pago e devolve o link (init_point) para o "
-                    + "cliente pagar. Requer um pagamento pendente com forma MERCADO_PAGO_CHECKOUT."
+                    + "cliente pagar. Requer um pagamento pendente com forma MERCADO_PAGO_CHECKOUT. "
+                    + "A preferência já leva os dados do pagador (nome, e-mail do cliente e CPF/CNPJ "
+                    + "quando informado) para facilitar o Pix."
     )
     @ApiResponses({
             @ApiResponse(

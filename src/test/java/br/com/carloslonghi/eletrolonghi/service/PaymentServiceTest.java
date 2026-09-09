@@ -3,6 +3,7 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.client.MercadoPagoClient;
 import br.com.carloslonghi.eletrolonghi.client.dto.CheckoutPreference;
 import br.com.carloslonghi.eletrolonghi.client.dto.GatewayPaymentSnapshot;
+import br.com.carloslonghi.eletrolonghi.client.dto.PreferencePayer;
 import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
@@ -14,6 +15,7 @@ import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -179,7 +181,7 @@ class PaymentServiceTest {
     void shouldCreateCheckoutLinkAndPersistExternalReference() {
         Payment payment = checkoutPayment();
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
-        when(mercadoPagoClient.createCheckoutPreference(any(), any(), eq("payment-1")))
+        when(mercadoPagoClient.createCheckoutPreference(any(), any(), eq("payment-1"), any()))
                 .thenReturn(Optional.of(new CheckoutPreference("pref-1", "https://mp/checkout", "https://mp/sandbox")));
 
         Optional<CheckoutPreference> result = paymentService.createCheckoutLink(1L);
@@ -187,6 +189,44 @@ class PaymentServiceTest {
         assertThat(result).map(CheckoutPreference::initPoint).contains("https://mp/checkout");
         assertThat(payment.getExternalReference()).isEqualTo("payment-1");
         verify(paymentRepository).save(payment);
+    }
+
+    @Test
+    void shouldSendPayerFromPaymentAndCustomerWhenCreatingCheckoutLink() {
+        Payment payment = checkoutPayment();
+        payment.setPayerName("Ana Silva Souza");
+        payment.setPayerDocument("123.456.789-09");
+        when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
+        when(mercadoPagoClient.createCheckoutPreference(any(), any(), any(), any()))
+                .thenReturn(Optional.of(new CheckoutPreference("pref-1", "https://mp/checkout", "https://mp/sandbox")));
+
+        paymentService.createCheckoutLink(1L);
+
+        ArgumentCaptor<PreferencePayer> captor = ArgumentCaptor.forClass(PreferencePayer.class);
+        verify(mercadoPagoClient).createCheckoutPreference(any(), any(), eq("payment-1"), captor.capture());
+        PreferencePayer payer = captor.getValue();
+        assertThat(payer.name()).isEqualTo("Ana");
+        assertThat(payer.surname()).isEqualTo("Silva Souza");
+        assertThat(payer.email()).isEqualTo("cliente1@mail.com");
+        assertThat(payer.identification().type()).isEqualTo("CPF");
+        assertThat(payer.identification().number()).isEqualTo("12345678909");
+    }
+
+    @Test
+    void shouldFallBackToCustomerNameAndOmitBadDocumentInCheckoutPayer() {
+        Payment payment = checkoutPayment(); // no payerName, no payerDocument
+        payment.setPayerDocument("123");
+        when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
+        when(mercadoPagoClient.createCheckoutPreference(any(), any(), any(), any()))
+                .thenReturn(Optional.of(new CheckoutPreference("pref-1", "https://mp/checkout", "https://mp/sandbox")));
+
+        paymentService.createCheckoutLink(1L);
+
+        ArgumentCaptor<PreferencePayer> captor = ArgumentCaptor.forClass(PreferencePayer.class);
+        verify(mercadoPagoClient).createCheckoutPreference(any(), any(), any(), captor.capture());
+        PreferencePayer payer = captor.getValue();
+        assertThat(payer.name()).isEqualTo("Cliente"); // from customer(1L) name "Cliente 1"
+        assertThat(payer.identification()).isNull();
     }
 
     @Test
@@ -212,7 +252,7 @@ class PaymentServiceTest {
     void shouldFailCheckoutLinkWhenGatewayUnavailable() {
         Payment payment = checkoutPayment();
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
-        when(mercadoPagoClient.createCheckoutPreference(any(), any(), any())).thenReturn(Optional.empty());
+        when(mercadoPagoClient.createCheckoutPreference(any(), any(), any(), any())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.createCheckoutLink(1L))
                 .isInstanceOf(PaymentGatewayException.class);

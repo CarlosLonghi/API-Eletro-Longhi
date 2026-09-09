@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.client.dto.CheckoutPreference;
 import br.com.carloslonghi.eletrolonghi.client.dto.GatewayPaymentSnapshot;
 import br.com.carloslonghi.eletrolonghi.client.dto.PaymentSearchResponse;
 import br.com.carloslonghi.eletrolonghi.client.dto.PreferenceItem;
+import br.com.carloslonghi.eletrolonghi.client.dto.PreferencePayer;
 import br.com.carloslonghi.eletrolonghi.client.dto.PreferenceRequest;
 import br.com.carloslonghi.eletrolonghi.config.MercadoPagoProperties;
 import org.slf4j.Logger;
@@ -59,15 +60,20 @@ public class MercadoPagoClient {
     /**
      * Cria uma preference do Checkout Pro ({@code POST /checkout/preferences}) com um único
      * item e devolve o link ({@code init_point}) para o cliente pagar.
+     *
+     * <p>{@code payer} é opcional (pode ser {@code null}); quando informado, ajuda o
+     * Mercado Pago a oferecer o Pix e melhora a conciliação por polling.
      */
-    public Optional<CheckoutPreference> createCheckoutPreference(String title, BigDecimal amount, String externalReference) {
+    public Optional<CheckoutPreference> createCheckoutPreference(
+            String title, BigDecimal amount, String externalReference, PreferencePayer payer) {
         if (notConfigured("createCheckoutPreference")) {
             return Optional.empty();
         }
 
         PreferenceRequest body = new PreferenceRequest(
                 List.of(new PreferenceItem(title, 1, amount, CURRENCY_BRL)),
-                externalReference
+                externalReference,
+                payer
         );
 
         try {
