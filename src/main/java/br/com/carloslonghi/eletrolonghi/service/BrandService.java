@@ -1,7 +1,9 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.repository.BrandRepository;
+import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,7 @@ import java.util.Optional;
 public class BrandService {
 
     private final BrandRepository brandRepository;
+    private final DeviceRepository deviceRepository;
 
     public List<Brand> findAll() {
         return brandRepository.findAll();
@@ -27,6 +30,9 @@ public class BrandService {
     }
 
     public void deleteById(Long id) {
+        if (deviceRepository.existsByBrandId(id)) {
+            throw new EntityInUseException("Brand", id, "aparelho(s)");
+        }
         brandRepository.deleteById(id);
     }
 }

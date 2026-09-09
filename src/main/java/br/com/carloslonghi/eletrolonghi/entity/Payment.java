@@ -5,6 +5,8 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SoftDelete;
+import org.hibernate.annotations.SoftDeleteType;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments")
+@SoftDelete(strategy = SoftDeleteType.TIMESTAMP, columnName = "deleted_at")
 @Getter
 @Setter
 @Builder

@@ -15,6 +15,10 @@ public interface RepairOrderRepository extends JpaRepository<RepairOrder, Long>,
 
     boolean existsByDeviceIdAndStatusNot(Long deviceId, RepairOrderStatus status);
 
+    boolean existsByCustomerId(Long customerId);
+
+    boolean existsByDeviceId(Long deviceId);
+
     /**
      * Listagem paginada: puxa {@code customer}, {@code device} e {@code payment} (todas
      * associações {@code *ToOne}) numa única query, evitando N+1 na serialização e o

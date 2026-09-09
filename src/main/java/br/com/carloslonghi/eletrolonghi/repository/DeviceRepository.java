@@ -13,4 +13,8 @@ public interface DeviceRepository extends JpaRepository<Device, Long>, JpaSpecif
     List<Device> findDevicesByBrandId(Long brandId);
 
     Optional<Device> findBySerialNumber(String serialNumber);
+
+    boolean existsByBrandId(Long brandId);
+
+    boolean existsByAccessoriesId(Long accessoryId);
 }

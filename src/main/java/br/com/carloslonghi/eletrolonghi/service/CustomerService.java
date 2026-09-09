@@ -1,7 +1,9 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.repository.CustomerRepository;
+import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.CustomerSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,7 @@ import java.util.Optional;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final RepairOrderRepository repairOrderRepository;
 
     public Page<Customer> findAll(String name, String email, String phone, Pageable pageable) {
         return customerRepository.findAll(CustomerSpecification.withFilters(name, email, phone), pageable);
@@ -45,6 +48,9 @@ public class CustomerService {
     }
 
     public void deleteById(Long id) {
+        if (repairOrderRepository.existsByCustomerId(id)) {
+            throw new EntityInUseException("Customer", id, "ordem(ns) de reparo");
+        }
         customerRepository.deleteById(id);
     }
 }

@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.config;
 
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
@@ -99,6 +100,12 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(PaymentGatewayException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public String handlePaymentGatewayException(PaymentGatewayException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(EntityInUseException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public String handleEntityInUseException(EntityInUseException exception) {
         return exception.getMessage();
     }
 

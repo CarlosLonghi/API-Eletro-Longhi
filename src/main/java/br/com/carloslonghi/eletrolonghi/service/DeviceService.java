@@ -3,8 +3,10 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
+import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.DeviceSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import java.util.Optional;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final RepairOrderRepository repairOrderRepository;
 
     private final AccessoryService accessoryService;
     private final BrandService brandService;
@@ -79,6 +82,9 @@ public class DeviceService {
     }
 
     public void deleteById(Long id) {
+        if (repairOrderRepository.existsByDeviceId(id)) {
+            throw new EntityInUseException("Device", id, "ordem(ns) de reparo");
+        }
         deviceRepository.deleteById(id);
     }
 

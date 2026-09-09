@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.repository.BrandRepository;
+import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,9 @@ class BrandServiceTest {
 
     @Mock
     private BrandRepository brandRepository;
+
+    @Mock
+    private DeviceRepository deviceRepository;
 
     @InjectMocks
     private BrandService brandService;
