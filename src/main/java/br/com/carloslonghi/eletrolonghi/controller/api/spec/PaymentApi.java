@@ -255,13 +255,13 @@ public interface PaymentApi {
 
     @Operation(
             summary = "Deletar pagamento por ID",
-            description = "Remove um pagamento do sistema pelo seu ID. Requer perfil ADMIN."
+            description = "Remove um pagamento do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Pagamento deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Pagamento não encontrado", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN ou GERENTE", content = @Content)
     })
     ResponseEntity<Void> deletePaymentById(
             @Parameter(in = ParameterIn.PATH, description = "ID do pagamento", required = true)
