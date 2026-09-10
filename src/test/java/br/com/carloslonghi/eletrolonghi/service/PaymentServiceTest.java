@@ -7,10 +7,12 @@ import br.com.carloslonghi.eletrolonghi.client.dto.PreferencePayer;
 import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -55,6 +57,13 @@ class PaymentServiceTest {
         return payment;
     }
 
+    /** Pagamento cuja ordem de reparo já teve o orçamento aprovado — pré-requisito do save. */
+    private static Payment paymentForApprovedOrder() {
+        Payment payment = TestFixtures.payment(1L);
+        payment.getRepairOrder().setStatus(RepairOrderStatus.APPROVED);
+        return payment;
+    }
+
     @Test
     void shouldFindWithFilters() {
         Page<Payment> page = new PageImpl<>(List.of(TestFixtures.payment(1L)));
@@ -69,7 +78,7 @@ class PaymentServiceTest {
 
     @Test
     void shouldSavePendingPaymentAndResolveRepairOrder() {
-        Payment payment = TestFixtures.payment(1L);
+        Payment payment = paymentForApprovedOrder();
         when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
         when(paymentRepository.existsByRepairOrderId(1L)).thenReturn(false);
         when(paymentRepository.save(payment)).thenReturn(payment);
@@ -90,8 +99,31 @@ class PaymentServiceTest {
     }
 
     @Test
-    void shouldThrowWhenRepairOrderAlreadyHasPayment() {
+    void shouldRejectPaymentWhenRepairOrderBudgetNotYetApproved() {
         Payment payment = TestFixtures.payment(1L);
+        payment.getRepairOrder().setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
+
+        assertThatThrownBy(() -> paymentService.save(payment))
+                .isInstanceOf(RepairOrderNotApprovedForPaymentException.class);
+
+        verify(paymentRepository, org.mockito.Mockito.never()).save(any(Payment.class));
+    }
+
+    @Test
+    void shouldAllowPaymentOnceRepairOrderMovedPastApproval() {
+        Payment payment = TestFixtures.payment(1L);
+        payment.getRepairOrder().setStatus(RepairOrderStatus.IN_REPAIR);
+        when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
+        when(paymentRepository.existsByRepairOrderId(1L)).thenReturn(false);
+        when(paymentRepository.save(payment)).thenReturn(payment);
+
+        assertThat(paymentService.save(payment)).isSameAs(payment);
+    }
+
+    @Test
+    void shouldThrowWhenRepairOrderAlreadyHasPayment() {
+        Payment payment = paymentForApprovedOrder();
         when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
         when(paymentRepository.existsByRepairOrderId(1L)).thenReturn(true);
 
@@ -101,7 +133,7 @@ class PaymentServiceTest {
 
     @Test
     void shouldNormalizeInstallmentsForNonCardMethod() {
-        Payment payment = TestFixtures.payment(1L);
+        Payment payment = paymentForApprovedOrder();
         payment.setMethod(PaymentMethod.PIX);
         payment.setInstallments(6);
         when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
@@ -115,7 +147,7 @@ class PaymentServiceTest {
 
     @Test
     void shouldApproveOnSaveAndStampPaidAt() {
-        Payment payment = TestFixtures.payment(1L);
+        Payment payment = paymentForApprovedOrder();
         payment.setStatus(PaymentStatus.APPROVED);
         when(repairOrderService.findById(1L)).thenReturn(Optional.of(payment.getRepairOrder()));
         when(paymentRepository.existsByRepairOrderId(1L)).thenReturn(false);
