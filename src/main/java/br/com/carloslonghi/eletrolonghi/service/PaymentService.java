@@ -9,8 +9,10 @@ import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
@@ -51,6 +53,10 @@ public class PaymentService {
     public Payment save(Payment payment) {
         RepairOrder repairOrder = resolveRepairOrder(payment.getRepairOrder());
         payment.setRepairOrder(repairOrder);
+
+        if (repairOrder.getStatus() == null || repairOrder.getStatus().isBefore(RepairOrderStatus.APPROVED)) {
+            throw new RepairOrderNotApprovedForPaymentException(repairOrder.getId(), repairOrder.getStatus());
+        }
 
         if (paymentRepository.existsByRepairOrderId(repairOrder.getId())) {
             throw new PaymentAlreadyExistsForRepairOrderException(repairOrder.getId());

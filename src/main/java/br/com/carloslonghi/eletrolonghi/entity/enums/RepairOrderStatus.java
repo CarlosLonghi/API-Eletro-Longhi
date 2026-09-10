@@ -19,4 +19,12 @@ public enum RepairOrderStatus {
         this.description = description;
     }
 
+    /**
+     * Ordem do workflow: {@code true} quando este status vem antes de {@code other}
+     * na sequência declarada acima.
+     */
+    public boolean isBefore(RepairOrderStatus other) {
+        return ordinal() < other.ordinal();
+    }
+
 }

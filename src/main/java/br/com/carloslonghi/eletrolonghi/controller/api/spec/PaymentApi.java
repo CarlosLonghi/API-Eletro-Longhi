@@ -34,7 +34,8 @@ public interface PaymentApi {
 
     @Operation(
             summary = "Registrar novo pagamento",
-            description = "Registra o pagamento de uma ordem de reparo. Cada ordem admite apenas um pagamento."
+            description = "Registra o pagamento de uma ordem de reparo. A ordem precisa estar ao menos " +
+                    "com o orçamento aprovado (status APPROVED ou posterior) e cada ordem admite apenas um pagamento."
     )
     @ApiResponses({
             @ApiResponse(
@@ -49,7 +50,7 @@ public interface PaymentApi {
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
             @ApiResponse(responseCode = "404", description = "Ordem de reparo referenciada não encontrada", content = @Content),
-            @ApiResponse(responseCode = "422", description = "A ordem de reparo já possui um pagamento registrado", content = @Content)
+            @ApiResponse(responseCode = "422", description = "A ordem de reparo já possui um pagamento registrado, ou ainda não teve o orçamento aprovado", content = @Content)
     })
     ResponseEntity<PaymentResponse> createPayment(
             @RequestBody(

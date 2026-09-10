@@ -324,6 +324,8 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     @Test
     void atendenteManagesPaymentsTecnicoCannot() throws Exception {
         RepairOrder order = createRepairOrder("SN-PAY-1", "pay1@mail.com");
+        order.setStatus(RepairOrderStatus.APPROVED);
+        repairOrderRepository.save(order);
         String body = "{\"amount\":150.00,\"method\":\"CASH\",\"repairOrder\":" + order.getId() + "}";
 
         mockMvc.perform(post("/payment").header("Authorization", "Bearer " + tecnicoToken)
@@ -338,6 +340,18 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
         mockMvc.perform(patch("/payment/{id}/status", paymentId).header("Authorization", "Bearer " + atendenteToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"APPROVED\"}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void cannotRegisterPaymentBeforeRepairOrderBudgetApproved() throws Exception {
+        RepairOrder order = createRepairOrder("SN-PAY-EARLY", "payearly@mail.com");
+        String body = "{\"amount\":150.00,\"method\":\"CASH\",\"repairOrder\":" + order.getId() + "}";
+
+        mockMvc.perform(post("/payment").header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isUnprocessableEntity());
+
+        assertThat(paymentRepository.findByRepairOrderId(order.getId())).isEmpty();
     }
 
     @Test
