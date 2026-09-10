@@ -255,7 +255,7 @@ public interface PaymentApi {
 
     @Operation(
             summary = "Deletar pagamento por ID",
-            description = "Remove um pagamento do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE."
+            description = "Remove um pagamento do sistema pelo seu ID. Diferente dos outros recursos, esta é uma remoção física (o pagamento é 1:1 com a ordem e não usa soft delete). Requer perfil ADMIN ou GERENTE."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Pagamento deletado com sucesso", content = @Content),

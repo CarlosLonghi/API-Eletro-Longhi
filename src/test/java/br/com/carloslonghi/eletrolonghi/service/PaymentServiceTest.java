@@ -342,11 +342,23 @@ class PaymentServiceTest {
 
     @Test
     void shouldFindByIdAndDelete() {
-        Payment payment = TestFixtures.payment(1L);
+        Payment payment = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.PENDING).getPayment();
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
-        assertThat(paymentService.findById(1L)).contains(payment);
+        assertThat(payment.getRepairOrder().getPayment()).isSameAs(payment);
+
         paymentService.deleteById(1L);
-        verify(paymentRepository).deleteById(1L);
+
+        assertThat(payment.getRepairOrder().getPayment()).isNull();
+        verify(paymentRepository).delete(payment);
+    }
+
+    @Test
+    void deleteShouldDoNothingWhenPaymentMissing() {
+        when(paymentRepository.findById(1L)).thenReturn(Optional.empty());
+
+        paymentService.deleteById(1L);
+
+        verify(paymentRepository, org.mockito.Mockito.never()).delete(org.mockito.ArgumentMatchers.any(Payment.class));
     }
 }

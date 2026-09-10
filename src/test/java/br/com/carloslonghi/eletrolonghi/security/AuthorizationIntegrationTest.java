@@ -44,6 +44,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -256,6 +257,22 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    void listsRepairOrderThatHasNoPayment() throws Exception {
+        RepairOrder order = createRepairOrder("SN-NOPAY-1", "nopay@mail.com");
+
+        // regressão: Payment com @SoftDelete quebrava o @OneToOne inverso de toda
+        // ordem sem pagamento (FetchNotFoundException -> 500).
+        mockMvc.perform(get("/repair-order?page=0&size=10&sortBy=id&direction=asc")
+                        .header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].paymentStatus").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].paymentId").value(org.hamcrest.Matchers.nullValue()));
+
+        mockMvc.perform(get("/repair-order/{id}", order.getId()).header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void onlyTecnicoAndManagementChangeRepairOrderStatus() throws Exception {
         RepairOrder order = createRepairOrder("SN-ST-1", "st1@mail.com");
         String body = "{\"status\":\"IN_EVALUATION\"}";
@@ -331,7 +348,10 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(delete("/payment/{id}", payment.getId()).header("Authorization", "Bearer " + gerenteToken))
                 .andExpect(status().isNoContent());
-        assertThat(countSoftDeleted("payments", payment.getId())).isEqualTo(1);
+        // Payment não usa @SoftDelete — a remoção é física.
+        entityManager.flush();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM payments WHERE id = ?", Long.class, payment.getId())).isZero();
     }
 
     // --- User (ADMIN-only, GERENTE excluído) ----------------------------

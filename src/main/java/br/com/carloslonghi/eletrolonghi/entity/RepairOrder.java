@@ -49,6 +49,11 @@ public class RepairOrder {
     /**
      * Pagamento da ordem — 1:1, lado inverso (a FK {@code repair_order_id} vive em
      * {@code payments}). {@code null} enquanto a ordem não tem pagamento registrado.
+     *
+     * <p>{@code Payment} <b>não</b> usa {@code @SoftDelete}: como esta associação é um
+     * {@code @OneToOne} inverso e é carregada junto com a ordem, o predicado de soft
+     * delete no join faz o Hibernate lançar {@code FetchNotFoundException} para toda
+     * ordem sem pagamento. {@code DELETE /payment/{id}} é, portanto, remoção física.
      */
     @OneToOne(mappedBy = "repairOrder")
     private Payment payment;

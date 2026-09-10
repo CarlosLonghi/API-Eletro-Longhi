@@ -150,8 +150,20 @@ public class PaymentService {
         });
     }
 
+    /**
+     * Remoção física. Antes de apagar, desfaz o lado inverso da associação 1:1
+     * ({@code RepairOrder.payment}) para o Hibernate não acusar o pagamento removido
+     * como instância transiente referenciada pela ordem no flush.
+     */
+    @Transactional
     public void deleteById(Long id) {
-        paymentRepository.deleteById(id);
+        paymentRepository.findById(id).ifPresent(payment -> {
+            RepairOrder order = payment.getRepairOrder();
+            if (order != null) {
+                order.setPayment(null);
+            }
+            paymentRepository.delete(payment);
+        });
     }
 
     private void applyStatus(Payment payment, PaymentStatus status) {
