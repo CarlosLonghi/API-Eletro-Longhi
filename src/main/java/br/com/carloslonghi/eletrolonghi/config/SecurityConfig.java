@@ -68,7 +68,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/customer").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.PUT, "/customer/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.DELETE, "/customer/*").hasAnyRole("ADMIN", "GERENTE")
-                        .requestMatchers(HttpMethod.GET, "/device", "/device/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        // Listagem e busca por número de série ficam com o atendimento; o detalhe de
+                        // um aparelho (GET /device/{id}) também é liberado ao TÉCNICO, que chega nele
+                        // a partir da ordem de reparo para ver as informações do aparelho.
+                        .requestMatchers(HttpMethod.GET, "/device", "/device/serial-number").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.GET, "/device/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
                         .requestMatchers(HttpMethod.POST, "/device").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.PUT, "/device/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.DELETE, "/device/*").hasAnyRole("ADMIN", "GERENTE")
