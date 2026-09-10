@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -109,7 +110,14 @@ public class PaymentService {
                         "O link de pagamento só pode ser gerado para um pagamento pendente.");
             }
 
-            String externalReference = externalReferenceFor(payment);
+            // Reaproveita a referência se o link já foi gerado antes; senão cria uma nova
+            // e única. NÃO pode ser derivada só do id: ids se repetem entre resets/seeds
+            // do banco, e um pagamento antigo aprovado no Mercado Pago com a mesma
+            // referência faria o sync marcar este como pago sem ninguém ter pagado.
+            String externalReference = payment.getExternalReference() != null
+                    ? payment.getExternalReference()
+                    : newExternalReference(payment);
+
             CheckoutPreference preference = mercadoPagoClient
                     .createCheckoutPreference(checkoutTitle(payment), payment.getAmount(), externalReference, payerFor(payment))
                     .orElseThrow(() -> new PaymentGatewayException(
@@ -190,8 +198,8 @@ public class PaymentService {
         return installments;
     }
 
-    private static String externalReferenceFor(Payment payment) {
-        return "payment-" + payment.getId();
+    private static String newExternalReference(Payment payment) {
+        return "payment-" + payment.getId() + "-" + UUID.randomUUID();
     }
 
     private static String checkoutTitle(Payment payment) {
