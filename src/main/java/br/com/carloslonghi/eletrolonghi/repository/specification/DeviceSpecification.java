@@ -18,10 +18,6 @@ public final class DeviceSpecification {
         return (root, query, builder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-            if (query != null) {
-                query.distinct(true);
-            }
-
             if (model != null && !model.isBlank()) {
                 predicates.add(builder.like(
                         builder.lower(root.get("model")),

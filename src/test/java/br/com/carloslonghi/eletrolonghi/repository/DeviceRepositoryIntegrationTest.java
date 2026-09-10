@@ -9,6 +9,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -59,6 +62,34 @@ class DeviceRepositoryIntegrationTest extends AbstractPostgresIntegrationTest {
         assertThat(deviceRepository.findDevicesByBrandId(brand1.getId())).hasSize(1);
         assertThat(deviceRepository.findAll(DeviceSpecification.withFilters("note", brand1.getId()))).hasSize(1);
         assertThat(deviceRepository.findAll(DeviceSpecification.withFilters("inexistente", null))).isEmpty();
+    }
+
+    @Test
+    void shouldPageAndSortByNestedBrandProperty() {
+        Brand brandB = brandRepository.save(Brand.builder().name("Marca-B").build());
+        Brand brandA = brandRepository.save(Brand.builder().name("Marca-A").build());
+
+        deviceRepository.save(Device.builder()
+                .model("Notebook Pro")
+                .serialNumber("SER-001")
+                .brand(brandB)
+                .accessories(List.of())
+                .build());
+        deviceRepository.save(Device.builder()
+                .model("TV Smart")
+                .serialNumber("SER-002")
+                .brand(brandA)
+                .accessories(List.of())
+                .build());
+
+        Page<Device> page = deviceRepository.findAll(
+                DeviceSpecification.withFilters(null, null),
+                PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "brand.id"))
+        );
+
+        assertThat(page.getContent())
+                .extracting(device -> device.getBrand().getId())
+                .containsExactly(brandB.getId(), brandA.getId());
     }
 }
 
