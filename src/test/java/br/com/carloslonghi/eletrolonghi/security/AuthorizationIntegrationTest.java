@@ -213,14 +213,21 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
-    void tecnicoHasNoAccessToDevices() throws Exception {
+    void tecnicoReadsDeviceDetailButNotListOrWrites() throws Exception {
+        Device device = device("SN-T-1");
+
+        // detalhe do aparelho: liberado (o técnico chega nele pela ordem de reparo)
+        mockMvc.perform(get("/device/{id}", device.getId()).header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isOk());
+
+        // listagem, busca por série e escrita seguem fora do alcance do técnico
         mockMvc.perform(get("/device").header("Authorization", "Bearer " + tecnicoToken))
                 .andExpect(status().isForbidden());
-
-        Brand brand = brandRepository.save(Brand.builder().name("B").build());
+        mockMvc.perform(get("/device/serial-number?serialNumber=SN-T-1").header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isForbidden());
         mockMvc.perform(post("/device").header("Authorization", "Bearer " + tecnicoToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"model\":\"M\",\"serialNumber\":\"SN-T-1\",\"brand\":" + brand.getId() + ",\"accessories\":[]}"))
+                        .content("{\"model\":\"M\",\"serialNumber\":\"SN-T-2\",\"brand\":1,\"accessories\":[]}"))
                 .andExpect(status().isForbidden());
     }
 
