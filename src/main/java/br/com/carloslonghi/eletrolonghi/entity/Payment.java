@@ -5,16 +5,21 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.SoftDelete;
-import org.hibernate.annotations.SoftDeleteType;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * {@code Payment} é a única entidade apagável <b>sem</b> {@code @SoftDelete}: ela é o
+ * lado inverso de um {@code @OneToOne} carregado junto com {@code RepairOrder}, e o
+ * predicado de soft delete no join quebra o carregamento de toda ordem sem pagamento
+ * ({@code FetchNotFoundException}). Além disso {@code repair_order_id} é {@code UNIQUE},
+ * então uma linha "removida logicamente" bloquearia um novo pagamento para a ordem.
+ * {@code DELETE /payment/{id}} é remoção física.
+ */
 @Entity
 @Table(name = "payments")
-@SoftDelete(strategy = SoftDeleteType.TIMESTAMP, columnName = "deleted_at")
 @Getter
 @Setter
 @Builder

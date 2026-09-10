@@ -29,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -178,17 +179,39 @@ class PaymentServiceTest {
     }
 
     @Test
-    void shouldCreateCheckoutLinkAndPersistExternalReference() {
+    void shouldCreateCheckoutLinkAndPersistAUniqueExternalReference() {
         Payment payment = checkoutPayment();
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
-        when(mercadoPagoClient.createCheckoutPreference(any(), any(), eq("payment-1"), any()))
+        when(mercadoPagoClient.createCheckoutPreference(any(), any(), anyString(), any()))
                 .thenReturn(Optional.of(new CheckoutPreference("pref-1", "https://mp/checkout", "https://mp/sandbox")));
 
         Optional<CheckoutPreference> result = paymentService.createCheckoutLink(1L);
 
         assertThat(result).map(CheckoutPreference::initPoint).contains("https://mp/checkout");
-        assertThat(payment.getExternalReference()).isEqualTo("payment-1");
+
+        ArgumentCaptor<String> refCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mercadoPagoClient).createCheckoutPreference(any(), any(), refCaptor.capture(), any());
+        // não pode ser só "payment-<id>": ids se repetem entre resets do banco e um
+        // pagamento aprovado antigo no Mercado Pago com a mesma referência marcaria
+        // este como pago no sync sem ninguém ter pagado.
+        assertThat(payment.getExternalReference())
+                .isEqualTo(refCaptor.getValue())
+                .matches("payment-1-[0-9a-f-]{36}");
         verify(paymentRepository).save(payment);
+    }
+
+    @Test
+    void shouldReuseExternalReferenceWhenLinkIsRegenerated() {
+        Payment payment = checkoutPayment();
+        payment.setExternalReference("payment-1-existing-ref");
+        when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
+        when(mercadoPagoClient.createCheckoutPreference(any(), any(), any(), any()))
+                .thenReturn(Optional.of(new CheckoutPreference("pref-1", "https://mp/checkout", "https://mp/sandbox")));
+
+        paymentService.createCheckoutLink(1L);
+
+        verify(mercadoPagoClient).createCheckoutPreference(any(), any(), eq("payment-1-existing-ref"), any());
+        assertThat(payment.getExternalReference()).isEqualTo("payment-1-existing-ref");
     }
 
     @Test
@@ -203,7 +226,7 @@ class PaymentServiceTest {
         paymentService.createCheckoutLink(1L);
 
         ArgumentCaptor<PreferencePayer> captor = ArgumentCaptor.forClass(PreferencePayer.class);
-        verify(mercadoPagoClient).createCheckoutPreference(any(), any(), eq("payment-1"), captor.capture());
+        verify(mercadoPagoClient).createCheckoutPreference(any(), any(), anyString(), captor.capture());
         PreferencePayer payer = captor.getValue();
         assertThat(payer.name()).isEqualTo("Ana");
         assertThat(payer.surname()).isEqualTo("Silva Souza");
@@ -342,11 +365,23 @@ class PaymentServiceTest {
 
     @Test
     void shouldFindByIdAndDelete() {
-        Payment payment = TestFixtures.payment(1L);
+        Payment payment = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.PENDING).getPayment();
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
-        assertThat(paymentService.findById(1L)).contains(payment);
+        assertThat(payment.getRepairOrder().getPayment()).isSameAs(payment);
+
         paymentService.deleteById(1L);
-        verify(paymentRepository).deleteById(1L);
+
+        assertThat(payment.getRepairOrder().getPayment()).isNull();
+        verify(paymentRepository).delete(payment);
+    }
+
+    @Test
+    void deleteShouldDoNothingWhenPaymentMissing() {
+        when(paymentRepository.findById(1L)).thenReturn(Optional.empty());
+
+        paymentService.deleteById(1L);
+
+        verify(paymentRepository, org.mockito.Mockito.never()).delete(org.mockito.ArgumentMatchers.any(Payment.class));
     }
 }
