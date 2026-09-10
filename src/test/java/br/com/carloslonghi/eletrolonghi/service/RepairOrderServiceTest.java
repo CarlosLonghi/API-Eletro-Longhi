@@ -4,9 +4,11 @@ import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
+import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,9 @@ class RepairOrderServiceTest {
 
     @Mock
     private RepairOrderRepository repairOrderRepository;
+
+    @Mock
+    private PaymentRepository paymentRepository;
 
     @Mock
     private CustomerService customerService;
@@ -119,10 +124,20 @@ class RepairOrderServiceTest {
     }
 
     @Test
-    void shouldUpdateRepairOrderWhenFound() {
+    void shouldRejectDeleteWhenRepairOrderHasPayment() {
+        when(paymentRepository.existsByRepairOrderId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> repairOrderService.deleteById(1L))
+                .isInstanceOf(EntityInUseException.class);
+        verify(repairOrderRepository, org.mockito.Mockito.never()).deleteById(1L);
+    }
+
+    @Test
+    void updateShouldEditFieldsButNeverTouchStatus() {
         RepairOrder existing = TestFixtures.repairOrder(1L);
         RepairOrder incoming = TestFixtures.repairOrder(2L);
-        incoming.setStatus(RepairOrderStatus.IN_EVALUATION);
+        incoming.setDescription("nova descricao");
+        incoming.setStatus(RepairOrderStatus.IN_REPAIR);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(customerService.findById(1L)).thenReturn(Optional.of(existing.getCustomer()));
         when(deviceService.findById(1L)).thenReturn(Optional.of(existing.getDevice()));
@@ -131,18 +146,8 @@ class RepairOrderServiceTest {
         Optional<RepairOrder> updated = repairOrderService.update(1L, incoming);
 
         assertThat(updated).isPresent();
-        assertThat(existing.getStatus()).isEqualTo(RepairOrderStatus.IN_EVALUATION);
-    }
-
-    @Test
-    void shouldRejectRepairOrderUpdateWithStatusSkip() {
-        RepairOrder existing = TestFixtures.repairOrder(1L);
-        RepairOrder incoming = TestFixtures.repairOrder(2L);
-        incoming.setStatus(RepairOrderStatus.IN_REPAIR);
-        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(existing));
-
-        assertThatThrownBy(() -> repairOrderService.update(1L, incoming))
-                .isInstanceOf(InvalidRepairOrderStatusTransitionException.class);
+        assertThat(existing.getDescription()).isEqualTo("nova descricao");
+        assertThat(existing.getStatus()).isEqualTo(RepairOrderStatus.AWAITING_EVALUATION);
     }
 
     @Test

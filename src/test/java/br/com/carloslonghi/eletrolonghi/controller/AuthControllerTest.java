@@ -66,7 +66,7 @@ class AuthControllerTest {
     void shouldRegisterUser() {
         UserRequest request = new UserRequest("User", "user@mail.com", "123");
         User user = TestFixtures.user(1L);
-        UserResponse response = new UserResponse(1L, "User", "user@mail.com", Role.USER, false);
+        UserResponse response = new UserResponse(1L, "User", "user@mail.com", Role.ATENDENTE, false);
 
         when(userMapper.toEntity(request)).thenReturn(user);
         when(userService.save(user)).thenReturn(user);

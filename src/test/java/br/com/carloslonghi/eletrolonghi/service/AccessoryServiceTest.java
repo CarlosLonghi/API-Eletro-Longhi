@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.repository.AccessoryRepository;
+import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,9 @@ class AccessoryServiceTest {
 
     @Mock
     private AccessoryRepository accessoryRepository;
+
+    @Mock
+    private DeviceRepository deviceRepository;
 
     @InjectMocks
     private AccessoryService accessoryService;

@@ -125,7 +125,9 @@ public interface RepairOrderApi {
 
     @Operation(
             summary = "Atualizar um Reparo",
-            description = "Atualiza os dados de um reparo pelo seu ID"
+            description = "Atualiza os dados de um reparo (descrição, cliente, aparelho) pelo seu ID. "
+                    + "O campo 'status' do corpo é ignorado aqui — só o endpoint PATCH /repair-order/{id}/status "
+                    + "muda o status do serviço. Requer perfil ADMIN, GERENTE ou ATENDENTE."
     )
     @ApiResponses({
             @ApiResponse(
@@ -139,8 +141,7 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Reparo, cliente ou aparelho referenciado não encontrado", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez) ou tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado", content = @Content)
+            @ApiResponse(responseCode = "404", description = "Reparo, cliente ou aparelho referenciado não encontrado", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrder(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
@@ -158,7 +159,8 @@ public interface RepairOrderApi {
 
     @Operation(
             summary = "Atualizar status do Reparo",
-            description = "Atualiza apenas o status de andamento de um reparo pelo seu ID"
+            description = "Atualiza apenas o status de andamento de um reparo pelo seu ID. "
+                    + "É a única forma de mudar o status do serviço e exige perfil TECNICO, GERENTE ou ADMIN."
     )
     @ApiResponses({
             @ApiResponse(
@@ -191,13 +193,13 @@ public interface RepairOrderApi {
 
     @Operation(
             summary = "Deletar reparo por ID",
-            description = "Remove um reparo do sistema pelo seu ID. Requer perfil ADMIN."
+            description = "Remove um reparo do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Reparo deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN ou GERENTE", content = @Content)
     })
     ResponseEntity<Void> deleteRepairOrderById(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)

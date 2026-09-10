@@ -54,18 +54,47 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/api-docs.yaml").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui/**" ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/brand").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/brand/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/accessory").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/accessory/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/customer/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/device/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/repair-order/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/payment/{id}").hasRole("ADMIN")
+
+                        // Marcas e acessórios: leitura para atendimento; escrita e remoção (soft) para gestão.
+                        .requestMatchers(HttpMethod.GET, "/brand", "/brand/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.POST, "/brand").hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/brand/*").hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers(HttpMethod.GET, "/accessory", "/accessory/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.POST, "/accessory").hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/accessory/*").hasAnyRole("ADMIN", "GERENTE")
+
+                        // Clientes e aparelhos: cadastro/edição/consulta pelo atendimento; remoção (soft) pela gestão.
+                        .requestMatchers(HttpMethod.GET, "/customer", "/customer/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.POST, "/customer").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.PUT, "/customer/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/customer/*").hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers(HttpMethod.GET, "/device", "/device/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.POST, "/device").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.PUT, "/device/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/device/*").hasAnyRole("ADMIN", "GERENTE")
+
+                        // Ordens de reparo: o status do serviço só o TÉCNICO (e a gestão) altera;
+                        // o atendimento abre/edita a ordem e todos os papéis operacionais consultam.
+                        .requestMatchers(HttpMethod.PATCH, "/repair-order/*/status").hasAnyRole("ADMIN", "GERENTE", "TECNICO")
+                        .requestMatchers(HttpMethod.GET, "/repair-order", "/repair-order/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
+                        .requestMatchers(HttpMethod.POST, "/repair-order").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.PUT, "/repair-order/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/repair-order/*").hasAnyRole("ADMIN", "GERENTE")
+
+                        // Pagamentos: fluxo completo (incl. checkout/sync do Mercado Pago) para o atendimento;
+                        // remoção (soft) para a gestão.
+                        .requestMatchers(HttpMethod.GET, "/payment", "/payment/*", "/payment/*/receipt").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.POST, "/payment", "/payment/*/checkout", "/payment/*/sync").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.PUT, "/payment/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.PATCH, "/payment/*/status").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/payment/*").hasAnyRole("ADMIN", "GERENTE")
+
+                        // Gestão de usuários: exclusiva do ADMIN.
                         .requestMatchers(HttpMethod.GET, "/user").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/user/{id}/role").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/user/{id}/status").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/user/*/role", "/user/*/status").hasRole("ADMIN")
+
+                        // Nada de acesso implícito: papéis sem regra explícita (ex.: PENDENTE) são barrados.
+                        .anyRequest().denyAll()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

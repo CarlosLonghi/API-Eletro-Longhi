@@ -26,7 +26,7 @@ import java.util.List;
 public interface AccessoryApi {
     @Operation(
             summary = "Cadastrar novo acessório",
-            description = "Cria um novo acessório (ex: cabo, controle, etc.). Requer perfil ADMIN."
+            description = "Cria um novo acessório (ex: cabo, controle, etc.). Requer perfil ADMIN ou GERENTE."
     )
     @ApiResponses({
             @ApiResponse(
@@ -39,7 +39,7 @@ public interface AccessoryApi {
             ),
             @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN ou GERENTE", content = @Content),
             @ApiResponse(responseCode = "409", description = "Acessório já cadastrado", content = @Content)
     })
     ResponseEntity<AccessoryResponse> createAccessory(
@@ -97,13 +97,13 @@ public interface AccessoryApi {
 
     @Operation(
             summary = "Deletar acessório por ID",
-            description = "Remove um acessório do sistema pelo seu ID. Requer perfil ADMIN."
+            description = "Remove um acessório do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Acessório deletado com sucesso", content = @Content),
             @ApiResponse(responseCode = "404", description = "Acessório não encontrado", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado — requer perfil ADMIN ou GERENTE", content = @Content),
             @ApiResponse(responseCode = "409", description = "Acessório não deletado, pois está relacionado a um aparelho", content = @Content)
     })
     ResponseEntity<Void> deleteAccessoryById(

@@ -2,6 +2,8 @@ package br.com.carloslonghi.eletrolonghi.entity.enums;
 
 public enum Role {
     ADMIN,
-    USER
+    GERENTE,
+    ATENDENTE,
+    TECNICO,
+    PENDENTE
 }
-

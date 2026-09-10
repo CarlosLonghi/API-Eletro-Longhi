@@ -38,7 +38,7 @@ class UserControllerTest {
     @Test
     void shouldReturnPagedUsers() {
         User user = TestFixtures.user(1L);
-        UserResponse response = new UserResponse(1L, user.getName(), user.getEmail(), Role.USER, false);
+        UserResponse response = new UserResponse(1L, user.getName(), user.getEmail(), Role.ATENDENTE, false);
         when(userService.findAll(any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(List.of(user)));
         when(userMapper.toResponse(user)).thenReturn(response);
 
@@ -73,7 +73,7 @@ class UserControllerTest {
     @Test
     void shouldUpdateUserStatusWhenFound() {
         User user = TestFixtures.user(1L);
-        UserResponse response = new UserResponse(1L, user.getName(), user.getEmail(), Role.USER, false);
+        UserResponse response = new UserResponse(1L, user.getName(), user.getEmail(), Role.ATENDENTE, false);
         when(userService.updateStatus(1L, false)).thenReturn(Optional.of(user));
         when(userMapper.toResponse(user)).thenReturn(response);
 

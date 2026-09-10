@@ -94,7 +94,7 @@ public final class TestFixtures {
                 .name("Usuario " + id)
                 .email("user" + id + "@mail.com")
                 .password("senha")
-                .role(Role.USER)
+                .role(Role.ATENDENTE)
                 .build();
     }
 

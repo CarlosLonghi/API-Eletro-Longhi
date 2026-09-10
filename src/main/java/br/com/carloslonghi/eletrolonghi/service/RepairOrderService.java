@@ -7,9 +7,11 @@ import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
+import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.Optional;
 public class RepairOrderService {
 
     private final RepairOrderRepository repairOrderRepository;
+    private final PaymentRepository paymentRepository;
 
     private final CustomerService customerService;
     private final DeviceService deviceService;
@@ -79,14 +82,13 @@ public class RepairOrderService {
 
         if (optionalRepairOrder.isPresent()) {
             RepairOrder repairOrderToUpdate = optionalRepairOrder.get();
-            validateStatusTransition(repairOrderToUpdate.getStatus(), repairOrder.getStatus());
-            guardDeviceCollected(repairOrderToUpdate, repairOrder.getStatus());
 
             Customer customer = this.findCustomer(repairOrder.getCustomer());
             Device device = this.findDevice(repairOrder.getDevice());
 
+            // O status do serviço não é alterado por aqui: só o endpoint dedicado
+            // PATCH /repair-order/{id}/status muda o status (e só o TÉCNICO/GERENTE/ADMIN).
             repairOrderToUpdate.setDescription(repairOrder.getDescription());
-            repairOrderToUpdate.setStatus(repairOrder.getStatus());
             repairOrderToUpdate.setCustomer(customer);
             repairOrderToUpdate.setDevice(device);
 
@@ -131,6 +133,9 @@ public class RepairOrderService {
     }
 
     public void deleteById(Long id) {
+        if (paymentRepository.existsByRepairOrderId(id)) {
+            throw new EntityInUseException("RepairOrder", id, "pagamento");
+        }
         repairOrderRepository.deleteById(id);
     }
 

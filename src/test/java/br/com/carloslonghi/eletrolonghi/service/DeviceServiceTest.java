@@ -5,6 +5,7 @@ import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
+import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,9 @@ class DeviceServiceTest {
 
     @Mock
     private DeviceRepository deviceRepository;
+
+    @Mock
+    private RepairOrderRepository repairOrderRepository;
 
     @Mock
     private AccessoryService accessoryService;
