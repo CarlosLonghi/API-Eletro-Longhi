@@ -11,6 +11,7 @@ import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -83,6 +84,12 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(RepairOrderNotPaidException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public String handleRepairOrderNotPaidException(RepairOrderNotPaidException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(RepairOrderStatusActorNotAllowedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public String handleRepairOrderStatusActorNotAllowedException(RepairOrderStatusActorNotAllowedException exception) {
         return exception.getMessage();
     }
 

@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.config.JWTUserData;
 import br.com.carloslonghi.eletrolonghi.controller.api.spec.RepairOrderApi;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
@@ -8,6 +9,7 @@ import br.com.carloslonghi.eletrolonghi.controller.support.PaginationUtils;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.mapper.RepairOrderMapper;
 import br.com.carloslonghi.eletrolonghi.service.RepairOrderService;
 import jakarta.validation.Valid;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -88,8 +91,13 @@ public class RepairOrderController implements RepairOrderApi {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(@PathVariable Long id, @Valid @RequestBody RepairOrderStatusUpdateRequest request) {
-        return repairOrderService.updateStatus(id, request.status())
+    public ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody RepairOrderStatusUpdateRequest request,
+            @AuthenticationPrincipal JWTUserData jwtUserData
+    ) {
+        Role actorRole = Role.valueOf(jwtUserData.role());
+        return repairOrderService.updateStatus(id, request.status(), actorRole)
                 .map(repairOrder -> ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder)))
                 .orElse(ResponseEntity.notFound().build());
     }

@@ -77,9 +77,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/device/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.DELETE, "/device/*").hasAnyRole("ADMIN", "GERENTE")
 
-                        // Ordens de reparo: o status do serviço só o TÉCNICO (e a gestão) altera;
-                        // o atendimento abre/edita a ordem e todos os papéis operacionais consultam.
-                        .requestMatchers(HttpMethod.PATCH, "/repair-order/*/status").hasAnyRole("ADMIN", "GERENTE", "TECNICO")
+                        // Ordens de reparo: a URL libera TÉCNICO, ATENDENTE e a gestão para o endpoint de
+                        // status — a regra fina de qual papel pode setar qual status (TÉCNICO não pode ir
+                        // para DEVICE_COLLECTED; ATENDENTE só pode ir para DEVICE_COLLECTED) depende do
+                        // corpo da requisição e é decidida em RepairOrderService, não aqui.
+                        .requestMatchers(HttpMethod.PATCH, "/repair-order/*/status").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
                         .requestMatchers(HttpMethod.GET, "/repair-order", "/repair-order/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
                         .requestMatchers(HttpMethod.POST, "/repair-order").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.PUT, "/repair-order/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
