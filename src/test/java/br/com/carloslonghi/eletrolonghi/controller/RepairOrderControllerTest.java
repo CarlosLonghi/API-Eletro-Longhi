@@ -1,11 +1,13 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
+import br.com.carloslonghi.eletrolonghi.config.JWTUserData;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.mapper.RepairOrderMapper;
 import br.com.carloslonghi.eletrolonghi.service.RepairOrderService;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
@@ -83,10 +85,11 @@ class RepairOrderControllerTest {
         RepairOrder entity = TestFixtures.repairOrder(1L);
         RepairOrderResponse response = RepairOrderResponse.builder().id(1L).status(RepairOrderStatus.IN_REPAIR).build();
 
-        when(repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR)).thenReturn(Optional.of(entity));
+        JWTUserData jwtUserData = JWTUserData.builder().id(1L).name("Tecnico").email("t@mail.com").role("TECNICO").build();
+        when(repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR, Role.TECNICO)).thenReturn(Optional.of(entity));
         when(repairOrderMapper.toResponse(entity)).thenReturn(response);
 
-        var result = repairOrderController.updateRepairOrderStatus(1L, new RepairOrderStatusUpdateRequest(RepairOrderStatus.IN_REPAIR));
+        var result = repairOrderController.updateRepairOrderStatus(1L, new RepairOrderStatusUpdateRequest(RepairOrderStatus.IN_REPAIR), jwtUserData);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).isEqualTo(response);

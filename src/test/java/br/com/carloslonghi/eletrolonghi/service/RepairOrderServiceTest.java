@@ -3,11 +3,13 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
@@ -97,7 +99,7 @@ class RepairOrderServiceTest {
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(repairOrderRepository.save(order)).thenReturn(order);
 
-        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.IN_EVALUATION);
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.IN_EVALUATION, Role.TECNICO);
 
         assertThat(updated).isPresent();
         assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.IN_EVALUATION);
@@ -109,7 +111,7 @@ class RepairOrderServiceTest {
         RepairOrder order = TestFixtures.repairOrder(1L);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR))
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR, Role.TECNICO))
                 .isInstanceOf(InvalidRepairOrderStatusTransitionException.class);
     }
 
@@ -174,17 +176,30 @@ class RepairOrderServiceTest {
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThat(repairOrderService.update(1L, TestFixtures.repairOrder(1L))).isEmpty();
-        assertThat(repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR)).isEmpty();
+        assertThat(repairOrderService.updateStatus(1L, RepairOrderStatus.IN_REPAIR, Role.TECNICO)).isEmpty();
     }
 
     @Test
-    void shouldAllowDeviceCollectedWhenPaymentApproved() {
+    void shouldAllowDeviceCollectedWhenPaymentApprovedAndActorIsAtendente() {
         RepairOrder order = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.APPROVED);
         order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(repairOrderRepository.save(order)).thenReturn(order);
 
-        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED);
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED, Role.ATENDENTE);
+
+        assertThat(updated).isPresent();
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.DEVICE_COLLECTED);
+    }
+
+    @Test
+    void shouldAllowDeviceCollectedWhenPaymentApprovedAndActorIsGerenteOrAdmin() {
+        RepairOrder order = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.APPROVED);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(repairOrderRepository.save(order)).thenReturn(order);
+
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED, Role.GERENTE);
 
         assertThat(updated).isPresent();
         assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.DEVICE_COLLECTED);
@@ -196,7 +211,7 @@ class RepairOrderServiceTest {
         order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED))
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED, Role.ATENDENTE))
                 .isInstanceOf(RepairOrderNotPaidException.class);
     }
 
@@ -206,8 +221,37 @@ class RepairOrderServiceTest {
         order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED))
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED, Role.ATENDENTE))
                 .isInstanceOf(RepairOrderNotPaidException.class);
+    }
+
+    @Test
+    void shouldRejectDeviceCollectedWhenActorIsTecnico() {
+        RepairOrder order = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.APPROVED);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED, Role.TECNICO))
+                .isInstanceOf(RepairOrderStatusActorNotAllowedException.class);
+    }
+
+    @Test
+    void shouldRejectDeviceCollectedActorBeforePaymentGuard() {
+        RepairOrder order = TestFixtures.repairOrderWithPayment(1L, PaymentStatus.PENDING);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.DEVICE_COLLECTED, Role.TECNICO))
+                .isInstanceOf(RepairOrderStatusActorNotAllowedException.class);
+    }
+
+    @Test
+    void shouldRejectNonDeviceCollectedTransitionWhenActorIsAtendente() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.IN_EVALUATION, Role.ATENDENTE))
+                .isInstanceOf(RepairOrderStatusActorNotAllowedException.class);
     }
 }
 

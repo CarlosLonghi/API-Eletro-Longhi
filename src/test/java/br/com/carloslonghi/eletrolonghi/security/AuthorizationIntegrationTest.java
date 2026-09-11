@@ -280,10 +280,11 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
-    void onlyTecnicoAndManagementChangeRepairOrderStatus() throws Exception {
+    void tecnicoAndManagementDriveStatusButNotToDeviceCollected() throws Exception {
         RepairOrder order = createRepairOrder("SN-ST-1", "st1@mail.com");
         String body = "{\"status\":\"IN_EVALUATION\"}";
 
+        // ATENDENTE só entra no fluxo de status para finalizar com DEVICE_COLLECTED.
         mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
                         .header("Authorization", "Bearer " + atendenteToken)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
@@ -296,6 +297,56 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                         .header("Authorization", "Bearer " + gerenteToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"AWAITING_APPROVAL\"}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void tecnicoCannotMarkDeviceCollected() throws Exception {
+        RepairOrder order = createRepairOrderReadyForCollection("SN-DC-TEC", "dctec@mail.com");
+
+        mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + tecnicoToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DEVICE_COLLECTED\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void atendenteCanMarkDeviceCollectedWhenPaid() throws Exception {
+        RepairOrder order = createRepairOrderReadyForCollection("SN-DC-ATE", "dcate@mail.com");
+
+        mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + atendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DEVICE_COLLECTED\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(repairOrderRepository.findById(order.getId()))
+                .get()
+                .extracting(RepairOrder::getStatus)
+                .isEqualTo(RepairOrderStatus.DEVICE_COLLECTED);
+    }
+
+    @Test
+    void gerenteOrAdminCanStillMarkDeviceCollectedWhenPaid() throws Exception {
+        RepairOrder gerenteOrder = createRepairOrderReadyForCollection("SN-DC-GER", "dcger@mail.com");
+        mockMvc.perform(patch("/repair-order/{id}/status", gerenteOrder.getId())
+                        .header("Authorization", "Bearer " + gerenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DEVICE_COLLECTED\"}"))
+                .andExpect(status().isOk());
+
+        RepairOrder adminOrder = createRepairOrderReadyForCollection("SN-DC-ADM", "dcadm@mail.com");
+        mockMvc.perform(patch("/repair-order/{id}/status", adminOrder.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DEVICE_COLLECTED\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void pendenteStillForbiddenOnStatusPatch() throws Exception {
+        RepairOrder order = createRepairOrder("SN-ST-PEND", "stpend@mail.com");
+
+        mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
+                        .header("Authorization", "Bearer " + pendenteToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"IN_EVALUATION\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -463,5 +514,24 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                 .customer(customer)
                 .device(device)
                 .build());
+    }
+
+    private RepairOrder createRepairOrderReadyForCollection(String serialNumber, String customerEmail) {
+        RepairOrder order = createRepairOrder(serialNumber, customerEmail);
+        order.setStatus(RepairOrderStatus.REPAIR_COMPLETED);
+        repairOrderRepository.save(order);
+        paymentRepository.save(Payment.builder()
+                .amount(new BigDecimal("150.00"))
+                .method(PaymentMethod.CASH)
+                .status(PaymentStatus.APPROVED)
+                .installments(1)
+                .repairOrder(order)
+                .build());
+        // O OneToOne RepairOrder.payment é o lado inverso (mappedBy) — o Payment recém
+        // salvo não atualiza o `order` já gerenciado no contexto de persistência. Limpar
+        // o contexto força o próximo findById (dentro do service) a recarregar do banco.
+        entityManager.flush();
+        entityManager.clear();
+        return order;
     }
 }

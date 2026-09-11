@@ -1,5 +1,6 @@
 package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 
+import br.com.carloslonghi.eletrolonghi.config.JWTUserData;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
@@ -19,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -159,8 +161,11 @@ public interface RepairOrderApi {
 
     @Operation(
             summary = "Atualizar status do Reparo",
-            description = "Atualiza apenas o status de andamento de um reparo pelo seu ID. "
-                    + "É a única forma de mudar o status do serviço e exige perfil TECNICO, GERENTE ou ADMIN."
+            description = "Atualiza apenas o status de andamento de um reparo pelo seu ID. É a única forma de "
+                    + "mudar o status do serviço. Perfis GERENTE e ADMIN fazem qualquer transição. TECNICO conduz "
+                    + "o fluxo de oficina, mas não pode marcar DEVICE_COLLECTED (aparelho retirado pelo cliente). "
+                    + "ATENDENTE só atua nessa etapa final, marcando DEVICE_COLLECTED — as demais transições são "
+                    + "exclusivas de TECNICO/gestão."
     )
     @ApiResponses({
             @ApiResponse(
@@ -173,7 +178,8 @@ public interface RepairOrderApi {
             ),
             @ApiResponse(responseCode = "400", description = "Status inválido ou ausente", content = @Content),
             @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado, ou papel não pode realizar essa transição específica "
+                    + "(TECNICO tentando DEVICE_COLLECTED, ou ATENDENTE tentando qualquer transição que não seja DEVICE_COLLECTED)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
             @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez) ou tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado", content = @Content)
     })
@@ -188,7 +194,10 @@ public interface RepairOrderApi {
                             schema = @Schema(implementation = RepairOrderStatusUpdateRequest.class)
                     )
             )
-            RepairOrderStatusUpdateRequest request
+            RepairOrderStatusUpdateRequest request,
+
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal JWTUserData jwtUserData
     );
 
     @Operation(

@@ -6,11 +6,13 @@ import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
@@ -87,7 +89,7 @@ public class RepairOrderService {
             Device device = this.findDevice(repairOrder.getDevice());
 
             // O status do serviço não é alterado por aqui: só o endpoint dedicado
-            // PATCH /repair-order/{id}/status muda o status (e só o TÉCNICO/GERENTE/ADMIN).
+            // PATCH /repair-order/{id}/status muda o status.
             repairOrderToUpdate.setDescription(repairOrder.getDescription());
             repairOrderToUpdate.setCustomer(customer);
             repairOrderToUpdate.setDevice(device);
@@ -100,9 +102,10 @@ public class RepairOrderService {
     }
 
     @Transactional
-    public Optional<RepairOrder> updateStatus(Long id, RepairOrderStatus status) {
+    public Optional<RepairOrder> updateStatus(Long id, RepairOrderStatus status, Role actorRole) {
         return repairOrderRepository.findById(id).map(repairOrder -> {
             validateStatusTransition(repairOrder.getStatus(), status);
+            guardActorAllowedForTransition(repairOrder, status, actorRole);
             guardDeviceCollected(repairOrder, status);
             repairOrder.setStatus(status);
             return repairOrderRepository.save(repairOrder);
@@ -114,6 +117,23 @@ public class RepairOrderService {
 
         if (distance != 1) {
             throw new InvalidRepairOrderStatusTransitionException(current, next);
+        }
+    }
+
+    /**
+     * TÉCNICO conduz o fluxo de oficina até {@code REPAIR_COMPLETED}, mas não marca a
+     * retirada pelo cliente — isso é responsabilidade do atendimento (ATENDENTE) ou da
+     * gestão. Por simetria, ATENDENTE só entra no fluxo de status para finalizar com
+     * {@code DEVICE_COLLECTED}; as demais transições seguem exclusivas de TÉCNICO/gestão.
+     */
+    private void guardActorAllowedForTransition(RepairOrder order, RepairOrderStatus next, Role actorRole) {
+        boolean isDeviceCollected = next == RepairOrderStatus.DEVICE_COLLECTED;
+
+        if (actorRole == Role.TECNICO && isDeviceCollected) {
+            throw new RepairOrderStatusActorNotAllowedException(order.getId(), actorRole, next);
+        }
+        if (actorRole == Role.ATENDENTE && !isDeviceCollected) {
+            throw new RepairOrderStatusActorNotAllowedException(order.getId(), actorRole, next);
         }
     }
 
