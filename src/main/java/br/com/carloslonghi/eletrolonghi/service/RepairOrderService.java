@@ -110,17 +110,17 @@ public class RepairOrderService {
             validateStatusTransition(repairOrder.getStatus(), status);
             guardActorAllowedForTransition(repairOrder, status, actorRole);
             guardDeviceCollected(repairOrder, status);
-            guardApprovalHasEstimate(repairOrder, status);
+            guardAwaitingApprovalHasEstimate(repairOrder, status);
             repairOrder.setStatus(status);
             return repairOrderRepository.save(repairOrder);
         });
     }
 
     /**
-     * Define o custo e o prazo estimados do reparo — pré-requisito para a ordem ser
-     * movida para {@code APPROVED} (ver {@link #guardApprovalHasEstimate}). Editável a
-     * qualquer momento, não só enquanto a ordem está em {@code AWAITING_APPROVAL}: o
-     * custo estimado também segue como valor padrão do {@code Payment} da ordem.
+     * Define o custo e o prazo estimados do reparo — pré-requisito para a ordem sair de
+     * {@code IN_EVALUATION} e entrar em {@code AWAITING_APPROVAL} (ver
+     * {@link #guardAwaitingApprovalHasEstimate}). Editável a qualquer momento, não só
+     * durante a avaliação: pode ser corrigido depois se necessário.
      */
     @Transactional
     public Optional<RepairOrder> updateEstimate(Long id, BigDecimal estimatedCost, LocalDate estimatedCompletionDate) {
@@ -172,12 +172,12 @@ public class RepairOrderService {
     }
 
     /**
-     * A ordem só pode ir para {@code APPROVED} com um custo e um prazo estimados já
-     * definidos — "aprovar" precisa ter conteúdo concreto (o que o cliente está
-     * aprovando), e o custo estimado vira o valor padrão do {@code Payment} da ordem.
+     * A ordem só sai de {@code IN_EVALUATION} para {@code AWAITING_APPROVAL} com um
+     * custo e um prazo estimados já definidos — a avaliação técnica precisa terminar
+     * com um orçamento concreto antes de aguardar aprovação do cliente.
      */
-    private void guardApprovalHasEstimate(RepairOrder order, RepairOrderStatus next) {
-        if (next != RepairOrderStatus.APPROVED) {
+    private void guardAwaitingApprovalHasEstimate(RepairOrder order, RepairOrderStatus next) {
+        if (next != RepairOrderStatus.AWAITING_APPROVAL) {
             return;
         }
         if (order.getEstimatedCost() == null || order.getEstimatedCompletionDate() == null) {

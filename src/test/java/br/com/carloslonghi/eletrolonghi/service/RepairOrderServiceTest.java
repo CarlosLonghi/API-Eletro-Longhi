@@ -258,33 +258,46 @@ class RepairOrderServiceTest {
     }
 
     @Test
-    void shouldRejectApprovingWithoutEstimatedCost() {
+    void shouldRejectMovingToAwaitingApprovalWithoutEstimatedCost() {
         RepairOrder order = TestFixtures.repairOrder(1L);
-        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        order.setStatus(RepairOrderStatus.IN_EVALUATION);
         order.setEstimatedCompletionDate(LocalDate.now().plusDays(3));
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.APPROVED, Role.TECNICO))
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.AWAITING_APPROVAL, Role.TECNICO))
                 .isInstanceOf(RepairOrderMissingEstimateException.class);
     }
 
     @Test
-    void shouldRejectApprovingWithoutEstimatedCompletionDate() {
+    void shouldRejectMovingToAwaitingApprovalWithoutEstimatedCompletionDate() {
         RepairOrder order = TestFixtures.repairOrder(1L);
-        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        order.setStatus(RepairOrderStatus.IN_EVALUATION);
         order.setEstimatedCost(new BigDecimal("250.00"));
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.APPROVED, Role.TECNICO))
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.AWAITING_APPROVAL, Role.TECNICO))
                 .isInstanceOf(RepairOrderMissingEstimateException.class);
     }
 
     @Test
-    void shouldAllowApprovingWhenEstimateSet() {
+    void shouldAllowMovingToAwaitingApprovalWhenEstimateSet() {
         RepairOrder order = TestFixtures.repairOrder(1L);
-        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        order.setStatus(RepairOrderStatus.IN_EVALUATION);
         order.setEstimatedCost(new BigDecimal("250.00"));
         order.setEstimatedCompletionDate(LocalDate.now().plusDays(3));
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(repairOrderRepository.save(order)).thenReturn(order);
+
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.AWAITING_APPROVAL, Role.TECNICO);
+
+        assertThat(updated).isPresent();
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.AWAITING_APPROVAL);
+    }
+
+    @Test
+    void shouldAllowApprovingWithoutEstimateGuardSinceItOnlyAppliesEnteringAwaitingApproval() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
         when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(repairOrderRepository.save(order)).thenReturn(order);
 
