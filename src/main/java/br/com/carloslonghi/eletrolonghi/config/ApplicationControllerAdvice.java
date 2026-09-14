@@ -9,6 +9,7 @@ import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransi
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
@@ -84,6 +85,12 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(RepairOrderNotPaidException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public String handleRepairOrderNotPaidException(RepairOrderNotPaidException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(RepairOrderMissingEstimateException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handleRepairOrderMissingEstimateException(RepairOrderMissingEstimateException exception) {
         return exception.getMessage();
     }
 

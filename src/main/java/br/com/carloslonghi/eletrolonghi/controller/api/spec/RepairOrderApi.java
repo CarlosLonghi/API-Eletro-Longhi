@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.controller.api.spec;
 
 import br.com.carloslonghi.eletrolonghi.config.JWTUserData;
+import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderEstimateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
@@ -181,7 +182,7 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "403", description = "Não autorizado, ou papel não pode realizar essa transição específica "
                     + "(TECNICO tentando DEVICE_COLLECTED, ou ATENDENTE tentando qualquer transição que não seja DEVICE_COLLECTED)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez) ou tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado", content = @Content)
+            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez), tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado, ou tentativa de ir para APPROVED sem custo e prazo estimados definidos (ver PATCH /repair-order/{id}/estimate)", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
@@ -198,6 +199,41 @@ public interface RepairOrderApi {
 
             @Parameter(hidden = true)
             @AuthenticationPrincipal JWTUserData jwtUserData
+    );
+
+    @Operation(
+            summary = "Definir custo e prazo estimados do Reparo",
+            description = "Define o custo e a data prevista de conclusão estimados para o reparo. É pré-requisito "
+                    + "para a ordem poder ser movida para o status APPROVED (PATCH /repair-order/{id}/status). O "
+                    + "custo estimado também vira o valor padrão do pagamento (POST /payment) dessa ordem, podendo "
+                    + "ainda ser sobrescrito no ato do pagamento."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Estimativa atualizada com sucesso",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = RepairOrderResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Dados da request inválidos", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content)
+    })
+    ResponseEntity<RepairOrderResponse> updateRepairOrderEstimate(
+            @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
+            @PathVariable Long id,
+
+            @RequestBody(
+                    description = "Custo e prazo estimados do reparo",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = RepairOrderEstimateRequest.class)
+                    )
+            )
+            RepairOrderEstimateRequest request
     );
 
     @Operation(

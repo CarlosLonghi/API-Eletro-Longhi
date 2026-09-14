@@ -5,6 +5,9 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 @Builder
 @Schema(description = "Detalhes de uma ordem de reparo retornada pela API")
 public record RepairOrderResponse(
@@ -16,6 +19,12 @@ public record RepairOrderResponse(
 
         @Schema(description = "Estado atual do serviço", enumAsRef = true)
         RepairOrderStatus status,
+
+        @Schema(description = "Valor estimado do serviço; null até ser definido via PATCH /repair-order/{id}/estimate", example = "350.00")
+        BigDecimal estimatedCost,
+
+        @Schema(description = "Data prevista de conclusão do reparo; null até ser definida via PATCH /repair-order/{id}/estimate", example = "2026-09-20")
+        LocalDate estimatedCompletionDate,
 
         @Schema(description = "Informações do cliente que solicitou o serviço")
         CustomerResponse customer,

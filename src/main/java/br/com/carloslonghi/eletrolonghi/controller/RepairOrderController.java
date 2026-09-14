@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.controller;
 
 import br.com.carloslonghi.eletrolonghi.config.JWTUserData;
 import br.com.carloslonghi.eletrolonghi.controller.api.spec.RepairOrderApi;
+import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderEstimateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
@@ -98,6 +99,16 @@ public class RepairOrderController implements RepairOrderApi {
     ) {
         Role actorRole = Role.valueOf(jwtUserData.role());
         return repairOrderService.updateStatus(id, request.status(), actorRole)
+                .map(repairOrder -> ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/estimate")
+    public ResponseEntity<RepairOrderResponse> updateRepairOrderEstimate(
+            @PathVariable Long id,
+            @Valid @RequestBody RepairOrderEstimateRequest request
+    ) {
+        return repairOrderService.updateEstimate(id, request.estimatedCost(), request.estimatedCompletionDate())
                 .map(repairOrder -> ResponseEntity.ok(repairOrderMapper.toResponse(repairOrder)))
                 .orElse(ResponseEntity.notFound().build());
     }

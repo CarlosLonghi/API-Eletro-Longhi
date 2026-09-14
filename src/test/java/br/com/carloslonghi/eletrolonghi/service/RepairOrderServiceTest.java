@@ -8,6 +8,7 @@ import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
@@ -22,6 +23,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -252,6 +255,66 @@ class RepairOrderServiceTest {
 
         assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.IN_EVALUATION, Role.ATENDENTE))
                 .isInstanceOf(RepairOrderStatusActorNotAllowedException.class);
+    }
+
+    @Test
+    void shouldRejectApprovingWithoutEstimatedCost() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        order.setEstimatedCompletionDate(LocalDate.now().plusDays(3));
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.APPROVED, Role.TECNICO))
+                .isInstanceOf(RepairOrderMissingEstimateException.class);
+    }
+
+    @Test
+    void shouldRejectApprovingWithoutEstimatedCompletionDate() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        order.setEstimatedCost(new BigDecimal("250.00"));
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(1L, RepairOrderStatus.APPROVED, Role.TECNICO))
+                .isInstanceOf(RepairOrderMissingEstimateException.class);
+    }
+
+    @Test
+    void shouldAllowApprovingWhenEstimateSet() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        order.setStatus(RepairOrderStatus.AWAITING_APPROVAL);
+        order.setEstimatedCost(new BigDecimal("250.00"));
+        order.setEstimatedCompletionDate(LocalDate.now().plusDays(3));
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(repairOrderRepository.save(order)).thenReturn(order);
+
+        Optional<RepairOrder> updated = repairOrderService.updateStatus(1L, RepairOrderStatus.APPROVED, Role.TECNICO);
+
+        assertThat(updated).isPresent();
+        assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.APPROVED);
+    }
+
+    @Test
+    void shouldSetEstimateWhenFound() {
+        RepairOrder order = TestFixtures.repairOrder(1L);
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(repairOrderRepository.save(order)).thenReturn(order);
+
+        BigDecimal cost = new BigDecimal("300.00");
+        LocalDate completionDate = LocalDate.now().plusDays(5);
+
+        Optional<RepairOrder> updated = repairOrderService.updateEstimate(1L, cost, completionDate);
+
+        assertThat(updated).isPresent();
+        assertThat(order.getEstimatedCost()).isEqualTo(cost);
+        assertThat(order.getEstimatedCompletionDate()).isEqualTo(completionDate);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenEstimateOrderMissing() {
+        when(repairOrderRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThat(repairOrderService.updateEstimate(1L, new BigDecimal("100.00"), LocalDate.now())).isEmpty();
     }
 }
 
