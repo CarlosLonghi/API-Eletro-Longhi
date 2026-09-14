@@ -8,6 +8,8 @@ import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.SoftDeleteType;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,6 +31,12 @@ public class RepairOrder {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RepairOrderStatus status;
+
+    @Column(name = "estimated_cost", precision = 12, scale = 2)
+    private BigDecimal estimatedCost;
+
+    @Column(name = "estimated_completion_date")
+    private LocalDate estimatedCompletionDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
