@@ -82,6 +82,7 @@ public class SecurityConfig {
                         // para DEVICE_COLLECTED; ATENDENTE só pode ir para DEVICE_COLLECTED) depende do
                         // corpo da requisição e é decidida em RepairOrderService, não aqui.
                         .requestMatchers(HttpMethod.PATCH, "/repair-order/*/status").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
+                        .requestMatchers(HttpMethod.PATCH, "/repair-order/*/estimate").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
                         .requestMatchers(HttpMethod.GET, "/repair-order", "/repair-order/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE", "TECNICO")
                         .requestMatchers(HttpMethod.POST, "/repair-order").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.PUT, "/repair-order/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")

@@ -11,6 +11,7 @@ import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
@@ -22,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -107,7 +110,23 @@ public class RepairOrderService {
             validateStatusTransition(repairOrder.getStatus(), status);
             guardActorAllowedForTransition(repairOrder, status, actorRole);
             guardDeviceCollected(repairOrder, status);
+            guardApprovalHasEstimate(repairOrder, status);
             repairOrder.setStatus(status);
+            return repairOrderRepository.save(repairOrder);
+        });
+    }
+
+    /**
+     * Define o custo e o prazo estimados do reparo — pré-requisito para a ordem ser
+     * movida para {@code APPROVED} (ver {@link #guardApprovalHasEstimate}). Editável a
+     * qualquer momento, não só enquanto a ordem está em {@code AWAITING_APPROVAL}: o
+     * custo estimado também segue como valor padrão do {@code Payment} da ordem.
+     */
+    @Transactional
+    public Optional<RepairOrder> updateEstimate(Long id, BigDecimal estimatedCost, LocalDate estimatedCompletionDate) {
+        return repairOrderRepository.findById(id).map(repairOrder -> {
+            repairOrder.setEstimatedCost(estimatedCost);
+            repairOrder.setEstimatedCompletionDate(estimatedCompletionDate);
             return repairOrderRepository.save(repairOrder);
         });
     }
@@ -149,6 +168,20 @@ public class RepairOrderService {
         Payment payment = order.getPayment();
         if (payment == null || payment.getStatus() != PaymentStatus.APPROVED) {
             throw new RepairOrderNotPaidException(order.getId());
+        }
+    }
+
+    /**
+     * A ordem só pode ir para {@code APPROVED} com um custo e um prazo estimados já
+     * definidos — "aprovar" precisa ter conteúdo concreto (o que o cliente está
+     * aprovando), e o custo estimado vira o valor padrão do {@code Payment} da ordem.
+     */
+    private void guardApprovalHasEstimate(RepairOrder order, RepairOrderStatus next) {
+        if (next != RepairOrderStatus.APPROVED) {
+            return;
+        }
+        if (order.getEstimatedCost() == null || order.getEstimatedCompletionDate() == null) {
+            throw new RepairOrderMissingEstimateException(order.getId());
         }
     }
 

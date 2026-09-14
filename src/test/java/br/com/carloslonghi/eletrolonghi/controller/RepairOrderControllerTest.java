@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.controller;
 
 import br.com.carloslonghi.eletrolonghi.config.JWTUserData;
+import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderEstimateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.RepairOrderStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.RepairOrderResponse;
@@ -19,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -128,6 +131,32 @@ class RepairOrderControllerTest {
         var result = repairOrderController.updateRepairOrder(1L, request);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void shouldUpdateEstimateWhenFound() {
+        RepairOrder entity = TestFixtures.repairOrder(1L);
+        RepairOrderResponse response = RepairOrderResponse.builder().id(1L).status(RepairOrderStatus.AWAITING_APPROVAL).build();
+        BigDecimal cost = new BigDecimal("300.00");
+        LocalDate completionDate = LocalDate.now().plusDays(5);
+        when(repairOrderService.updateEstimate(1L, cost, completionDate)).thenReturn(Optional.of(entity));
+        when(repairOrderMapper.toResponse(entity)).thenReturn(response);
+
+        var result = repairOrderController.updateRepairOrderEstimate(1L, new RepairOrderEstimateRequest(cost, completionDate));
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isEqualTo(response);
+    }
+
+    @Test
+    void shouldReturnNotFoundOnUpdateEstimateWhenMissing() {
+        BigDecimal cost = new BigDecimal("300.00");
+        LocalDate completionDate = LocalDate.now().plusDays(5);
+        when(repairOrderService.updateEstimate(1L, cost, completionDate)).thenReturn(Optional.empty());
+
+        var result = repairOrderController.updateRepairOrderEstimate(1L, new RepairOrderEstimateRequest(cost, completionDate));
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
