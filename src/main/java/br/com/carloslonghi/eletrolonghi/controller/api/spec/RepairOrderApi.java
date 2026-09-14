@@ -182,7 +182,7 @@ public interface RepairOrderApi {
             @ApiResponse(responseCode = "403", description = "Não autorizado, ou papel não pode realizar essa transição específica "
                     + "(TECNICO tentando DEVICE_COLLECTED, ou ATENDENTE tentando qualquer transição que não seja DEVICE_COLLECTED)", content = @Content),
             @ApiResponse(responseCode = "404", description = "Reparo não encontrado", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez), tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado, ou tentativa de ir para APPROVED sem custo e prazo estimados definidos (ver PATCH /repair-order/{id}/estimate)", content = @Content)
+            @ApiResponse(responseCode = "422", description = "Transição de status inválida (mais de uma etapa por vez), tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado, ou tentativa de ir para AWAITING_APPROVAL sem custo e prazo estimados definidos (ver PATCH /repair-order/{id}/estimate)", content = @Content)
     })
     ResponseEntity<RepairOrderResponse> updateRepairOrderStatus(
             @Parameter(in = ParameterIn.PATH, description = "ID do reparo", required = true)
@@ -203,10 +203,9 @@ public interface RepairOrderApi {
 
     @Operation(
             summary = "Definir custo e prazo estimados do Reparo",
-            description = "Define o custo e a data prevista de conclusão estimados para o reparo. É pré-requisito "
-                    + "para a ordem poder ser movida para o status APPROVED (PATCH /repair-order/{id}/status). O "
-                    + "custo estimado também vira o valor padrão do pagamento (POST /payment) dessa ordem, podendo "
-                    + "ainda ser sobrescrito no ato do pagamento."
+            description = "Define o custo e a data prevista de conclusão estimados para o reparo, normalmente "
+                    + "preenchidos ao final da avaliação técnica. É pré-requisito para a ordem sair de IN_EVALUATION "
+                    + "e entrar em AWAITING_APPROVAL (PATCH /repair-order/{id}/status)."
     )
     @ApiResponses({
             @ApiResponse(

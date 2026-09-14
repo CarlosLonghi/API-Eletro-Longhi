@@ -293,6 +293,14 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                         .header("Authorization", "Bearer " + tecnicoToken)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
+
+        // Sair de IN_EVALUATION para AWAITING_APPROVAL exige custo e prazo estimados definidos.
+        mockMvc.perform(patch("/repair-order/{id}/estimate", order.getId())
+                        .header("Authorization", "Bearer " + tecnicoToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"estimatedCost\":250.00,\"estimatedCompletionDate\":\"2026-09-20\"}"))
+                .andExpect(status().isOk());
+
         mockMvc.perform(patch("/repair-order/{id}/status", order.getId())
                         .header("Authorization", "Bearer " + gerenteToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"AWAITING_APPROVAL\"}"))
