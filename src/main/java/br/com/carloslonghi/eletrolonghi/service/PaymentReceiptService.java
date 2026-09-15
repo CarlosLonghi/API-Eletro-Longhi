@@ -30,6 +30,9 @@ import java.util.List;
 /**
  * Gera o recibo (comprovante <strong>não-fiscal</strong>) de um pagamento em PDF.
  * Os dados da loja vêm de {@link ShopProperties} ({@code shop.*}).
+ *
+ * <p>Layout deliberadamente compacto e em preto e branco (sem preenchimentos coloridos),
+ * pensado para impressão econômica em papel comum.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,49 +40,39 @@ public class PaymentReceiptService {
 
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private static final Color INK = new Color(15, 23, 42);
-    private static final Color MUTED = new Color(100, 116, 139);
-    private static final Color BORDER = new Color(226, 232, 240);
-    private static final Color PANEL = new Color(248, 250, 252);
-    private static final Color ACCENT = new Color(37, 99, 235);
-
-    private static final Color GREEN = new Color(21, 128, 61);
-    private static final Color GREEN_BG = new Color(220, 252, 231);
-    private static final Color RED = new Color(185, 28, 28);
-    private static final Color RED_BG = new Color(254, 226, 226);
-    private static final Color AMBER = new Color(180, 83, 9);
-    private static final Color AMBER_BG = new Color(254, 243, 199);
-    private static final Color SLATE_BADGE = new Color(71, 85, 105);
-    private static final Color SLATE_BADGE_BG = new Color(226, 232, 240);
+    private static final Color BLACK = Color.BLACK;
+    private static final Color GRAY = new Color(90, 90, 90);
+    private static final Color BORDER = new Color(190, 190, 190);
+    private static final Color PANEL = new Color(240, 240, 240);
 
     private final ShopProperties shop;
 
     public byte[] generate(Payment payment) {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4, 40, 40, 40, 40);
+        Document document = new Document(PageSize.A4, 32, 32, 26, 26);
 
         try {
             PdfWriter.getInstance(document, output);
             document.open();
 
             document.add(header());
-            document.add(accentRule());
-            document.add(spacer(14f));
+            document.add(rule(0.75f));
+            document.add(spacer(6f));
 
             document.add(titleBar(payment));
-            document.add(spacer(12f));
+            document.add(spacer(6f));
 
             document.add(amountPanel(payment));
-            document.add(spacer(12f));
+            document.add(spacer(6f));
 
             document.add(twoColumns(paymentCard(payment), repairOrderCard(payment.getRepairOrder())));
 
             if (hasText(payment.getPayerName()) || hasText(payment.getDescription())) {
-                document.add(spacer(10f));
+                document.add(spacer(5f));
                 document.add(notesCard(payment));
             }
 
-            document.add(spacer(18f));
+            document.add(spacer(10f));
             document.add(footer());
 
             document.close();
@@ -103,15 +96,14 @@ public class PaymentReceiptService {
 
         PdfPCell left = new PdfPCell();
         left.setBorder(Rectangle.NO_BORDER);
-        left.addElement(new Phrase(blankToDash(shop.name()), font(16, Font.BOLD, INK)));
+        left.addElement(new Phrase(blankToDash(shop.name()), font(13, Font.BOLD, BLACK)));
         String contact = shopLine();
         if (!contact.equals("-")) {
-            left.addElement(spacerPhrase());
-            left.addElement(new Phrase(contact, font(8.5f, Font.NORMAL, MUTED)));
+            left.addElement(new Phrase(contact, font(7.5f, Font.NORMAL, GRAY)));
         }
         table.addCell(left);
 
-        PdfPCell right = new PdfPCell(new Phrase("COMPROVANTE DE\nPAGAMENTO", font(9, Font.BOLD, MUTED)));
+        PdfPCell right = new PdfPCell(new Phrase("COMPROVANTE DE PAGAMENTO", font(8, Font.BOLD, GRAY)));
         right.setBorder(Rectangle.NO_BORDER);
         right.setHorizontalAlignment(Element.ALIGN_RIGHT);
         right.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -120,12 +112,12 @@ public class PaymentReceiptService {
         return table;
     }
 
-    private PdfPTable accentRule() {
+    private PdfPTable rule(float thickness) {
         PdfPTable rule = new PdfPTable(1);
         rule.setWidthPercentage(100);
         PdfPCell cell = new PdfPCell();
-        cell.setFixedHeight(2.5f);
-        cell.setBackgroundColor(ACCENT);
+        cell.setFixedHeight(thickness);
+        cell.setBackgroundColor(BLACK);
         cell.setBorder(Rectangle.NO_BORDER);
         rule.addCell(cell);
         return rule;
@@ -145,51 +137,34 @@ public class PaymentReceiptService {
         PdfPCell left = new PdfPCell();
         left.setBorder(Rectangle.NO_BORDER);
         left.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        left.addElement(new Phrase("Recibo de Pagamento", font(15, Font.BOLD, INK)));
-        left.addElement(new Phrase("Nº " + payment.getId(), font(9.5f, Font.NORMAL, MUTED)));
+        left.addElement(new Phrase("Recibo de Pagamento", font(12, Font.BOLD, BLACK)));
+        left.addElement(new Phrase("Nº " + payment.getId(), font(8, Font.NORMAL, GRAY)));
         table.addCell(left);
 
         PdfPCell right = new PdfPCell();
         right.setBorder(Rectangle.NO_BORDER);
         right.setVerticalAlignment(Element.ALIGN_MIDDLE);
         right.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        right.addElement(statusBadge(payment.getStatus()));
+        right.addElement(statusBadge(payment.getStatus().getDescription()));
         table.addCell(right);
 
         return table;
     }
 
-    private PdfPTable statusBadge(PaymentStatus status) {
+    private PdfPTable statusBadge(String description) {
         PdfPTable badge = new PdfPTable(1);
-        badge.setWidthPercentage(48);
+        badge.setWidthPercentage(42);
         badge.setHorizontalAlignment(Element.ALIGN_RIGHT);
 
-        PdfPCell cell = new PdfPCell(new Phrase(status.getDescription().toUpperCase(), font(9, Font.BOLD, badgeColor(status))));
-        cell.setBackgroundColor(badgeBackground(status));
-        cell.setBorder(Rectangle.NO_BORDER);
+        PdfPCell cell = new PdfPCell(new Phrase(description.toUpperCase(), font(8, Font.BOLD, BLACK)));
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(BLACK);
+        cell.setBorderWidth(0.75f);
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cell.setPadding(6f);
+        cell.setPadding(3f);
         badge.addCell(cell);
         return badge;
-    }
-
-    private static Color badgeColor(PaymentStatus status) {
-        return switch (status) {
-            case APPROVED -> GREEN;
-            case REJECTED, CANCELLED -> RED;
-            case REFUNDED -> SLATE_BADGE;
-            case PENDING -> AMBER;
-        };
-    }
-
-    private static Color badgeBackground(PaymentStatus status) {
-        return switch (status) {
-            case APPROVED -> GREEN_BG;
-            case REJECTED, CANCELLED -> RED_BG;
-            case REFUNDED -> SLATE_BADGE_BG;
-            case PENDING -> AMBER_BG;
-        };
     }
 
     // --------------------------------------------------------- amount panel
@@ -199,18 +174,15 @@ public class PaymentReceiptService {
         outer.setWidthPercentage(100);
 
         PdfPCell cell = new PdfPCell();
-        cell.setBackgroundColor(PANEL);
         cell.setBorder(Rectangle.BOX);
         cell.setBorderColor(BORDER);
-        cell.setPadding(14f);
+        cell.setPadding(8f);
 
-        cell.addElement(new Phrase("VALOR " + (payment.getStatus() == PaymentStatus.APPROVED ? "PAGO" : "DO PAGAMENTO"),
-                font(8.5f, Font.BOLD, MUTED)));
-        cell.addElement(new Phrase(formatMoney(payment.getAmount()), font(27, Font.BOLD, INK)));
-        cell.addElement(spacerPhrase());
+        cell.addElement(new Phrase("VALOR DO PAGAMENTO", font(7.5f, Font.BOLD, GRAY)));
+        cell.addElement(new Phrase(formatMoney(payment.getAmount()), font(18, Font.BOLD, BLACK)));
 
         String secondLine = describeMethod(payment) + "  •  " + dateLabel(payment) + " " + formatDate(paymentDate(payment));
-        cell.addElement(new Phrase(secondLine, font(9.5f, Font.NORMAL, MUTED)));
+        cell.addElement(new Phrase(secondLine, font(8, Font.NORMAL, GRAY)));
 
         outer.addCell(cell);
         return outer;
@@ -234,13 +206,13 @@ public class PaymentReceiptService {
         PdfPCell leftCell = new PdfPCell(left);
         leftCell.setBorder(Rectangle.NO_BORDER);
         leftCell.setPadding(0f);
-        leftCell.setPaddingRight(6f);
+        leftCell.setPaddingRight(4f);
         row.addCell(leftCell);
 
         PdfPCell rightCell = new PdfPCell(right);
         rightCell.setBorder(Rectangle.NO_BORDER);
         rightCell.setPadding(0f);
-        rightCell.setPaddingLeft(6f);
+        rightCell.setPaddingLeft(4f);
         row.addCell(rightCell);
 
         return row;
@@ -287,11 +259,11 @@ public class PaymentReceiptService {
         PdfPTable inner = new PdfPTable(1);
         inner.setWidthPercentage(100);
 
-        PdfPCell titleCell = new PdfPCell(new Phrase(title.toUpperCase(), font(8.5f, Font.BOLD, MUTED)));
+        PdfPCell titleCell = new PdfPCell(new Phrase(title.toUpperCase(), font(7.5f, Font.BOLD, GRAY)));
         titleCell.setBackgroundColor(PANEL);
         titleCell.setBorder(Rectangle.BOTTOM);
         titleCell.setBorderColor(BORDER);
-        titleCell.setPadding(7f);
+        titleCell.setPadding(4f);
         inner.addCell(titleCell);
 
         PdfPTable body = new PdfPTable(2);
@@ -321,16 +293,16 @@ public class PaymentReceiptService {
     }
 
     private PdfPCell labelCell(String text) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font(9, Font.NORMAL, MUTED)));
+        PdfPCell cell = new PdfPCell(new Phrase(text, font(8, Font.NORMAL, GRAY)));
         cell.setBorder(Rectangle.NO_BORDER);
-        cell.setPadding(6f);
+        cell.setPadding(3.5f);
         return cell;
     }
 
     private PdfPCell valueCell(String text) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font(9.5f, Font.BOLD, INK)));
+        PdfPCell cell = new PdfPCell(new Phrase(text, font(8.5f, Font.BOLD, BLACK)));
         cell.setBorder(Rectangle.NO_BORDER);
-        cell.setPadding(6f);
+        cell.setPadding(3.5f);
         return cell;
     }
 
@@ -341,24 +313,20 @@ public class PaymentReceiptService {
         table.setWidthPercentage(100);
 
         PdfPCell rule = new PdfPCell();
-        rule.setFixedHeight(0.75f);
+        rule.setFixedHeight(0.5f);
         rule.setBackgroundColor(BORDER);
         rule.setBorder(Rectangle.NO_BORDER);
         table.addCell(rule);
 
         PdfPCell text = new PdfPCell();
         text.setBorder(Rectangle.NO_BORDER);
-        text.setPaddingTop(8f);
+        text.setPaddingTop(5f);
         text.setHorizontalAlignment(Element.ALIGN_CENTER);
-        text.addElement(centered("Este documento não possui valor fiscal.", font(8, Font.ITALIC, MUTED)));
-        text.addElement(centered("Emitido em " + formatDate(LocalDateTime.now()), font(8, Font.ITALIC, MUTED)));
+        text.addElement(new Phrase("Este documento não possui valor fiscal.", font(7, Font.ITALIC, GRAY)));
+        text.addElement(new Phrase("Emitido em " + formatDate(LocalDateTime.now()), font(7, Font.ITALIC, GRAY)));
         table.addCell(text);
 
         return table;
-    }
-
-    private static Phrase centered(String text, Font font) {
-        return new Phrase(text, font);
     }
 
     // --------------------------------------------------------------- shared
@@ -414,13 +382,8 @@ public class PaymentReceiptService {
         return FontCache.get(size, style, color);
     }
 
-    private static Phrase spacerPhrase() {
-        return new Phrase(" ", font(4, Font.NORMAL, Color.WHITE));
-    }
-
     private static com.lowagie.text.Paragraph spacer(float height) {
-        com.lowagie.text.Paragraph paragraph = new com.lowagie.text.Paragraph(" ", font(height, Font.NORMAL, Color.WHITE));
-        return paragraph;
+        return new com.lowagie.text.Paragraph(" ", font(height, Font.NORMAL, Color.WHITE));
     }
 
     /**
