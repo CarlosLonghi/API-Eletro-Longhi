@@ -135,7 +135,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/infra/spring-boot.json
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/eletrolonghi/eletrolonghi.json
       # Endereço usado nos links das notificações (Discord); sem isso saem com a porta interna 3000
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
     # Montagens separadas, sobre as pastas que a imagem já tem: o override do Discord acrescenta um arquivo em alerting/
@@ -143,6 +143,7 @@ services:
       - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./observability/grafana/provisioning/alerting/generic.yml:/etc/grafana/provisioning/alerting/generic.yml:ro
+      - ./observability/grafana/provisioning/alerting/eletrolonghi.yml:/etc/grafana/provisioning/alerting/eletrolonghi.yml:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:3000/api/health" ]

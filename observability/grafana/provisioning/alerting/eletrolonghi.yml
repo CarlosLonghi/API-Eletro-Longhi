@@ -1,0 +1,92 @@
+# Alertas do domínio (Mercado Pago, login, pagamentos). Os de infraestrutura (alvo fora, 5xx, Hikari, Postgres)
+# estão em generic.yml. Aparecem em Alerting e no painel "Alertas disparados" do dashboard Eletro Longhi.
+# Sem contact point por padrão. Para receber no Discord, suba com o docker-compose.discord.yaml (ver docs/observabilidade.md).
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: eletrolonghi
+    folder: Eletro Longhi
+    interval: 1m
+    rules:
+      # Chamadas ao gateway que não deram SUCCESS (link de checkout ou sync falham com 502)
+      - uid: eletrolonghi-mercadopago-errors
+        title: 'Falhas no Mercado Pago'
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 'sum by (job) (increase(http_client_requests_seconds_count{client_name="api.mercadopago.com", outcome!="SUCCESS"}[10m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [ 0 ] }
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Chamadas da {{ $labels.job }} ao Mercado Pago falhando nos últimos 10 minutos: checkout e sync de pagamentos afetados'
+      # Falhas + bloqueios da proteção contra força bruta (LoginAttemptService)
+      - uid: eletrolonghi-login-bruteforce
+        title: 'Muitas tentativas de login inválidas'
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 'sum by (job) (increase(eletrolonghi_auth_logins_total{result=~"failure|blocked"}[10m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [ 20 ] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Mais de 20 logins inválidos ou bloqueados em 10 minutos no serviço {{ $labels.job }}: possível força bruta'
+      # Pagamentos que foram para REJECTED (manual ou pelo sync com o Mercado Pago)
+      - uid: eletrolonghi-payments-rejected
+        title: 'Pagamentos recusados'
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 'sum by (job) (increase(eletrolonghi_payments_status_changes_total{status="REJECTED"}[1h]))'
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [ 2 ] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Mais de 2 pagamentos recusados na última hora no serviço {{ $labels.job }}'
