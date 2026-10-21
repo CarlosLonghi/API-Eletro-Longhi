@@ -4,12 +4,12 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 
 ## Build / run / test
 
-- Run locally: `./mvnw spring-boot:run` (reads `src/main/resources/application.properties`)
+- Run locally: `./mvnw spring-boot:run` or the IDE — no active profile means `dev` (`spring.profiles.default`, `application-dev.properties`): `spring-boot-docker-compose` starts `db` + the `observability` profile (`start-only`, so stopping the app leaves the stack up), console logs stay plain text and an ECS JSON copy goes to `logs/eletrolonghi.log` for Alloy/Loki.
 - Compile only: `./mvnw -q -DskipTests package` — always recompile after touching a `mapper/*.java` interface, since MapStruct generates the implementation at compile time.
 - Tests: `./mvnw test` (unit + Testcontainers-backed repository integration tests — needs a working Docker daemon).
 - `./mvnw verify` additionally runs JaCoCo `check` and **fails the build below `coverage.minimum` (0.80)** — run this before considering a change done.
-- `docker compose up -d` (no profile) starts only Postgres (`db` service, postgres:16) — that's also what `spring-boot-docker-compose` does on `./mvnw spring-boot:run`. The API image (`Dockerfile`) runs under the `app` profile: `docker compose --profile app up -d --build`.
-- Observability (Prometheus, Loki, Alloy, Grafana — pattern ported from the BCB challenge) runs under the `observability` profile and scrapes/collects the **containerized** API: `docker compose --profile app --profile observability up -d --build`. Grafana `:3001`, Prometheus `:9090`. Full guide: `docs/observabilidade.md`.
+- `docker compose up -d` (no profile) starts only Postgres (`db` service, postgres:16). The API image (`Dockerfile`) runs under the `app` profile: `docker compose --profile app up -d --build`.
+- Observability (Prometheus, Loki, Alloy, Grafana — pattern ported from the BCB challenge) runs under the `observability` profile and collects the API whether it runs from the IDE (auto-started by the `dev` profile) or as the container: `docker compose --profile app --profile observability up -d --build`. Grafana `:3001`, Prometheus `:9090`. Full guide: `docs/observabilidade.md`.
 - DB must exist beforehand: `CREATE DATABASE eletrolonghi;` (or let docker compose provide it). Flyway applies pending migrations from `src/main/resources/db/migration` on startup.
 - Swagger UI: `/swagger-ui/index.html`. OpenAPI docs path: `/api/api-docs` (see `springdoc.*` in `application.properties`).
 
@@ -79,7 +79,7 @@ For domain detail and structural invariants beyond this file's summary, see `.cl
 
 ## Gotchas
 
-- Docker Compose without a profile only starts the DB. With the API outside Docker, the observability stack can't scrape it nor ship its logs (Alloy reads container stdout) — use the `app` profile.
+- The API runs either from the IDE (`dev` profile) or as the `app` container (`SPRING_PROFILES_ACTIVE=docker`) — never both: they share 8080/8081. Prometheus scrapes job `app` at both `app:8081` and `host.docker.internal:8081`, so one target is always down; anything checking liveness must use `max(up)` (the "Alvo fora" alert and the "no ar" panels do). Keep `logs/.gitkeep` — without it the Alloy bind mount creates `logs/` as root and the app can't write its log file.
 - Business metrics live in `metrics/*Metrics` (Micrometer), registered zeroed in the constructor; services call them after the state change. Don't name a meter ending in `.created` — the Prometheus registry strips `_created` (OpenMetrics) and it collides with other series. Grafana dashboards/alerts in `observability/grafana/` are the source of truth (no Grafana volume); keep metric names in sync with them.
 - `MercadoPagoClient` must keep using the injected `RestClient.Builder` (from `spring-boot-starter-restclient`), not `RestClient.builder()`, or its `http_client_requests_seconds` metrics (dashboard + "Falhas no Mercado Pago" alert) disappear.
 - MapStruct implementations only regenerate on compile — always `./mvnw compile` (or a full build) after touching a mapper interface.

@@ -118,11 +118,11 @@ src/main/resources/
    * Swagger UI: `http://localhost:8080/swagger-ui/index.html`
    * OpenAPI JSON: `http://localhost:8080/api/api-docs`
 
-> **Atenção:** Sem profile, o `docker-compose.yml` sobe **apenas o banco de dados** (é o que o `spring-boot-docker-compose` faz no `./mvnw spring-boot:run`). Para rodar a API em container, use o profile `app`: `docker compose --profile app up -d --build`.
+> **Atenção:** Rodando pela IDE ou com `./mvnw spring-boot:run` (perfil `dev`, o padrão), o `spring-boot-docker-compose` sobe sozinho o banco **e** a stack de observabilidade. Para rodar a API em container, use o profile `app` (`docker compose --profile app up -d --build`) e não rode a IDE ao mesmo tempo: os dois usam a porta 8080.
 
 #### Observabilidade (métricas, logs e alertas)
 
-Prometheus, Loki, Alloy e Grafana sobem no profile `observability`, coletando a API em container:
+Prometheus, Loki, Alloy e Grafana sobem no profile `observability`. No desenvolvimento pela IDE eles sobem sozinhos e coletam a API do host; para tudo em container:
 
 ```bash
 docker compose --profile app --profile observability up -d --build
