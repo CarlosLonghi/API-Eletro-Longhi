@@ -11,6 +11,7 @@ import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundExcept
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
+import br.com.carloslonghi.eletrolonghi.metrics.RepairOrderMetrics;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +51,9 @@ class RepairOrderServiceTest {
 
     @Mock
     private DeviceService deviceService;
+
+    @Mock
+    private RepairOrderMetrics repairOrderMetrics;
 
     @InjectMocks
     private RepairOrderService repairOrderService;
@@ -83,6 +88,7 @@ class RepairOrderServiceTest {
         RepairOrder saved = repairOrderService.save(order);
 
         assertThat(saved).isEqualTo(order);
+        verify(repairOrderMetrics).opened();
     }
 
     @Test
@@ -94,6 +100,7 @@ class RepairOrderServiceTest {
 
         assertThatThrownBy(() -> repairOrderService.save(order))
                 .isInstanceOf(DeviceAlreadyInRepairException.class);
+        verifyNoInteractions(repairOrderMetrics);
     }
 
     @Test
@@ -107,6 +114,7 @@ class RepairOrderServiceTest {
         assertThat(updated).isPresent();
         assertThat(order.getStatus()).isEqualTo(RepairOrderStatus.IN_EVALUATION);
         verify(repairOrderRepository).save(order);
+        verify(repairOrderMetrics).statusChanged(RepairOrderStatus.IN_EVALUATION);
     }
 
     @Test
