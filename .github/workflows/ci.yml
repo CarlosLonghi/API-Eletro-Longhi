@@ -49,17 +49,16 @@ jobs:
     name: observability
     runs-on: ubuntu-latest
     env:
-      # URL fictícia: só para o override do Discord passar na validação
+      # URL fictícia: liga o contact point do Discord, conferido no provisionamento abaixo
       GRAFANA_DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/0/ci
-      COMPOSE_FILE: docker-compose.yml:docker-compose.discord.yaml
       COMPOSE_PROFILES: app,observability
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compose válido (com e sem o override do Discord)
+      - name: Compose válido (com e sem o webhook do Discord)
         run: |
-          docker compose -f docker-compose.yml config -q
+          GRAFANA_DISCORD_WEBHOOK_URL= docker compose config -q
           docker compose config -q
 
       - name: Configs do Prometheus, Loki e Alloy

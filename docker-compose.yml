@@ -126,7 +126,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   # Datasources, dashboards e alertas provisionados de observability/grafana (sem volume: tudo vem dos arquivos).
-  # Alertas no Discord: docker-compose.discord.yaml
+  # Alertas no Discord: ligados sozinhos quando GRAFANA_DISCORD_WEBHOOK_URL está preenchida no .env (o compose lê
+  # o .env também quando quem roda o "up" é o spring-boot-docker-compose, no Run da IDE)
   grafana:
     image: grafana/grafana:13.2.4
     container_name: eletrolonghi-grafana
@@ -145,13 +146,25 @@ services:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/eletrolonghi/eletrolonghi.json
       # Endereço usado nos links das notificações (Discord); sem isso saem com a porta interna 3000
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
-    # Montagens separadas, sobre as pastas que a imagem já tem: o override do Discord acrescenta um arquivo em alerting/
+      GRAFANA_DISCORD_WEBHOOK_URL: ${GRAFANA_DISCORD_WEBHOOK_URL:-}
+    # Com webhook, copia o contact point do Discord para o provisioning antes de subir o Grafana. Sem webhook ele
+    # fica de fora: o Grafana recusaria um contact point com a URL vazia
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if [ -n "$$GRAFANA_DISCORD_WEBHOOK_URL" ]; then
+          cp /etc/grafana/discord/discord.yml /etc/grafana/provisioning/alerting/discord.yml
+        fi
+        exec /run.sh
+    # Montagens separadas, sobre as pastas que a imagem já tem: o entrypoint acrescenta o discord.yml em alerting/
     volumes:
       - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./observability/grafana/provisioning/alerting/generic.yml:/etc/grafana/provisioning/alerting/generic.yml:ro
       - ./observability/grafana/provisioning/alerting/eletrolonghi.yml:/etc/grafana/provisioning/alerting/eletrolonghi.yml:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./observability/grafana/discord/discord.yml:/etc/grafana/discord/discord.yml:ro
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:3000/api/health" ]
       interval: 10s

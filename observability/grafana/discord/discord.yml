@@ -1,5 +1,6 @@
 # Contact point do Discord e política que manda todos os alertas para ele.
-# Fora de provisioning/: só é carregado pelo docker-compose.discord.yaml, que exige GRAFANA_DISCORD_WEBHOOK_URL.
+# Fora de provisioning/: o entrypoint do Grafana (docker-compose.yml) só o copia para lá quando
+# GRAFANA_DISCORD_WEBHOOK_URL está preenchida no .env.
 apiVersion: 1
 
 contactPoints:

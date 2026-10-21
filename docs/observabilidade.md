@@ -53,7 +53,6 @@ O diretório `logs/` é versionado (só o `.gitkeep`). Se ele não existisse, o 
 ```
 Dockerfile                               imagem da API (healthcheck no /actuator/health da 8081)
 docker-compose.yml                       db; app (profile app); prometheus, postgres-exporter, loki, alloy, grafana (profile observability)
-docker-compose.discord.yaml              override que liga os alertas no Discord
 observability/
   prometheus.yml                         alvos de coleta (job = nome do serviço no compose)
   loki.yml                               Loki monolítico, filesystem, retenção 15 dias
@@ -69,7 +68,7 @@ observability/
       infra/spring-boot.json             HTTP, JVM, Hikari, chamadas HTTP de saída, logs
       infra/postgres.json                postgres-exporter
       eletrolonghi/eletrolonghi.json     ordens, pagamentos, Mercado Pago, login, logs (home do Grafana)
-    discord/discord.yml                  contact point + política (só com o override)
+    discord/discord.yml                  contact point + política (copiado pelo entrypoint do Grafana quando há webhook)
 ```
 
 ## Métricas da aplicação
@@ -126,11 +125,11 @@ Cuidado com o `$` nos arquivos de provisioning do Grafana: `${VAR}` vira variáv
 | Muitas tentativas de login inválidas | `eletrolonghi.yml` | mais de 20 logins com falha ou bloqueados em 10 min |
 | Pagamentos recusados | `eletrolonghi.yml` | mais de 2 pagamentos em `REJECTED` na última hora |
 
-Sem o override do Discord, os alertas aparecem só em **Alerting** e no painel "Alertas disparados" do dashboard Eletro Longhi. Para receber no Discord, defina `GRAFANA_DISCORD_WEBHOOK_URL` no `.env` e suba com:
+Os alertas aparecem em **Alerting** e no painel "Alertas disparados" do dashboard Eletro Longhi. Para receber também no **Discord**, basta preencher `GRAFANA_DISCORD_WEBHOOK_URL` no `.env`: o entrypoint do Grafana copia `discord/discord.yml` para o provisioning quando a variável existe. Isso vale tanto no Run da IDE quanto no `docker compose up`, porque o compose lê o `.env` nos dois casos. Sem a variável, o Discord fica desligado.
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.discord.yaml --profile app --profile observability up -d
-```
+Depois de preencher ou trocar o webhook, o Grafana precisa ser recriado para ler a variável. O próximo Run da IDE já faz isso; pela linha de comando, rode `docker compose --profile observability up -d grafana`.
+
+Tempo até a mensagem chegar: a regra é avaliada a cada 1 min e precisa ficar no estado ruim pelo `for` dela (1 min no "Postgres fora" e no "Alvo fora"), e a política espera 30s (`group_wait`) para agrupar. Na prática, de 2 a 3 minutos depois de o problema começar. Quando o problema se resolve, chega uma mensagem de "Resolved".
 
 ## CI
 

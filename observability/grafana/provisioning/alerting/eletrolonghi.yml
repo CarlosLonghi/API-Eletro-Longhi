@@ -1,6 +1,6 @@
 # Alertas do domínio (Mercado Pago, login, pagamentos). Os de infraestrutura (alvo fora, 5xx, Hikari, Postgres)
 # estão em generic.yml. Aparecem em Alerting e no painel "Alertas disparados" do dashboard Eletro Longhi.
-# Sem contact point por padrão. Para receber no Discord, suba com o docker-compose.discord.yaml (ver docs/observabilidade.md).
+# Sem contact point por padrão. Discord: preencha GRAFANA_DISCORD_WEBHOOK_URL no .env (ver docs/observabilidade.md).
 apiVersion: 1
 
 groups:

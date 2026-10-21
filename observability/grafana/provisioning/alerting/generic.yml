@@ -1,6 +1,6 @@
 # Alertas genéricos de infraestrutura, sem nada do domínio: servem para qualquer projeto com o mesmo padrão
 # (ver docs/observabilidade.md). Cada regra agrupa por job, então um alerta por serviço afetado.
-# Os do domínio ficam em eletrolonghi.yml. Sem contact point por padrão; Discord pelo docker-compose.discord.yaml.
+# Os do domínio ficam em eletrolonghi.yml. Sem contact point por padrão; Discord quando GRAFANA_DISCORD_WEBHOOK_URL está no .env.
 apiVersion: 1
 
 groups:
