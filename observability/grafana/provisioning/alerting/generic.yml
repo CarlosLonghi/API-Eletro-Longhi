@@ -9,7 +9,8 @@ groups:
     folder: Infra
     interval: 1m
     rules:
-      # Qualquer alvo do prometheus.yml (aplicação, broker, exporters) que deixou de responder
+      # Job do prometheus.yml (aplicação, exporters) sem nenhuma instância respondendo. max e não min: o job app
+      # tem dois endereços (container e IDE) e só um deles está de pé por vez
       - uid: infra-target-down
         title: 'Alvo fora'
         condition: B
@@ -20,7 +21,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: 'min by (job) (up)'
+              expr: 'max by (job) (up)'
           - refId: B
             datasourceUid: __expr__
             model:

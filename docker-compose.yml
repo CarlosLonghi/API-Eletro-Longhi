@@ -36,6 +36,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Qualquer perfil diferente de "dev": sem arquivo de log e sem o spring-boot-docker-compose
+      SPRING_PROFILES_ACTIVE: docker
       # Logs em JSON (formato ECS), com traceId: o Alloy lê o nível de log.level e manda ao Loki
       LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
       SPRING_JPA_SHOW_SQL: "false"
@@ -74,6 +76,9 @@ services:
       - --storage.tsdb.retention.time=15d
     ports:
       - "127.0.0.1:9090:9090"
+    # A API rodando na IDE é coletada em host.docker.internal:8081 (no Linux o nome só existe com isso)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       # Histórico das métricas (15 dias); some com docker compose down -v
@@ -116,6 +121,8 @@ services:
       COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME}
     volumes:
       - ./observability/alloy.alloy:/etc/alloy/config.alloy:ro
+      # Arquivo de log da API rodando na IDE (perfil dev: logging.file.name=logs/eletrolonghi.log)
+      - ./logs:/var/log/eletrolonghi:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   # Datasources, dashboards e alertas provisionados de observability/grafana (sem volume: tudo vem dos arquivos).

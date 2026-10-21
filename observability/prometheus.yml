@@ -5,10 +5,12 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
+  # Dois endereços para o mesmo job: a API em container (profile app) ou rodando na IDE, no host.
+  # Um dos dois está sempre fora; por isso o alerta "Alvo fora" e os painéis de "no ar" usam max(up)
   - job_name: app
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: [ "app:8081" ]
+      - targets: [ "app:8081", "host.docker.internal:8081" ]
 
   - job_name: postgres
     static_configs:

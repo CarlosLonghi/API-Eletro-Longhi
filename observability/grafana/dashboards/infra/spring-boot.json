@@ -98,7 +98,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "up{job=\"$job\"}",
+          "expr": "max(up{job=\"$job\"})",
           "legendFormat": "__auto",
           "refId": "A"
         }
@@ -175,7 +175,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "process_uptime_seconds{job=\"$job\"}",
+          "expr": "max(process_uptime_seconds{job=\"$job\"})",
           "legendFormat": "__auto",
           "refId": "A"
         }

@@ -23,6 +23,20 @@ discovery.relabel "compose" {
   }
 }
 
+// API rodando na IDE (perfil dev): o JSON (ECS) vai para logs/eletrolonghi.log, montado em /var/log/eletrolonghi.
+// Mesmo label service="app" do container, então dashboards e consultas não mudam
+local.file_match "ide" {
+  path_targets = [{
+    __path__ = "/var/log/eletrolonghi/*.log",
+    service  = "app",
+  }]
+}
+
+loki.source.file "ide" {
+  targets    = local.file_match.ide.targets
+  forward_to = [loki.process.levels.receiver]
+}
+
 loki.source.docker "containers" {
   host          = "unix:///var/run/docker.sock"
   targets       = discovery.docker.containers.targets
