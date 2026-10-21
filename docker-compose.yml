@@ -57,5 +57,101 @@ services:
       MP_BASE_URL: ${MP_BASE_URL:-https://api.mercadopago.com}
       MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
 
+  # Opcional: --profile observability → Prometheus em :9090, Grafana em :3001 e logs no Loki.
+  # Guia do padrão: docs/observabilidade.md. Sem depends_on no app: ele fica em outro profile, e a API
+  # fora do ar aparece no alerta "Alvo fora"
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    container_name: eletrolonghi-prometheus
+    profiles: [ observability ]
+    depends_on:
+      postgres-exporter:
+        condition: service_started
+    # Ao trocar o command, os dois primeiros flags da imagem precisam ser repetidos
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Histórico das métricas (15 dias); some com docker compose down -v
+      - prometheus_data:/prometheus
+
+  # Métricas do Postgres para o Prometheus (porta 9187 só na rede interna). Usa o mesmo usuário da API
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: eletrolonghi-postgres-exporter
+    profiles: [ observability ]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_URI: db:5432/${DB_NAME:-eletrolonghi}?sslmode=disable
+      DATA_SOURCE_USER: ${DB_USERNAME:-postgres}
+      DATA_SOURCE_PASS: ${DB_PASSWORD:-postgres}
+
+  # Logs dos containers (Loki monolítico; porta 3100 só na rede interna). 15 dias no volume loki_data
+  loki:
+    image: grafana/loki:3.7.8
+    container_name: eletrolonghi-loki
+    profiles: [ observability ]
+    command: [ "-config.file=/etc/loki/loki.yml" ]
+    volumes:
+      - ./observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    # Sem healthcheck: a imagem é distroless (sem wget/curl). O Alloy reenvia o que falhar enquanto o Loki sobe
+
+  # Lê os logs dos containers deste projeto pelo socket do Docker (só leitura) e manda para o Loki
+  alloy:
+    image: grafana/alloy:v1.20.1
+    container_name: eletrolonghi-alloy
+    profiles: [ observability ]
+    depends_on:
+      - loki
+    command: [ "run", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy" ]
+    environment:
+      # Filtra os containers pelo label com.docker.compose.project
+      COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME}
+    volumes:
+      - ./observability/alloy.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # Datasources, dashboards e alertas provisionados de observability/grafana (sem volume: tudo vem dos arquivos).
+  # Alertas no Discord: docker-compose.discord.yaml
+  grafana:
+    image: grafana/grafana:13.2.4
+    container_name: eletrolonghi-grafana
+    profiles: [ observability ]
+    depends_on:
+      - prometheus
+      - loki
+    ports:
+      - "127.0.0.1:3001:3000"   # a 3000 do host fica para o frontend
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/infra/spring-boot.json
+      # Endereço usado nos links das notificações (Discord); sem isso saem com a porta interna 3000
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+    # Montagens separadas, sobre as pastas que a imagem já tem: o override do Discord acrescenta um arquivo em alerting/
+    volumes:
+      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/provisioning/alerting/generic.yml:/etc/grafana/provisioning/alerting/generic.yml:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3000/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
 volumes:
   db_data:
+  prometheus_data:
+  loki_data:

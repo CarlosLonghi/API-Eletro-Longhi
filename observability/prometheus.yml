@@ -1,0 +1,15 @@
+# Coleta as métricas da API pela porta de gerência (8081) e as do Postgres pelo exporter.
+# Nenhuma dessas portas é publicada: só existem na rede interna do compose.
+# Convenção: job = nome do serviço no compose (os logs no Loki têm o label service com o mesmo nome).
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: app
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [ "app:8081" ]
+
+  - job_name: postgres
+    static_configs:
+      - targets: [ "postgres-exporter:9187" ]
