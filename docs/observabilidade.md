@@ -125,9 +125,15 @@ Cuidado com o `$` nos arquivos de provisioning do Grafana: `${VAR}` vira variáv
 | Muitas tentativas de login inválidas | `eletrolonghi.yml` | mais de 20 logins com falha ou bloqueados em 10 min |
 | Pagamentos recusados | `eletrolonghi.yml` | mais de 2 pagamentos em `REJECTED` na última hora |
 
-Os alertas aparecem em **Alerting** e no painel "Alertas disparados" do dashboard Eletro Longhi. Para receber também no **Discord**, basta preencher `GRAFANA_DISCORD_WEBHOOK_URL` no `.env`: o entrypoint do Grafana copia `discord/discord.yml` para o provisioning quando a variável existe. Isso vale tanto no Run da IDE quanto no `docker compose up`, porque o compose lê o `.env` nos dois casos. Sem a variável, o Discord fica desligado.
+Os alertas aparecem em **Alerting** e no painel "Alertas disparados" do dashboard Eletro Longhi, em qualquer ambiente. As regras são as mesmas em todos; o que muda é para onde a notificação vai.
 
-Depois de preencher ou trocar o webhook, o Grafana precisa ser recriado para ler a variável. O próximo Run da IDE já faz isso; pela linha de comando, rode `docker compose --profile observability up -d grafana`.
+### Discord (produção/staging)
+
+A notificação no **Discord** é só para produção e staging, cada ambiente com o webhook do próprio canal (ex.: `#alertas-prod`, `#alertas-staging`). Basta preencher `GRAFANA_DISCORD_WEBHOOK_URL` no `.env` do servidor: o entrypoint do Grafana copia `discord/discord.yml` para o provisioning quando a variável existe. Sem a variável, o Discord fica desligado.
+
+Em desenvolvimento a variável fica vazia (ou comentada): parar a API na IDE ou desligar o banco dispara "Alvo fora"/"Postgres fora", o que é rotina e não incidente, e mandar isso para um canal só gera ruído. Para testar uma regra nova ou a integração, preencha temporariamente com o webhook de um canal de teste.
+
+Depois de preencher ou trocar o webhook, o Grafana precisa ser recriado para ler a variável: `docker compose --profile observability up -d grafana`.
 
 Tempo até a mensagem chegar: a regra é avaliada a cada 1 min e precisa ficar no estado ruim pelo `for` dela (1 min no "Postgres fora" e no "Alvo fora"), e a política espera 30s (`group_wait`) para agrupar. Na prática, de 2 a 3 minutos depois de o problema começar. Quando o problema se resolve, chega uma mensagem de "Resolved".
 
