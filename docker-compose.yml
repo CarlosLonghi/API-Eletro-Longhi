@@ -1,3 +1,8 @@
+# Sem profile, sobe só o banco: é o que o spring-boot-docker-compose faz no ./mvnw spring-boot:run.
+#   API no Docker:            docker compose --profile app up -d --build
+#   API + observabilidade:    docker compose --profile app --profile observability up -d --build
+# Guia da observabilidade: docs/observabilidade.md
+
 services:
   db:
     image: postgres:16-alpine
@@ -16,5 +21,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # A API em container. Só a 8080 é publicada; o Actuator (8081: health e métricas) fica na rede interna,
+  # onde o healthcheck da imagem e o Prometheus chegam nele
+  app:
+    build: .
+    image: eletrolonghi-app:latest
+    container_name: eletrolonghi-app
+    profiles: [ app ]
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      # Logs em JSON (formato ECS), com traceId: o Alloy lê o nível de log.level e manda ao Loki
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      SPRING_JPA_SHOW_SQL: "false"
+      # Dentro do container não há docker compose para o Spring gerenciar
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-eletrolonghi}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
+      ADMIN_NAME: ${ADMIN_NAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@eletrolonghi.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin@123}
+      SHOP_NAME: ${SHOP_NAME:-Eletro Longhi}
+      SHOP_DOCUMENT: ${SHOP_DOCUMENT:-}
+      SHOP_ADDRESS: ${SHOP_ADDRESS:-}
+      SHOP_PHONE: ${SHOP_PHONE:-}
+      SHOP_EMAIL: ${SHOP_EMAIL:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_BASE_URL: ${MP_BASE_URL:-https://api.mercadopago.com}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+
 volumes:
   db_data:
