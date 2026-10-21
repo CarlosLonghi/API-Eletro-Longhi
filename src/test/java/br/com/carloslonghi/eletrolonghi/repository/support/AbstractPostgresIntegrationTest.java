@@ -23,6 +23,8 @@ public abstract class AbstractPostgresIntegrationTest {
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("spring.security.secret", () -> "integration-test-secret");
+        // Porta de gerência aleatória: contextos de teste em paralelo/cacheados não disputam a 8081
+        registry.add("management.server.port", () -> "0");
     }
 }
 

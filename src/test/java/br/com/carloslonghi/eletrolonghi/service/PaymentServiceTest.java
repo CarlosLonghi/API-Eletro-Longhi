@@ -13,6 +13,7 @@ import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairO
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
+import br.com.carloslonghi.eletrolonghi.metrics.PaymentMetrics;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,9 @@ class PaymentServiceTest {
 
     @Mock
     private MercadoPagoClient mercadoPagoClient;
+
+    @Mock
+    private PaymentMetrics paymentMetrics;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -87,6 +92,8 @@ class PaymentServiceTest {
 
         assertThat(saved.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(saved.getPaidAt()).isNull();
+        verify(paymentMetrics).registered(payment.getMethod());
+        verify(paymentMetrics, org.mockito.Mockito.never()).approved(any(), any());
     }
 
     @Test
@@ -156,6 +163,7 @@ class PaymentServiceTest {
         paymentService.save(payment);
 
         assertThat(payment.getPaidAt()).isNotNull();
+        verify(paymentMetrics).approved(payment.getMethod(), payment.getAmount());
     }
 
     @Test
@@ -168,6 +176,8 @@ class PaymentServiceTest {
 
         assertThat(updated).isPresent();
         assertThat(payment.getPaidAt()).isNotNull();
+        verify(paymentMetrics).statusChanged(PaymentStatus.APPROVED);
+        verify(paymentMetrics).approved(payment.getMethod(), payment.getAmount());
     }
 
     @Test
@@ -182,6 +192,8 @@ class PaymentServiceTest {
         paymentService.updateStatus(1L, PaymentStatus.APPROVED);
 
         assertThat(payment.getPaidAt()).isEqualTo(paidAt);
+        // Mesmo status de antes: nem mudança de status nem novo valor aprovado
+        verifyNoInteractions(paymentMetrics);
     }
 
     @Test
@@ -230,6 +242,7 @@ class PaymentServiceTest {
                 .isEqualTo(refCaptor.getValue())
                 .matches("payment-1-[0-9a-f-]{36}");
         verify(paymentRepository).save(payment);
+        verify(paymentMetrics).checkoutLinkCreated();
     }
 
     @Test

@@ -100,6 +100,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/user").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/user/*/role", "/user/*/status").hasRole("ADMIN")
 
+                        // Actuator: health (healthcheck do container) e métricas (Prometheus). Ficam na porta de
+                        // gerência (8081), que o compose não publica para fora da rede interna.
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus").permitAll()
+
                         // Nada de acesso implícito: papéis sem regra explícita (ex.: PENDENTE) são barrados.
                         .anyRequest().denyAll()
                 )

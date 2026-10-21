@@ -43,9 +43,14 @@ public class MercadoPagoClient {
     private final RestClient restClient;
     private final boolean configured;
 
+    /**
+     * Usa o {@code RestClient.Builder} do Spring (e não {@code RestClient.builder()}): ele já vem
+     * instrumentado, e as chamadas saem em {@code http_client_requests_seconds} com
+     * {@code client_name="api.mercadopago.com"} no /actuator/prometheus.
+     */
     @Autowired
-    public MercadoPagoClient(MercadoPagoProperties properties) {
-        this(RestClient.builder()
+    public MercadoPagoClient(MercadoPagoProperties properties, RestClient.Builder restClientBuilder) {
+        this(restClientBuilder
                         .baseUrl(properties.baseUrl())
                         .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + safeToken(properties.accessToken()))
                         .build(),

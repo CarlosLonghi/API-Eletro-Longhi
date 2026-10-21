@@ -42,3 +42,63 @@ jobs:
             target/site/jacoco/
           if-no-files-found: ignore
           retention-days: 7
+
+  # Stack de observabilidade (docs/observabilidade.md): configs válidas, Grafana provisionado e,
+  # ponta a ponta, um log da API chegando ao Loki com a métrica de login no Prometheus
+  observability:
+    name: observability
+    runs-on: ubuntu-latest
+    env:
+      # URL fictícia: liga o contact point do Discord, conferido no provisionamento abaixo
+      GRAFANA_DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/0/ci
+      COMPOSE_PROFILES: app,observability
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compose válido (com e sem o webhook do Discord)
+        run: |
+          GRAFANA_DISCORD_WEBHOOK_URL= docker compose config -q
+          docker compose config -q
+
+      - name: Configs do Prometheus, Loki e Alloy
+        run: |
+          docker compose run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
+          docker compose run --rm --no-deps loki -config.file=/etc/loki/loki.yml -verify-config
+          docker compose run --rm --no-deps alloy fmt /etc/alloy/config.alloy > /dev/null
+
+      - name: Grafana sobe com dashboards, datasources, alertas e contact point
+        run: |
+          docker compose up -d --no-deps --wait --wait-timeout 120 grafana
+          api() { curl -sf -u admin:admin "http://localhost:3001$1"; }
+          rules=$(api /api/v1/provisioning/alert-rules | jq length)
+          echo "regras: $rules"
+          test "$rules" -ge 7
+          for uid in eletrolonghi spring-boot postgres; do
+            api "/api/dashboards/uid/$uid" | jq -e --arg uid "$uid" '.dashboard.uid == $uid'
+          done
+          api /api/datasources/uid/loki | jq -e '.type == "loki"'
+          api /api/v1/provisioning/contact-points | jq -e 'any(.[]; .uid == "eletrolonghi-discord")'
+
+      # Ponta a ponta: o login do admin gera o log "Login bem-sucedido", que o Alloy leva ao Loki, e
+      # incrementa eletrolonghi_auth_logins_total, coletado pelo Prometheus; ambos consultados pelo Grafana
+      - name: Logs no Loki e métricas no Prometheus
+        run: |
+          docker compose up -d --build --wait --wait-timeout 300
+          curl -sf -X POST localhost:8080/auth/login -H 'Content-Type: application/json' \
+            -d '{"email":"admin@eletrolonghi.com","password":"admin@123"}' > /dev/null
+          proxy=http://localhost:3001/api/datasources/proxy/uid
+          for i in $(seq 1 30); do
+            lines=$(curl -sf -u admin:admin -G "$proxy/loki/loki/api/v1/query_range" \
+              --data-urlencode 'query={service="app"} |= "Login bem-sucedido"' | jq '[.data.result[].values[]] | length')
+            logins=$(curl -sf -u admin:admin -G "$proxy/prometheus/api/v1/query" \
+              --data-urlencode 'query=sum(eletrolonghi_auth_logins_total{job="app", result="success"})' | jq -r '.data.result[0].value[1] // "0"')
+            echo "linhas no Loki: $lines, logins no Prometheus: $logins"
+            [ "${lines:-0}" -ge 1 ] && [ "$logins" != "0" ] && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Logs dos containers
+        if: failure()
+        run: docker compose logs --no-color app grafana loki alloy prometheus

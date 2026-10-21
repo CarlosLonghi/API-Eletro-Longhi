@@ -1,3 +1,8 @@
+# Sem profile, sobe só o banco: é o que o spring-boot-docker-compose faz no ./mvnw spring-boot:run.
+#   API no Docker:            docker compose --profile app up -d --build
+#   API + observabilidade:    docker compose --profile app --profile observability up -d --build
+# Guia da observabilidade: docs/observabilidade.md
+
 services:
   db:
     image: postgres:16-alpine
@@ -16,5 +21,158 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # A API em container. Só a 8080 é publicada; o Actuator (8081: health e métricas) fica na rede interna,
+  # onde o healthcheck da imagem e o Prometheus chegam nele
+  app:
+    build: .
+    image: eletrolonghi-app:latest
+    container_name: eletrolonghi-app
+    profiles: [ app ]
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      # Qualquer perfil diferente de "dev": sem arquivo de log e sem o spring-boot-docker-compose
+      SPRING_PROFILES_ACTIVE: docker
+      # Logs em JSON (formato ECS), com traceId: o Alloy lê o nível de log.level e manda ao Loki
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      SPRING_JPA_SHOW_SQL: "false"
+      # Dentro do container não há docker compose para o Spring gerenciar
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-eletrolonghi}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
+      ADMIN_NAME: ${ADMIN_NAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@eletrolonghi.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin@123}
+      SHOP_NAME: ${SHOP_NAME:-Eletro Longhi}
+      SHOP_DOCUMENT: ${SHOP_DOCUMENT:-}
+      SHOP_ADDRESS: ${SHOP_ADDRESS:-}
+      SHOP_PHONE: ${SHOP_PHONE:-}
+      SHOP_EMAIL: ${SHOP_EMAIL:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_BASE_URL: ${MP_BASE_URL:-https://api.mercadopago.com}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+
+  # Opcional: --profile observability → Prometheus em :9090, Grafana em :3001 e logs no Loki.
+  # Guia do padrão: docs/observabilidade.md. Sem depends_on no app: ele fica em outro profile, e a API
+  # fora do ar aparece no alerta "Alvo fora"
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    container_name: eletrolonghi-prometheus
+    profiles: [ observability ]
+    depends_on:
+      postgres-exporter:
+        condition: service_started
+    # Ao trocar o command, os dois primeiros flags da imagem precisam ser repetidos
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:9090:9090"
+    # A API rodando na IDE é coletada em host.docker.internal:8081 (no Linux o nome só existe com isso)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Histórico das métricas (15 dias); some com docker compose down -v
+      - prometheus_data:/prometheus
+
+  # Métricas do Postgres para o Prometheus (porta 9187 só na rede interna). Usa o mesmo usuário da API
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: eletrolonghi-postgres-exporter
+    profiles: [ observability ]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_URI: db:5432/${DB_NAME:-eletrolonghi}?sslmode=disable
+      DATA_SOURCE_USER: ${DB_USERNAME:-postgres}
+      DATA_SOURCE_PASS: ${DB_PASSWORD:-postgres}
+
+  # Logs dos containers (Loki monolítico; porta 3100 só na rede interna). 15 dias no volume loki_data
+  loki:
+    image: grafana/loki:3.7.8
+    container_name: eletrolonghi-loki
+    profiles: [ observability ]
+    command: [ "-config.file=/etc/loki/loki.yml" ]
+    volumes:
+      - ./observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    # Sem healthcheck: a imagem é distroless (sem wget/curl). O Alloy reenvia o que falhar enquanto o Loki sobe
+
+  # Lê os logs dos containers deste projeto pelo socket do Docker (só leitura) e manda para o Loki
+  alloy:
+    image: grafana/alloy:v1.20.1
+    container_name: eletrolonghi-alloy
+    profiles: [ observability ]
+    depends_on:
+      - loki
+    command: [ "run", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy" ]
+    environment:
+      # Filtra os containers pelo label com.docker.compose.project
+      COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME}
+    volumes:
+      - ./observability/alloy.alloy:/etc/alloy/config.alloy:ro
+      # Arquivo de log da API rodando na IDE (perfil dev: logging.file.name=logs/eletrolonghi.log)
+      - ./logs:/var/log/eletrolonghi:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # Datasources, dashboards e alertas provisionados de observability/grafana (sem volume: tudo vem dos arquivos).
+  # Alertas no Discord: ligados só quando GRAFANA_DISCORD_WEBHOOK_URL está preenchida (produção/staging). Em
+  # desenvolvimento fica vazia e os alertas aparecem apenas no Grafana
+  grafana:
+    image: grafana/grafana:13.2.4
+    container_name: eletrolonghi-grafana
+    profiles: [ observability ]
+    depends_on:
+      - prometheus
+      - loki
+    ports:
+      - "127.0.0.1:3001:3000"   # a 3000 do host fica para o frontend
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/eletrolonghi/eletrolonghi.json
+      # Endereço usado nos links das notificações (Discord); sem isso saem com a porta interna 3000
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+      GRAFANA_DISCORD_WEBHOOK_URL: ${GRAFANA_DISCORD_WEBHOOK_URL:-}
+    # Com webhook, copia o contact point do Discord para o provisioning antes de subir o Grafana. Sem webhook ele
+    # fica de fora: o Grafana recusaria um contact point com a URL vazia
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if [ -n "$$GRAFANA_DISCORD_WEBHOOK_URL" ]; then
+          cp /etc/grafana/discord/discord.yml /etc/grafana/provisioning/alerting/discord.yml
+        fi
+        exec /run.sh
+    # Montagens separadas, sobre as pastas que a imagem já tem: o entrypoint acrescenta o discord.yml em alerting/
+    volumes:
+      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/provisioning/alerting/generic.yml:/etc/grafana/provisioning/alerting/generic.yml:ro
+      - ./observability/grafana/provisioning/alerting/eletrolonghi.yml:/etc/grafana/provisioning/alerting/eletrolonghi.yml:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./observability/grafana/discord/discord.yml:/etc/grafana/discord/discord.yml:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3000/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
 volumes:
   db_data:
+  prometheus_data:
+  loki_data:

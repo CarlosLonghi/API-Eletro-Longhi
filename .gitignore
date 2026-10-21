@@ -34,3 +34,8 @@ build/
 
 ### Env ###
 .env
+
+### Logs da API rodando pela IDE (perfil dev) ###
+# O diretório é versionado (.gitkeep): se o bind mount do Alloy o criasse, ele seria do root e a API não gravaria
+logs/*
+!logs/.gitkeep

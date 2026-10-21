@@ -17,6 +17,7 @@ import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllow
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.RepairOrderSpecification;
+import br.com.carloslonghi.eletrolonghi.metrics.RepairOrderMetrics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,8 @@ public class RepairOrderService {
 
     private final CustomerService customerService;
     private final DeviceService deviceService;
+
+    private final RepairOrderMetrics repairOrderMetrics;
 
     public Page<RepairOrder> findAll(
             RepairOrderStatus status,
@@ -74,7 +77,9 @@ public class RepairOrderService {
             throw new DeviceAlreadyInRepairException(device.getId());
         }
 
-        return repairOrderRepository.save(repairOrder);
+        RepairOrder saved = repairOrderRepository.save(repairOrder);
+        repairOrderMetrics.opened();
+        return saved;
     }
 
     public Optional<RepairOrder> findById(Long id) {
@@ -112,7 +117,9 @@ public class RepairOrderService {
             guardDeviceCollected(repairOrder, status);
             guardAwaitingApprovalHasEstimate(repairOrder, status);
             repairOrder.setStatus(status);
-            return repairOrderRepository.save(repairOrder);
+            RepairOrder saved = repairOrderRepository.save(repairOrder);
+            repairOrderMetrics.statusChanged(status);
+            return saved;
         });
     }
 

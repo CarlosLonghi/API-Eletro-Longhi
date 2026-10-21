@@ -17,6 +17,7 @@ import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.PaymentRepository;
 import br.com.carloslonghi.eletrolonghi.repository.specification.PaymentSpecification;
+import br.com.carloslonghi.eletrolonghi.metrics.PaymentMetrics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final RepairOrderService repairOrderService;
     private final MercadoPagoClient mercadoPagoClient;
+    private final PaymentMetrics paymentMetrics;
 
     public Page<Payment> findAll(
             PaymentStatus status,
@@ -72,7 +74,9 @@ public class PaymentService {
             applyApproved(payment);
         }
 
-        return paymentRepository.save(payment);
+        Payment saved = paymentRepository.save(payment);
+        paymentMetrics.registered(saved.getMethod());
+        return saved;
     }
 
     public Optional<Payment> findById(Long id) {
@@ -131,6 +135,7 @@ public class PaymentService {
 
             payment.setExternalReference(externalReference);
             paymentRepository.save(payment);
+            paymentMetrics.checkoutLinkCreated();
 
             return preference;
         });
@@ -181,6 +186,9 @@ public class PaymentService {
     }
 
     private void applyStatus(Payment payment, PaymentStatus status) {
+        if (status != payment.getStatus()) {
+            paymentMetrics.statusChanged(status);
+        }
         payment.setStatus(status);
         if (status == PaymentStatus.APPROVED && payment.getPaidAt() == null) {
             applyApproved(payment);
@@ -189,6 +197,7 @@ public class PaymentService {
 
     private void applyApproved(Payment payment) {
         payment.setPaidAt(LocalDateTime.now());
+        paymentMetrics.approved(payment.getMethod(), payment.getAmount());
     }
 
     private RepairOrder resolveRepairOrder(RepairOrder repairOrder) {
