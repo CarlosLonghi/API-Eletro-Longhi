@@ -8,7 +8,8 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 - Compile only: `./mvnw -q -DskipTests package` — always recompile after touching a `mapper/*.java` interface, since MapStruct generates the implementation at compile time.
 - Tests: `./mvnw test` (unit + Testcontainers-backed repository integration tests — needs a working Docker daemon).
 - `./mvnw verify` additionally runs JaCoCo `check` and **fails the build below `coverage.minimum` (0.80)** — run this before considering a change done.
-- `docker compose up -d` starts only Postgres (`db` service, postgres:16); the app itself is not containerized, run it with the Maven command above.
+- `docker compose up -d` (no profile) starts only Postgres (`db` service, postgres:16) — that's also what `spring-boot-docker-compose` does on `./mvnw spring-boot:run`. The API image (`Dockerfile`) runs under the `app` profile: `docker compose --profile app up -d --build`.
+- Observability (Prometheus, Loki, Alloy, Grafana — pattern ported from the BCB challenge) runs under the `observability` profile and scrapes/collects the **containerized** API: `docker compose --profile app --profile observability up -d --build`. Grafana `:3001`, Prometheus `:9090`. Full guide: `docs/observabilidade.md`.
 - DB must exist beforehand: `CREATE DATABASE eletrolonghi;` (or let docker compose provide it). Flyway applies pending migrations from `src/main/resources/db/migration` on startup.
 - Swagger UI: `/swagger-ui/index.html`. OpenAPI docs path: `/api/api-docs` (see `springdoc.*` in `application.properties`).
 
@@ -60,6 +61,7 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 - `POST /auth/login` — checks `service/LoginAttemptService` first (in-memory `ConcurrentHashMap`, not shared across instances/restarts — replace with Redis or similar before relying on it in a multi-instance deploy); returns `LoginResponse(token, refreshToken)`.
 - `POST /auth/refresh` — validates via `RefreshTokenService.findValidToken` (401 on missing/revoked/expired), issues a new access token **and rotates** the refresh token; `RefreshTokenService.createRefreshToken` revokes all previous tokens for that user first, so a user only ever has one valid refresh token.
 - `POST /auth/logout` — revokes the given refresh token, idempotent, 204.
+- Actuator lives on a separate management port (`management.server.port`, default 8081, not published by compose); `GET /actuator/health` and `/actuator/prometheus` are `permitAll` in `SecurityConfig`.
 - Relevant properties (`application.properties`): `spring.security.secret`, `spring.security.access-token-expiration-seconds`, `spring.security.refresh-token-expiration-ms`, `spring.security.login.max-attempts`, `spring.security.login.block-duration-ms`, `spring.security.cors.allowed-origins`.
 - When changing JWT claims, keep `TokenService.generateToken` and `TokenService.verifyToken` in sync, and check `SecurityFilter` still rebuilds `GrantedAuthority` from the `role` claim correctly.
 
@@ -68,6 +70,7 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 - Unit tests mirror the main package layout under `src/test/java/.../{config,controller,service}`.
 - Repository tests are real Postgres integration tests via Testcontainers, extending `repository/support/AbstractPostgresIntegrationTest` — they need Docker and will fail before assertions run if it's unavailable.
 - Shared fixtures live in `support/TestFixtures.java`.
+- `AbstractPostgresIntegrationTest` sets `management.server.port=0` so cached Spring contexts don't fight over 8081; `observability/ObservabilityIntegrationTest` reads `/actuator/prometheus` via `@LocalManagementPort`.
 - JaCoCo enforces `coverage.minimum` (0.80) on `./mvnw verify`; check coverage before calling a change complete, not just `./mvnw test`.
 
 ## Deeper-dive references
@@ -76,7 +79,9 @@ For domain detail and structural invariants beyond this file's summary, see `.cl
 
 ## Gotchas
 
-- Docker Compose only starts the DB — run the Spring Boot app itself locally.
+- Docker Compose without a profile only starts the DB. With the API outside Docker, the observability stack can't scrape it nor ship its logs (Alloy reads container stdout) — use the `app` profile.
+- Business metrics live in `metrics/*Metrics` (Micrometer), registered zeroed in the constructor; services call them after the state change. Don't name a meter ending in `.created` — the Prometheus registry strips `_created` (OpenMetrics) and it collides with other series. Grafana dashboards/alerts in `observability/grafana/` are the source of truth (no Grafana volume); keep metric names in sync with them.
+- `MercadoPagoClient` must keep using the injected `RestClient.Builder` (from `spring-boot-starter-restclient`), not `RestClient.builder()`, or its `http_client_requests_seconds` metrics (dashboard + "Falhas no Mercado Pago" alert) disappear.
 - MapStruct implementations only regenerate on compile — always `./mvnw compile` (or a full build) after touching a mapper interface.
 - `devices.serial_number` has DB-level `NOT NULL` + uniqueness; duplicate/missing values fail on insert/update, and it's also `@NotBlank`-validated at the controller boundary.
 - CORS is allowlist-based (`spring.security.cors.allowed-origins`) — a frontend host/port change needs this updated or requests fail before reaching a controller.

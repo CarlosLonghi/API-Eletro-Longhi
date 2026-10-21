@@ -45,6 +45,8 @@ Funcionalidades implementadas:
 | Testcontainers (PostgreSQL) | 1.21.4 |
 | JaCoCo (Code Coverage) | 0.8.12 |
 | Docker & Docker Compose | — |
+| Spring Boot Actuator + Micrometer (Prometheus, Tracing/Brave) | (gerenciado pelo Spring Boot) |
+| Prometheus, Loki, Grafana Alloy, Grafana | 3.15 / 3.7 / 1.20 / 13.2 |
 | GitHub Actions (CI) | — |
 
 ---
@@ -116,7 +118,17 @@ src/main/resources/
    * Swagger UI: `http://localhost:8080/swagger-ui/index.html`
    * OpenAPI JSON: `http://localhost:8080/api/api-docs`
 
-> **Atenção:** O `docker-compose.yml` sobe **apenas o banco de dados**. A aplicação deve ser executada localmente via Maven ou IDE.
+> **Atenção:** Sem profile, o `docker-compose.yml` sobe **apenas o banco de dados** (é o que o `spring-boot-docker-compose` faz no `./mvnw spring-boot:run`). Para rodar a API em container, use o profile `app`: `docker compose --profile app up -d --build`.
+
+#### Observabilidade (métricas, logs e alertas)
+
+Prometheus, Loki, Alloy e Grafana sobem no profile `observability`, coletando a API em container:
+
+```bash
+docker compose --profile app --profile observability up -d --build
+```
+
+Grafana em `http://localhost:3001` (`admin`/`admin`), com o dashboard **Eletro Longhi** (ordens por status, faturamento, Mercado Pago, logins e logs) como página inicial; Prometheus em `http://localhost:9090`. As métricas da API ficam em `/actuator/prometheus` na porta de gerência `8081`, que não é publicada pelo compose. Detalhes, métricas, alertas e alertas no Discord: [`docs/observabilidade.md`](docs/observabilidade.md).
 
 #### Primeiro acesso
 
@@ -149,7 +161,7 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub
 * todo **pull request** para `main`;
 * execução manual (`workflow_dispatch`).
 
-Cada execução faz `./mvnw verify` em `ubuntu-latest` com JDK 21 (Temurin) e cache do repositório Maven — ou seja, roda os testes unitários, os testes de integração com Testcontainers e o gate de cobertura de 80%. Os relatórios de Surefire e JaCoCo são publicados como artefato do job para inspeção.
+O job `test` faz `./mvnw verify` em `ubuntu-latest` com JDK 21 (Temurin) e cache do repositório Maven — ou seja, roda os testes unitários, os testes de integração com Testcontainers e o gate de cobertura de 80%. Os relatórios de Surefire e JaCoCo são publicados como artefato do job para inspeção. O job `observability` valida a stack de observabilidade (configs, provisionamento do Grafana e um teste ponta a ponta de logs e métricas — ver [`docs/observabilidade.md`](docs/observabilidade.md)).
 
 **Proteção da branch `main`:** um *ruleset* exige que o status check `test` passe e que exista um Pull Request antes do merge, de modo que **nenhuma mudança entra em `main` com a suíte quebrada**.
 
