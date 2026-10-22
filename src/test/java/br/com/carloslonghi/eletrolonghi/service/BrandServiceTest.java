@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.repository.BrandRepository;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,5 +65,14 @@ class BrandServiceTest {
         brandService.deleteById(5L);
 
         verify(brandRepository).deleteById(5L);
+    }
+
+    @Test
+    void shouldRejectDeleteWhenBrandHasDevices() {
+        when(deviceRepository.existsByBrandId(5L)).thenReturn(true);
+
+        assertThatThrownBy(() -> brandService.deleteById(5L))
+                .isInstanceOf(EntityInUseException.class);
+        verify(brandRepository, never()).deleteById(5L);
     }
 }

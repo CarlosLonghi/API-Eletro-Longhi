@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.repository.AccessoryRepository;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,5 +68,14 @@ class AccessoryServiceTest {
         accessoryService.deleteById(10L);
 
         verify(accessoryRepository).deleteById(10L);
+    }
+
+    @Test
+    void shouldRejectDeleteWhenAccessoryIsLinkedToDevices() {
+        when(deviceRepository.existsByAccessoriesId(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> accessoryService.deleteById(10L))
+                .isInstanceOf(EntityInUseException.class);
+        verify(accessoryRepository, never()).deleteById(10L);
     }
 }
