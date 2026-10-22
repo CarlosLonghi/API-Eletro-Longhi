@@ -310,7 +310,7 @@ public class PaymentReceiptService {
      * Garantia legal do serviço (CDC art. 26, II: 90 dias para serviços duráveis), contada a partir
      * do pagamento aprovado. Sem pagamento aprovado ou com {@code shop.warranty-days} 0/ausente, não há linha.
      */
-    private Optional<LocalDate> warrantyUntil(Payment payment) {
+    Optional<LocalDate> warrantyUntil(Payment payment) {
         Integer days = shop.warrantyDays();
         if (days == null || days <= 0 || payment.getStatus() != PaymentStatus.APPROVED || payment.getPaidAt() == null) {
             return Optional.empty();
@@ -462,7 +462,7 @@ public class PaymentReceiptService {
         builder.append(label).append(value.trim());
     }
 
-    private static String describeMethod(Payment payment) {
+    static String describeMethod(Payment payment) {
         String method = payment.getMethod().getDescription();
         if (payment.getMethod() == PaymentMethod.CARD && payment.getInstallments() != null && payment.getInstallments() > 1) {
             return method + " em " + payment.getInstallments() + "x";
@@ -478,7 +478,7 @@ public class PaymentReceiptService {
         return value == null ? "-" : DATE_TIME.format(value);
     }
 
-    private static String formatMoney(BigDecimal value) {
+    static String formatMoney(BigDecimal value) {
         return value == null ? "-" : "R$ " + value.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 

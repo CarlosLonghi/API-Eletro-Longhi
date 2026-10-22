@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.controller.request.PaymentRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.CheckoutLinkResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.PaymentResponse;
+import br.com.carloslonghi.eletrolonghi.controller.response.WhatsAppShareResponse;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -236,13 +237,15 @@ public interface PaymentApi {
     );
 
     @Operation(
-            summary = "Emitir o recibo do pagamento",
-            description = "Retorna o comprovante não-fiscal do pagamento em PDF"
+            summary = "Emitir o comprovante de serviço",
+            description = "Retorna o comprovante não-fiscal (serviço e pagamento) em PDF, em uma página: "
+                    + "pagamento, cliente, ordem de serviço, aparelho com acessórios, garantia (pagamento aprovado) "
+                    + "e assinatura de retirada."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
-                    description = "Recibo gerado com sucesso",
+                    description = "Comprovante gerado com sucesso",
                     content = @Content(mediaType = "application/pdf")
             ),
             @ApiResponse(responseCode = "404", description = "Pagamento não encontrado", content = @Content),
@@ -250,6 +253,48 @@ public interface PaymentApi {
             @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content)
     })
     ResponseEntity<byte[]> getPaymentReceipt(
+            @Parameter(in = ParameterIn.PATH, description = "ID do pagamento", required = true)
+            @PathVariable Long id
+    );
+
+    @Operation(
+            summary = "Enviar o comprovante por e-mail",
+            description = "Envia o comprovante em PDF (anexo) para o e-mail já cadastrado do cliente da ordem de reparo."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "E-mail enviado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Pagamento não encontrado", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Cliente sem e-mail cadastrado", content = @Content),
+            @ApiResponse(responseCode = "502", description = "Falha ao enviar o e-mail (servidor SMTP)", content = @Content)
+    })
+    ResponseEntity<Void> sendPaymentReceiptByEmail(
+            @Parameter(in = ParameterIn.PATH, description = "ID do pagamento", required = true)
+            @PathVariable Long id
+    );
+
+    @Operation(
+            summary = "Gerar link do WhatsApp para o comprovante",
+            description = "Monta um link wa.me para o telefone cadastrado do cliente com a mensagem do comprovante "
+                    + "já preenchida (OS, aparelho, valor, garantia). Não envia nada: abrir o link inicia a conversa e "
+                    + "o PDF (GET /payment/{id}/receipt) é anexado por quem envia."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Link gerado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = WhatsAppShareResponse.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "401", description = "Token de autenticação ausente, inválido ou expirado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Não autorizado", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Pagamento não encontrado", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Cliente sem telefone válido para WhatsApp", content = @Content)
+    })
+    ResponseEntity<WhatsAppShareResponse> getPaymentReceiptWhatsAppLink(
             @Parameter(in = ParameterIn.PATH, description = "ID do pagamento", required = true)
             @PathVariable Long id
     );

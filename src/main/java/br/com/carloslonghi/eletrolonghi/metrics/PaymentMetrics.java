@@ -8,6 +8,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -15,7 +16,9 @@ import java.util.Map;
  * Métricas dos pagamentos, expostas em /actuator/prometheus (porta de gerência):
  * eletrolonghi_payments_registered_total{method}, eletrolonghi_payments_status_changes_total{status},
  * eletrolonghi_payments_approved_amount_brl{method} (valor aprovado: _sum é o faturado, _count a
- * quantidade) e eletrolonghi_payments_checkout_links_total (links do Checkout Pro gerados).
+ * quantidade), eletrolonghi_payments_checkout_links_total (links do Checkout Pro gerados) e
+ * eletrolonghi_payments_receipts_shared_total{channel,result} (comprovantes enviados por e-mail ou
+ * links de WhatsApp gerados).
  * Registradas zeradas na criação, pelo mesmo motivo de {@link RepairOrderMetrics}.
  * As chamadas ao Mercado Pago já saem em http_client_requests_seconds{client_name="api.mercadopago.com"}.
  */
@@ -26,6 +29,10 @@ public class PaymentMetrics {
     private final Map<PaymentMethod, DistributionSummary> approvedAmount = new EnumMap<>(PaymentMethod.class);
     private final Map<PaymentStatus, Counter> statusChanges = new EnumMap<>(PaymentStatus.class);
     private final Counter checkoutLinks;
+    private final Map<String, Counter> receiptsShared = new HashMap<>();
+
+    public static final String CHANNEL_EMAIL = "email";
+    public static final String CHANNEL_WHATSAPP = "whatsapp";
 
     public PaymentMetrics(MeterRegistry registry) {
         for (PaymentMethod method : PaymentMethod.values()) {
@@ -48,6 +55,15 @@ public class PaymentMetrics {
         checkoutLinks = Counter.builder("eletrolonghi.payments.checkout_links")
                 .description("Links do Checkout Pro (Mercado Pago) gerados")
                 .register(registry);
+        for (String channel : new String[]{CHANNEL_EMAIL, CHANNEL_WHATSAPP}) {
+            for (boolean success : new boolean[]{true, false}) {
+                receiptsShared.put(receiptKey(channel, success), Counter.builder("eletrolonghi.payments.receipts.shared")
+                        .description("Comprovantes compartilhados com o cliente, por canal e resultado")
+                        .tag("channel", channel)
+                        .tag("result", success ? "success" : "failure")
+                        .register(registry));
+            }
+        }
     }
 
     public void registered(PaymentMethod method) {
@@ -64,5 +80,13 @@ public class PaymentMetrics {
 
     public void checkoutLinkCreated() {
         checkoutLinks.increment();
+    }
+
+    public void receiptSent(String channel, boolean success) {
+        receiptsShared.get(receiptKey(channel, success)).increment();
+    }
+
+    private static String receiptKey(String channel, boolean success) {
+        return channel + ":" + success;
     }
 }

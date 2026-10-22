@@ -90,8 +90,8 @@ public class SecurityConfig {
 
                         // Pagamentos: fluxo completo (incl. checkout/sync do Mercado Pago) para o atendimento;
                         // remoção (soft) para a gestão.
-                        .requestMatchers(HttpMethod.GET, "/payment", "/payment/*", "/payment/*/receipt").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
-                        .requestMatchers(HttpMethod.POST, "/payment", "/payment/*/checkout", "/payment/*/sync").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.GET, "/payment", "/payment/*", "/payment/*/receipt", "/payment/*/receipt/whatsapp").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.POST, "/payment", "/payment/*/checkout", "/payment/*/sync", "/payment/*/receipt/email").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.PUT, "/payment/*").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.PATCH, "/payment/*/status").hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.DELETE, "/payment/*").hasAnyRole("ADMIN", "GERENTE")

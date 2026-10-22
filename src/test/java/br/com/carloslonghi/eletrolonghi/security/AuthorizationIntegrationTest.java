@@ -434,6 +434,23 @@ class AuthorizationIntegrationTest extends AbstractPostgresIntegrationTest {
                 "SELECT count(*) FROM payments WHERE id = ?", Long.class, payment.getId())).isZero();
     }
 
+    @Test
+    void atendenteSharesReceiptTecnicoCannot() throws Exception {
+        Payment payment = createPayment("SN-PAY-RCPT", "rcpt@mail.com");
+
+        mockMvc.perform(get("/payment/{id}/receipt/whatsapp", payment.getId()).header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/payment/{id}/receipt/email", payment.getId()).header("Authorization", "Bearer " + tecnicoToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/payment/{id}/receipt", payment.getId()).header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/payment/{id}/receipt/whatsapp", payment.getId()).header("Authorization", "Bearer " + atendenteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("5511999990009"))
+                .andExpect(jsonPath("$.url").value(org.hamcrest.Matchers.startsWith("https://wa.me/5511999990009?text=")));
+    }
+
     // --- User (ADMIN-only, GERENTE excluído) ----------------------------
 
     @Test

@@ -9,7 +9,9 @@ import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutExceptio
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
+import br.com.carloslonghi.eletrolonghi.exception.CustomerContactMissingException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
+import br.com.carloslonghi.eletrolonghi.exception.ReceiptDeliveryException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
@@ -75,6 +77,20 @@ class ApplicationControllerAdviceTest {
         String message = advice.handlePaymentGatewayException(
                 new PaymentGatewayException("Mercado Pago indisponível"));
         assertThat(message).isEqualTo("Mercado Pago indisponível");
+    }
+
+    @Test
+    void shouldReturnCustomerContactMissingMessage() {
+        String message = advice.handleCustomerContactMissingException(
+                new CustomerContactMissingException("sem e-mail"));
+        assertThat(message).isEqualTo("sem e-mail");
+    }
+
+    @Test
+    void shouldReturnReceiptDeliveryMessage() {
+        String message = advice.handleReceiptDeliveryException(
+                new ReceiptDeliveryException("SMTP indisponível", new RuntimeException()));
+        assertThat(message).isEqualTo("SMTP indisponível");
     }
 
     @Test

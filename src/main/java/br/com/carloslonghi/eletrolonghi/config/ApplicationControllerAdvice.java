@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
+import br.com.carloslonghi.eletrolonghi.exception.CustomerContactMissingException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
@@ -8,6 +9,7 @@ import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutExceptio
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
+import br.com.carloslonghi.eletrolonghi.exception.ReceiptDeliveryException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
@@ -121,6 +123,18 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler(PaymentGatewayException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public String handlePaymentGatewayException(PaymentGatewayException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(CustomerContactMissingException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public String handleCustomerContactMissingException(CustomerContactMissingException exception) {
+        return exception.getMessage();
+    }
+
+    @ExceptionHandler(ReceiptDeliveryException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public String handleReceiptDeliveryException(ReceiptDeliveryException exception) {
         return exception.getMessage();
     }
 
