@@ -89,5 +89,13 @@ class AccessoryControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
-}
 
+    @Test
+    void shouldReturnNotFoundWhenGetAccessoryMissing() {
+        when(accessoryService.findById(9L)).thenReturn(Optional.empty());
+
+        var result = accessoryController.getAccessoryById(9L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+}

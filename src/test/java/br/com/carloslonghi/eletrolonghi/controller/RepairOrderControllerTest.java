@@ -176,6 +176,26 @@ class RepairOrderControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    void shouldReturnNotFoundOnUpdateRepairOrderWhenMissing() {
+        RepairOrderRequest request = new RepairOrderRequest("desc", RepairOrderStatus.IN_REPAIR, 1L, 1L);
+        RepairOrder entity = TestFixtures.repairOrder(1L);
+        when(repairOrderMapper.toEntity(request)).thenReturn(entity);
+        when(repairOrderService.update(9L, entity)).thenReturn(Optional.empty());
+
+        var result = repairOrderController.updateRepairOrder(9L, request);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldReturnNotFoundOnUpdateStatusWhenMissing() {
+        JWTUserData jwtUserData = JWTUserData.builder().id(1L).name("Tecnico").email("t@mail.com").role("TECNICO").build();
+        when(repairOrderService.updateStatus(9L, RepairOrderStatus.IN_REPAIR, Role.TECNICO)).thenReturn(Optional.empty());
+
+        var result = repairOrderController.updateRepairOrderStatus(9L, new RepairOrderStatusUpdateRequest(RepairOrderStatus.IN_REPAIR), jwtUserData);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
 }
-
-

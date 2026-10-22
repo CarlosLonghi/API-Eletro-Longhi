@@ -89,5 +89,13 @@ class BrandControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
-}
 
+    @Test
+    void shouldReturnNotFoundWhenGetBrandMissing() {
+        when(brandService.findById(9L)).thenReturn(Optional.empty());
+
+        var result = brandController.getBrandById(9L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+}
