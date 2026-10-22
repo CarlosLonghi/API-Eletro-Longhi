@@ -14,12 +14,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -67,6 +69,19 @@ class PaymentRepositoryIntegrationTest extends AbstractPostgresIntegrationTest {
                 PaymentStatus.APPROVED, PaymentMethod.PIX, order.getId(), null, null))).hasSize(1);
         assertThat(paymentRepository.findAll(PaymentSpecification.withFilters(
                 PaymentStatus.PENDING, null, null, null, null))).isEmpty();
+    }
+
+    @Test
+    void shouldRejectSecondPaymentForSameRepairOrder() {
+        RepairOrder order = persistRepairOrder("SER-PAY-DUP", "paydup@mail.com");
+        paymentRepository.saveAndFlush(Payment.builder()
+                .amount(new BigDecimal("50.00")).method(PaymentMethod.CASH).status(PaymentStatus.PENDING)
+                .installments(1).repairOrder(order).build());
+
+        assertThatThrownBy(() -> paymentRepository.saveAndFlush(Payment.builder()
+                .amount(new BigDecimal("60.00")).method(PaymentMethod.PIX).status(PaymentStatus.PENDING)
+                .installments(1).repairOrder(order).build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private RepairOrder persistRepairOrder(String serialNumber, String customerEmail) {

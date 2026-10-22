@@ -1,10 +1,20 @@
 package br.com.carloslonghi.eletrolonghi.config;
 
+import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
+import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentGatewayException;
+import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderMissingEstimateException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotPaidException;
+import br.com.carloslonghi.eletrolonghi.exception.RepairOrderStatusActorNotAllowedException;
 import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import br.com.carloslonghi.eletrolonghi.exception.UsernameOrPasswordInvalidException;
 import org.junit.jupiter.api.Test;
@@ -65,6 +75,68 @@ class ApplicationControllerAdviceTest {
         String message = advice.handlePaymentGatewayException(
                 new PaymentGatewayException("Mercado Pago indisponível"));
         assertThat(message).isEqualTo("Mercado Pago indisponível");
+    }
+
+    @Test
+    void shouldReturnReferencedEntityNotFoundMessage() {
+        String message = advice.handleReferencedEntityNotFoundException(
+                new ReferencedEntityNotFoundException("Brand", 7L));
+        assertThat(message).contains("Brand", "7");
+    }
+
+    @Test
+    void shouldReturnInvalidStatusTransitionMessage() {
+        String message = advice.handleInvalidRepairOrderStatusTransitionException(
+                new InvalidRepairOrderStatusTransitionException(
+                        RepairOrderStatus.AWAITING_EVALUATION, RepairOrderStatus.IN_REPAIR));
+        assertThat(message).contains(
+                RepairOrderStatus.AWAITING_EVALUATION.getDescription(), RepairOrderStatus.IN_REPAIR.getDescription());
+    }
+
+    @Test
+    void shouldReturnRepairOrderNotPaidMessage() {
+        String message = advice.handleRepairOrderNotPaidException(new RepairOrderNotPaidException(3L));
+        assertThat(message).contains("3");
+    }
+
+    @Test
+    void shouldReturnRepairOrderMissingEstimateMessage() {
+        String message = advice.handleRepairOrderMissingEstimateException(new RepairOrderMissingEstimateException(4L));
+        assertThat(message).contains("4");
+    }
+
+    @Test
+    void shouldReturnStatusActorNotAllowedMessage() {
+        String message = advice.handleRepairOrderStatusActorNotAllowedException(
+                new RepairOrderStatusActorNotAllowedException(5L, Role.TECNICO, RepairOrderStatus.DEVICE_COLLECTED));
+        assertThat(message).contains("5", "TECNICO", "DEVICE_COLLECTED");
+    }
+
+    @Test
+    void shouldReturnPaymentAlreadyExistsMessage() {
+        String message = advice.handlePaymentAlreadyExistsForRepairOrderException(
+                new PaymentAlreadyExistsForRepairOrderException(6L));
+        assertThat(message).contains("6");
+    }
+
+    @Test
+    void shouldReturnRepairOrderNotApprovedForPaymentMessage() {
+        String message = advice.handleRepairOrderNotApprovedForPaymentException(
+                new RepairOrderNotApprovedForPaymentException(8L, RepairOrderStatus.IN_EVALUATION));
+        assertThat(message).contains("8", RepairOrderStatus.IN_EVALUATION.getDescription());
+    }
+
+    @Test
+    void shouldReturnRepairOrderNotApprovedForPaymentMessageWhenStatusUnknown() {
+        String message = advice.handleRepairOrderNotApprovedForPaymentException(
+                new RepairOrderNotApprovedForPaymentException(8L, null));
+        assertThat(message).contains("indefinido");
+    }
+
+    @Test
+    void shouldReturnEntityInUseMessage() {
+        String message = advice.handleEntityInUseException(new EntityInUseException("Brand", 2L, "aparelho(s)"));
+        assertThat(message).contains("Brand", "2", "aparelho(s)");
     }
 
     @Test

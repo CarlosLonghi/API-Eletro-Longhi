@@ -7,6 +7,7 @@ import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundExcept
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -132,5 +134,34 @@ class DeviceServiceTest {
         assertThatThrownBy(() -> deviceService.save(device))
                 .isInstanceOf(ReferencedEntityNotFoundException.class);
     }
-}
 
+    @Test
+    void shouldRejectDeleteWhenDeviceHasRepairOrders() {
+        when(repairOrderRepository.existsByDeviceId(5L)).thenReturn(true);
+
+        assertThatThrownBy(() -> deviceService.deleteById(5L))
+                .isInstanceOf(EntityInUseException.class);
+        verify(deviceRepository, never()).deleteById(5L);
+    }
+
+    @Test
+    void shouldThrowWhenBrandMissingOnUpdate() {
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(TestFixtures.device(1L)));
+        when(brandService.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deviceService.update(1L, TestFixtures.device(2L)))
+                .isInstanceOf(ReferencedEntityNotFoundException.class);
+        verify(deviceRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenAccessoryMissingOnUpdate() {
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(TestFixtures.device(1L)));
+        when(brandService.findById(1L)).thenReturn(Optional.of(TestFixtures.brand(1L)));
+        when(accessoryService.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deviceService.update(1L, TestFixtures.device(2L)))
+                .isInstanceOf(ReferencedEntityNotFoundException.class);
+        verify(deviceRepository, never()).save(any());
+    }
+}

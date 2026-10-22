@@ -7,9 +7,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -35,5 +37,14 @@ class UserRepositoryIntegrationTest extends AbstractPostgresIntegrationTest {
         assertThat(userRepository.findUserByEmail("admin@mail.com")).isPresent();
         assertThat(userRepository.findUserByEmail("missing@mail.com")).isEmpty();
     }
-}
 
+    @Test
+    void shouldRejectDuplicateEmail() {
+        userRepository.saveAndFlush(User.builder()
+                .name("Admin").email("dup@mail.com").password("encoded").role(Role.ADMIN).build());
+
+        assertThatThrownBy(() -> userRepository.saveAndFlush(User.builder()
+                .name("Outro").email("dup@mail.com").password("encoded").role(Role.PENDENTE).build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+}

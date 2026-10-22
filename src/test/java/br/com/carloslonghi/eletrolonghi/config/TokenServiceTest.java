@@ -40,4 +40,22 @@ class TokenServiceTest {
 
         assertThat(verified).isEmpty();
     }
+
+    @Test
+    void shouldReturnEmptyForExpiredToken() {
+        ReflectionTestUtils.setField(tokenService, "accessTokenExpirationSeconds", -60L);
+        String token = tokenService.generateToken(TestFixtures.user(1L));
+
+        assertThat(tokenService.verifyToken(token)).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyForTokenSignedWithAnotherSecret() {
+        TokenService otherIssuer = new TokenService();
+        ReflectionTestUtils.setField(otherIssuer, "secret", "another-secret");
+        ReflectionTestUtils.setField(otherIssuer, "accessTokenExpirationSeconds", 300L);
+        String token = otherIssuer.generateToken(TestFixtures.user(1L));
+
+        assertThat(tokenService.verifyToken(token)).isEmpty();
+    }
 }

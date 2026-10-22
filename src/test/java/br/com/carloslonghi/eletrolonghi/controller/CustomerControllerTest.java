@@ -115,6 +115,16 @@ class CustomerControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    void shouldReturnNotFoundOnUpdateCustomerWhenMissing() {
+        CustomerRequest request = new CustomerRequest("C", "11", "c@mail.com");
+        Customer entity = TestFixtures.customer(1L);
+        when(customerMapper.toEntity(request)).thenReturn(entity);
+        when(customerService.update(9L, entity)).thenReturn(Optional.empty());
+
+        var result = customerController.updateCustomer(9L, request);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
 }
-
-

@@ -15,6 +15,8 @@ import br.com.carloslonghi.eletrolonghi.service.LoginAttemptService;
 import br.com.carloslonghi.eletrolonghi.service.RefreshTokenService;
 import br.com.carloslonghi.eletrolonghi.service.UserService;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
+import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
+import br.com.carloslonghi.eletrolonghi.exception.TooManyLoginAttemptsException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,6 +35,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -140,5 +144,26 @@ class AuthControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         verify(refreshTokenService).revoke("refresh");
+    }
+
+    @Test
+    void shouldNotIssueTokensWhenRefreshTokenIsInvalid() {
+        when(refreshTokenService.findValidToken("bad")).thenThrow(new InvalidRefreshTokenException("Refresh token inválido."));
+
+        assertThatThrownBy(() -> authController.refresh(new RefreshTokenRequest("bad")))
+                .isInstanceOf(InvalidRefreshTokenException.class);
+
+        verify(tokenService, never()).generateToken(any());
+        verify(refreshTokenService, never()).createRefreshToken(any());
+    }
+
+    @Test
+    void shouldRejectLoginWhenEmailIsBlocked() {
+        doThrow(new TooManyLoginAttemptsException("blocked")).when(loginAttemptService).checkBlocked("user@mail.com");
+
+        assertThatThrownBy(() -> authController.login(new LoginRequest("user@mail.com", "senha")))
+                .isInstanceOf(TooManyLoginAttemptsException.class);
+
+        verify(authenticationManager, never()).authenticate(any());
     }
 }

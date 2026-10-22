@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.Customer;
 import br.com.carloslonghi.eletrolonghi.repository.CustomerRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
+import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,6 +19,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,5 +83,13 @@ class CustomerServiceTest {
         customerService.deleteById(1L);
         verify(customerRepository).deleteById(1L);
     }
-}
 
+    @Test
+    void shouldRejectDeleteWhenCustomerHasRepairOrders() {
+        when(repairOrderRepository.existsByCustomerId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> customerService.deleteById(1L))
+                .isInstanceOf(EntityInUseException.class);
+        verify(customerRepository, never()).deleteById(1L);
+    }
+}
