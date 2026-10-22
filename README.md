@@ -21,7 +21,8 @@ Funcionalidades implementadas:
 * **Regra de negócio de ciclo do aparelho**: um aparelho só pode receber uma nova ordem de reparo depois que a anterior chegou ao status `DEVICE_COLLECTED` (violação → 422).
 * CRUD de **Pagamentos** (`/payment`) — um pagamento por ordem de reparo (dinheiro, cartão à vista/parcelado, PIX, boleto ou link do Mercado Pago), listagem paginada/filtrável e transição de situação por `PATCH /payment/{id}/status`. A situação do pagamento aparece na listagem de reparos (`paymentStatus`) e o reparo só pode ser marcado como coletado com o pagamento aprovado.
 * **Gateway Mercado Pago (Checkout Pro)** — `POST /payment/{id}/checkout` gera o link de pagamento (`init_point`) para o cliente pagar online, já enviando os dados do pagador (nome, e-mail e CPF/CNPJ) para facilitar o Pix; `POST /payment/{id}/sync` concilia a situação por *polling* (sem webhook, pois a aplicação ainda não está hospedada). A maquininha física (API Point) permanece como TODO no `MercadoPagoClient`.
-* **Recibo de pagamento em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal com os dados da loja (`shop.*`).
+* **Comprovante de serviço em PDF** (`GET /payment/{id}/receipt`) — comprovante não-fiscal de uma página, pronto para impressão: pagamento, cliente, ordem de serviço (entrada, previsão, orçamento), aparelho com acessórios, garantia do serviço (`shop.warranty-days`, padrão 90 dias) e assinatura de retirada.
+* **Envio do comprovante ao cliente** — `POST /payment/{id}/receipt/email` envia o PDF anexado ao e-mail cadastrado (SMTP; em desenvolvimento cai no Mailpit, `http://localhost:8025`) e `GET /payment/{id}/receipt/whatsapp` devolve um link `wa.me` para o telefone cadastrado com a mensagem pronta. NFS-e: ver a análise em [`docs/nfse.md`](docs/nfse.md).
 * **CORS por allowlist** de origens (front-end web / renderer Electron).
 * **Controle de integridade**: tratamento global de conflitos (409), validações (`@Valid` → 400), regras de negócio (→ 422) e 401 explícito para token ausente/inválido.
 * **CI no GitHub Actions** rodando a suíte de testes em todo push/PR para `main`, com merge bloqueado enquanto os testes não passam.
@@ -97,7 +98,7 @@ src/main/resources/
    cp .env.example .env
    ```
 
-   O `.env` alimenta o `docker-compose.yml` e o `application.properties` (banco, `JWT_SECRET`, conta ADMIN inicial, dados da loja para o recibo `SHOP_*` e, quando a aplicação for hospedada, as credenciais do Mercado Pago `MP_*`). Ele **nunca** é commitado.
+   O `.env` alimenta o `docker-compose.yml` e o `application.properties` (banco, `JWT_SECRET`, conta ADMIN inicial, dados da loja e garantia para o comprovante `SHOP_*`, SMTP para o envio por e-mail `MAIL_*` e, quando a aplicação for hospedada, as credenciais do Mercado Pago `MP_*`). Ele **nunca** é commitado.
 
 2. Suba o banco de dados via Docker Compose (apenas o serviço `db`):
 
@@ -274,7 +275,9 @@ A transição é feita por `PATCH /repair-order/{id}/status` (payload `RepairOrd
 | `PATCH` | `/payment/{id}/status` | Altera a situação; `APPROVED` preenche `paidAt` (não altera o status da ordem) | 200 / 400 / 401 / 404 |
 | `POST` | `/payment/{id}/checkout` | Gera o link de pagamento do Checkout Pro (pagamento pendente com forma `MERCADO_PAGO_CHECKOUT`) | 200 / 401 / 404 / 422 / 502 |
 | `POST` | `/payment/{id}/sync` | Concilia a situação com o Mercado Pago por polling | 200 / 401 / 404 / 422 / 502 |
-| `GET` | `/payment/{id}/receipt` | Recibo do pagamento em PDF (não-fiscal) | 200 / 401 / 404 |
+| `GET` | `/payment/{id}/receipt` | Comprovante de serviço em PDF (não-fiscal) | 200 / 401 / 404 |
+| `POST` | `/payment/{id}/receipt/email` | Envia o comprovante ao e-mail cadastrado do cliente | 204 / 401 / 404 / 422 / 502 |
+| `GET` | `/payment/{id}/receipt/whatsapp` | Link `wa.me` com a mensagem do comprovante para o telefone do cliente | 200 / 401 / 404 / 422 |
 | `DELETE` | `/payment/{id}` | Remove pagamento — **ADMIN** | 204 / 401 / 403 / 404 |
 
 ---

@@ -84,6 +84,7 @@ Expostas em `/actuator/prometheus` na porta de gerência (`management.server.por
 | `eletrolonghi_payments_status_changes_total` | `status` (destino) | `PaymentService.updateStatus` / `syncWithGateway` |
 | `eletrolonghi_payments_approved_amount_brl_{sum,count,max}` | `method` | quando o pagamento vira `APPROVED` |
 | `eletrolonghi_payments_checkout_links_total` | — | `PaymentService.createCheckoutLink` |
+| `eletrolonghi_payments_receipts_shared_total` | `channel` (`email`/`whatsapp`), `result` (`success`/`failure`) | `ReceiptDeliveryService` (e-mail enviado ou link de WhatsApp gerado) |
 | `eletrolonghi_auth_logins_total` | `result` = `success`, `failure`, `blocked` | `LoginAttemptService` |
 | `http_client_requests_seconds` | `client_name="api.mercadopago.com"`, `outcome`... | automático (`RestClient.Builder` do Spring no `MercadoPagoClient`) |
 | `http_server_requests_seconds` (com histograma) | `uri`, `status`... | automático |
