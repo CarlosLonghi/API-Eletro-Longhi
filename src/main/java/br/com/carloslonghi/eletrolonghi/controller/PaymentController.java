@@ -5,13 +5,14 @@ import br.com.carloslonghi.eletrolonghi.controller.request.PaymentRequest;
 import br.com.carloslonghi.eletrolonghi.controller.request.PaymentStatusUpdateRequest;
 import br.com.carloslonghi.eletrolonghi.controller.response.CheckoutLinkResponse;
 import br.com.carloslonghi.eletrolonghi.controller.response.PaymentResponse;
+import br.com.carloslonghi.eletrolonghi.controller.response.WhatsAppShareResponse;
 import br.com.carloslonghi.eletrolonghi.controller.support.PaginationUtils;
 import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.mapper.PaymentMapper;
-import br.com.carloslonghi.eletrolonghi.service.PaymentReceiptService;
 import br.com.carloslonghi.eletrolonghi.service.PaymentService;
+import br.com.carloslonghi.eletrolonghi.service.ReceiptDeliveryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,7 +33,7 @@ import java.util.Optional;
 public class PaymentController implements PaymentApi {
 
     private final PaymentService paymentService;
-    private final PaymentReceiptService paymentReceiptService;
+    private final ReceiptDeliveryService receiptDeliveryService;
     private final PaymentMapper paymentMapper;
 
     @GetMapping
@@ -104,15 +105,27 @@ public class PaymentController implements PaymentApi {
 
     @GetMapping("/{id}/receipt")
     public ResponseEntity<byte[]> getPaymentReceipt(@PathVariable Long id) {
-        return paymentService.findById(id)
-                .map(payment -> {
-                    byte[] pdf = paymentReceiptService.generate(payment);
-                    return ResponseEntity.ok()
-                            .contentType(MediaType.APPLICATION_PDF)
-                            .header("Content-Disposition", ContentDisposition.inline()
-                                    .filename("recibo-" + payment.getId() + ".pdf").build().toString())
-                            .body(pdf);
-                })
+        return receiptDeliveryService.renderReceipt(id)
+                .map(pdf -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header("Content-Disposition", ContentDisposition.inline()
+                                .filename("comprovante-" + id + ".pdf").build().toString())
+                        .body(pdf))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/receipt/email")
+    public ResponseEntity<Void> sendPaymentReceiptByEmail(@PathVariable Long id) {
+        return receiptDeliveryService.sendReceiptByEmail(id)
+                .<ResponseEntity<Void>>map(payment -> ResponseEntity.noContent().build())
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/receipt/whatsapp")
+    public ResponseEntity<WhatsAppShareResponse> getPaymentReceiptWhatsAppLink(@PathVariable Long id) {
+        return receiptDeliveryService.whatsAppLink(id)
+                .map(link -> ResponseEntity.ok(WhatsAppShareResponse.builder()
+                        .phone(link.phone()).message(link.message()).url(link.url()).build()))
                 .orElse(ResponseEntity.notFound().build());
     }
 

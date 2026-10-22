@@ -21,7 +21,7 @@ docker compose --profile app --profile observability up -d --build
 Sem perfil ativo, a API sobe com o perfil `dev` (`spring.profiles.default=dev`, ver `application-dev.properties`):
 
 - O `spring-boot-docker-compose` sobe o `db` **e** o profile `observability` (`spring.docker.compose.profiles.active`). O container `app` não sobe, então não há disputa pela 8080/8081.
-- `lifecycle-management=start-and-stop` (com `stop.command=stop`): parar a API na IDE (Stop ou Ctrl+C) para a stack junto e libera as portas para outros projetos. Containers e volumes são mantidos, então o banco e o histórico de métricas/logs continuam na próxima subida. Um `kill -9` não dispara o shutdown hook; nesse caso: `docker compose --profile observability stop`. Para olhar o Grafana com a API parada: `docker compose --profile observability up -d`.
+- `lifecycle-management=start-and-stop` (com `stop.command=stop`): parar a API na IDE (Stop ou Ctrl+C) para a stack junto e libera as portas para outros projetos. Containers e volumes são mantidos, então o banco e o histórico de métricas/logs continuam na próxima subida. Um `kill -9` não dispara o shutdown hook; nesse caso: `docker compose --profile observability --profile mail stop`. Para olhar o Grafana com a API parada: `docker compose --profile observability up -d`.
 - O console continua em texto (legível na IDE) e uma cópia em JSON (ECS) vai para `logs/eletrolonghi.log`. O Alloy lê esse arquivo (montado em `/var/log/eletrolonghi`) com o mesmo label `service="app"` do container.
 - O Prometheus coleta o job `app` em dois endereços: `app:8081` (container) e `host.docker.internal:8081` (IDE, via `extra_hosts: host-gateway`). Um deles está sempre fora; por isso o alerta "Alvo fora" e os painéis de "no ar" usam `max(up)`.
 
@@ -84,6 +84,7 @@ Expostas em `/actuator/prometheus` na porta de gerência (`management.server.por
 | `eletrolonghi_payments_status_changes_total` | `status` (destino) | `PaymentService.updateStatus` / `syncWithGateway` |
 | `eletrolonghi_payments_approved_amount_brl_{sum,count,max}` | `method` | quando o pagamento vira `APPROVED` |
 | `eletrolonghi_payments_checkout_links_total` | — | `PaymentService.createCheckoutLink` |
+| `eletrolonghi_payments_receipts_shared_total` | `channel` (`email`/`whatsapp`), `result` (`success`/`failure`) | `ReceiptDeliveryService` (e-mail enviado ou link de WhatsApp gerado) |
 | `eletrolonghi_auth_logins_total` | `result` = `success`, `failure`, `blocked` | `LoginAttemptService` |
 | `http_client_requests_seconds` | `client_name="api.mercadopago.com"`, `outcome`... | automático (`RestClient.Builder` do Spring no `MercadoPagoClient`) |
 | `http_server_requests_seconds` (com histograma) | `uri`, `status`... | automático |

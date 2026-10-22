@@ -1,6 +1,7 @@
 # Sem profile, sobe só o banco: é o que o spring-boot-docker-compose faz no ./mvnw spring-boot:run.
 #   API no Docker:            docker compose --profile app up -d --build
 #   API + observabilidade:    docker compose --profile app --profile observability up -d --build
+#   Caixa de e-mail de teste: docker compose --profile mail up -d   (Mailpit, UI em http://localhost:8025)
 # Guia da observabilidade: docs/observabilidade.md
 
 services:
@@ -55,6 +56,14 @@ services:
       SHOP_ADDRESS: ${SHOP_ADDRESS:-}
       SHOP_PHONE: ${SHOP_PHONE:-}
       SHOP_EMAIL: ${SHOP_EMAIL:-}
+      SHOP_WARRANTY_DAYS: ${SHOP_WARRANTY_DAYS:-90}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@eletrolonghi.local}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
       MP_BASE_URL: ${MP_BASE_URL:-https://api.mercadopago.com}
       MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
@@ -62,6 +71,16 @@ services:
   # Opcional: --profile observability → Prometheus em :9090, Grafana em :3001 e logs no Loki.
   # Guia do padrão: docs/observabilidade.md. Sem depends_on no app: ele fica em outro profile, e a API
   # fora do ar aparece no alerta "Alvo fora"
+  # SMTP de teste: captura todo e-mail enviado (nada sai para a internet). SMTP 1025, UI 8025
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: eletrolonghi-mailpit
+    profiles: [ mail ]
+    restart: on-failure
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   prometheus:
     image: prom/prometheus:v3.15.0
     container_name: eletrolonghi-prometheus
@@ -175,4 +194,4 @@ services:
 volumes:
   db_data:
   prometheus_data:
-  loki_data:
+  loki_data:

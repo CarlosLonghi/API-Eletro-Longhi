@@ -8,8 +8,9 @@ import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.mapper.PaymentMapper;
-import br.com.carloslonghi.eletrolonghi.service.PaymentReceiptService;
+import br.com.carloslonghi.eletrolonghi.exception.CustomerContactMissingException;
 import br.com.carloslonghi.eletrolonghi.service.PaymentService;
+import br.com.carloslonghi.eletrolonghi.service.ReceiptDeliveryService;
 import br.com.carloslonghi.eletrolonghi.support.TestFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -35,7 +37,7 @@ class PaymentControllerTest {
     private PaymentService paymentService;
 
     @Mock
-    private PaymentReceiptService paymentReceiptService;
+    private ReceiptDeliveryService receiptDeliveryService;
 
     @Mock
     private PaymentMapper paymentMapper;
@@ -172,23 +174,64 @@ class PaymentControllerTest {
 
     @Test
     void shouldReturnReceiptPdfWhenFound() {
-        Payment entity = TestFixtures.payment(1L);
         byte[] pdf = "%PDF-1.4 fake".getBytes();
-        when(paymentService.findById(1L)).thenReturn(Optional.of(entity));
-        when(paymentReceiptService.generate(entity)).thenReturn(pdf);
+        when(receiptDeliveryService.renderReceipt(1L)).thenReturn(Optional.of(pdf));
 
         var result = paymentController.getPaymentReceipt(1L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(result.getHeaders().getContentDisposition().getFilename()).isEqualTo("comprovante-1.pdf");
         assertThat(result.getBody()).isEqualTo(pdf);
     }
 
     @Test
     void shouldReturnNotFoundForReceiptOfMissingPayment() {
-        when(paymentService.findById(1L)).thenReturn(Optional.empty());
+        when(receiptDeliveryService.renderReceipt(1L)).thenReturn(Optional.empty());
 
         assertThat(paymentController.getPaymentReceipt(1L).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldReturnNoContentWhenReceiptEmailed() {
+        when(receiptDeliveryService.sendReceiptByEmail(1L)).thenReturn(Optional.of(TestFixtures.payment(1L)));
+
+        assertThat(paymentController.sendPaymentReceiptByEmail(1L).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenEmailingMissingPayment() {
+        when(receiptDeliveryService.sendReceiptByEmail(1L)).thenReturn(Optional.empty());
+
+        assertThat(paymentController.sendPaymentReceiptByEmail(1L).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldPropagateMissingContactWhenEmailing() {
+        when(receiptDeliveryService.sendReceiptByEmail(1L)).thenThrow(new CustomerContactMissingException("sem e-mail"));
+
+        assertThatThrownBy(() -> paymentController.sendPaymentReceiptByEmail(1L))
+                .isInstanceOf(CustomerContactMissingException.class);
+    }
+
+    @Test
+    void shouldReturnWhatsAppLinkWhenFound() {
+        when(receiptDeliveryService.whatsAppLink(1L)).thenReturn(Optional.of(
+                new ReceiptDeliveryService.WhatsAppLink("5511999990001", "Olá", "https://wa.me/5511999990001?text=Ol%C3%A1")));
+
+        var result = paymentController.getPaymentReceiptWhatsAppLink(1L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().phone()).isEqualTo("5511999990001");
+        assertThat(result.getBody().message()).isEqualTo("Olá");
+        assertThat(result.getBody().url()).isEqualTo("https://wa.me/5511999990001?text=Ol%C3%A1");
+    }
+
+    @Test
+    void shouldReturnNotFoundForWhatsAppLinkOfMissingPayment() {
+        when(receiptDeliveryService.whatsAppLink(1L)).thenReturn(Optional.empty());
+
+        assertThat(paymentController.getPaymentReceiptWhatsAppLink(1L).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test

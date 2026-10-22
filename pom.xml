@@ -60,6 +60,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-restclient</artifactId>
 		</dependency>
+		<!-- Envio do comprovante por e-mail (SMTP) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 		<!-- Metricas no formato Prometheus em /actuator/prometheus (porta de gerencia) -->
 		<dependency>
 			<groupId>io.micrometer</groupId>

@@ -28,6 +28,12 @@ class PaymentMetricsTest {
                     .counter().count()).isZero();
         }
         assertThat(registry.get("eletrolonghi.payments.checkout_links").counter().count()).isZero();
+        for (String channel : new String[]{PaymentMetrics.CHANNEL_EMAIL, PaymentMetrics.CHANNEL_WHATSAPP}) {
+            for (String result : new String[]{"success", "failure"}) {
+                assertThat(registry.get("eletrolonghi.payments.receipts.shared")
+                        .tag("channel", channel).tag("result", result).counter().count()).isZero();
+            }
+        }
     }
 
     @Test
@@ -37,6 +43,8 @@ class PaymentMetricsTest {
         metrics.approved(PaymentMethod.PIX, new BigDecimal("150.50"));
         metrics.approved(PaymentMethod.PIX, new BigDecimal("49.50"));
         metrics.checkoutLinkCreated();
+        metrics.receiptSent(PaymentMetrics.CHANNEL_EMAIL, false);
+        metrics.receiptSent(PaymentMetrics.CHANNEL_WHATSAPP, true);
 
         assertThat(registry.get("eletrolonghi.payments.registered").tag("method", "PIX").counter().count()).isEqualTo(1);
         assertThat(registry.get("eletrolonghi.payments.status_changes").tag("status", "APPROVED")
@@ -45,5 +53,9 @@ class PaymentMetricsTest {
         assertThat(approved.count()).isEqualTo(2);
         assertThat(approved.totalAmount()).isEqualTo(200.0);
         assertThat(registry.get("eletrolonghi.payments.checkout_links").counter().count()).isEqualTo(1);
+        assertThat(registry.get("eletrolonghi.payments.receipts.shared")
+                .tag("channel", "email").tag("result", "failure").counter().count()).isEqualTo(1);
+        assertThat(registry.get("eletrolonghi.payments.receipts.shared")
+                .tag("channel", "whatsapp").tag("result", "success").counter().count()).isEqualTo(1);
     }
 }
