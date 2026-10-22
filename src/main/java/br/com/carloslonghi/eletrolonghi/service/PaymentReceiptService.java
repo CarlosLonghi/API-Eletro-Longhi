@@ -1,6 +1,9 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.config.ShopProperties;
+import br.com.carloslonghi.eletrolonghi.entity.Accessory;
+import br.com.carloslonghi.eletrolonghi.entity.Customer;
+import br.com.carloslonghi.eletrolonghi.entity.Device;
 import br.com.carloslonghi.eletrolonghi.entity.Payment;
 import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
@@ -22,23 +25,32 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
- * Gera o recibo (comprovante <strong>não-fiscal</strong>) de um pagamento em PDF.
- * Os dados da loja vêm de {@link ShopProperties} ({@code shop.*}).
+ * Gera o comprovante de serviço e pagamento (<strong>não-fiscal</strong>) em PDF: pagamento,
+ * cliente, ordem de serviço, aparelho (com acessórios deixados), garantia e assinatura de retirada.
+ * Os dados da loja e o prazo de garantia vêm de {@link ShopProperties} ({@code shop.*}).
  *
  * <p>Layout deliberadamente compacto e em preto e branco (sem preenchimentos coloridos),
- * pensado para impressão econômica em papel comum.
+ * pensado para impressão econômica em uma única página de papel comum — por isso textos livres
+ * longos (descrição do serviço, observações) são truncados.
+ *
+ * <p>Lê associações lazy ({@code Device.accessories}): chame dentro de uma transação.
  */
 @Service
 @RequiredArgsConstructor
 public class PaymentReceiptService {
 
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int MAX_FREE_TEXT = 300;
 
     private static final Color BLACK = Color.BLACK;
     private static final Color GRAY = new Color(90, 90, 90);
@@ -65,13 +77,24 @@ public class PaymentReceiptService {
             document.add(amountPanel(payment));
             document.add(spacer(6f));
 
-            document.add(twoColumns(paymentCard(payment), repairOrderCard(payment.getRepairOrder())));
+            RepairOrder repairOrder = payment.getRepairOrder();
+            document.add(twoColumns(paymentCard(payment), customerCard(repairOrder.getCustomer())));
+            document.add(spacer(5f));
+            document.add(twoColumns(repairOrderCard(payment), deviceCard(repairOrder.getDevice())));
 
-            if (hasText(payment.getPayerName()) || hasText(payment.getDescription())) {
+            if (hasText(repairOrder.getDescription()) || hasText(payment.getDescription())) {
                 document.add(spacer(5f));
                 document.add(notesCard(payment));
             }
 
+            Optional<LocalDate> warrantyUntil = warrantyUntil(payment);
+            if (warrantyUntil.isPresent()) {
+                document.add(spacer(5f));
+                document.add(warrantyNote(warrantyUntil.get()));
+            }
+
+            document.add(spacer(14f));
+            document.add(signature());
             document.add(spacer(10f));
             document.add(footer());
 
@@ -103,7 +126,7 @@ public class PaymentReceiptService {
         }
         table.addCell(left);
 
-        PdfPCell right = new PdfPCell(new Phrase("COMPROVANTE DE PAGAMENTO", font(8, Font.BOLD, GRAY)));
+        PdfPCell right = new PdfPCell(new Phrase("COMPROVANTE DE SERVIÇO", font(8, Font.BOLD, GRAY)));
         right.setBorder(Rectangle.NO_BORDER);
         right.setHorizontalAlignment(Element.ALIGN_RIGHT);
         right.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -137,7 +160,7 @@ public class PaymentReceiptService {
         PdfPCell left = new PdfPCell();
         left.setBorder(Rectangle.NO_BORDER);
         left.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        left.addElement(new Phrase("Recibo de Pagamento", font(12, Font.BOLD, BLACK)));
+        left.addElement(new Phrase("Comprovante de Serviço e Pagamento", font(12, Font.BOLD, BLACK)));
         left.addElement(new Phrase("Nº " + payment.getId(), font(8, Font.NORMAL, GRAY)));
         table.addCell(left);
 
@@ -224,24 +247,6 @@ public class PaymentReceiptService {
         rows.add(new String[]{"Situação", payment.getStatus().getDescription()});
         rows.add(new String[]{dateLabel(payment).substring(0, 1).toUpperCase() + dateLabel(payment).substring(1),
                 formatDate(paymentDate(payment))});
-        if (hasText(payment.getGatewayPaymentId())) {
-            rows.add(new String[]{"ID da transação", payment.getGatewayPaymentId()});
-        }
-        return card("Pagamento", rows);
-    }
-
-    private PdfPTable repairOrderCard(RepairOrder repairOrder) {
-        List<String[]> rows = new ArrayList<>();
-        rows.add(new String[]{"Ordem de serviço", "Nº " + repairOrder.getId() + " — " + repairOrder.getStatus().getDescription()});
-        rows.add(new String[]{"Cliente", repairOrder.getCustomer().getName()});
-        rows.add(new String[]{"Telefone", repairOrder.getCustomer().getPhone()});
-        rows.add(new String[]{"Aparelho", repairOrder.getDevice().getModel()
-                + " (série " + repairOrder.getDevice().getSerialNumber() + ")"});
-        return card("Ordem de Serviço", rows);
-    }
-
-    private PdfPTable notesCard(Payment payment) {
-        List<String[]> rows = new ArrayList<>();
         if (hasText(payment.getPayerName())) {
             String payer = payment.getPayerName();
             if (hasText(payment.getPayerDocument())) {
@@ -249,10 +254,117 @@ public class PaymentReceiptService {
             }
             rows.add(new String[]{"Pagador", payer});
         }
-        if (hasText(payment.getDescription())) {
-            rows.add(new String[]{"Observações", payment.getDescription()});
+        if (hasText(payment.getGatewayPaymentId())) {
+            rows.add(new String[]{"ID da transação", payment.getGatewayPaymentId()});
         }
-        return card("Informações Complementares", rows);
+        return card("Pagamento", rows);
+    }
+
+    private PdfPTable customerCard(Customer customer) {
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{"Nome", customer.getName()});
+        rows.add(new String[]{"Telefone", blankToDash(customer.getPhone())});
+        rows.add(new String[]{"E-mail", blankToDash(customer.getEmail())});
+        return card("Cliente", rows);
+    }
+
+    private PdfPTable repairOrderCard(Payment payment) {
+        RepairOrder repairOrder = payment.getRepairOrder();
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{"Número", "Nº " + repairOrder.getId()});
+        rows.add(new String[]{"Situação", repairOrder.getStatus().getDescription()});
+        rows.add(new String[]{"Entrada", formatDate(repairOrder.getCreatedAt())});
+        if (repairOrder.getEstimatedCompletionDate() != null) {
+            rows.add(new String[]{"Previsão", DATE.format(repairOrder.getEstimatedCompletionDate())});
+        }
+        if (repairOrder.getEstimatedCost() != null) {
+            rows.add(new String[]{"Orçamento", formatMoney(repairOrder.getEstimatedCost())});
+        }
+        rows.add(new String[]{"Valor pago", formatMoney(payment.getAmount())});
+        return card("Ordem de Serviço", rows);
+    }
+
+    private PdfPTable deviceCard(Device device) {
+        List<String[]> rows = new ArrayList<>();
+        String brand = device.getBrand() != null ? device.getBrand().getName() + " " : "";
+        rows.add(new String[]{"Aparelho", brand + device.getModel()});
+        rows.add(new String[]{"Nº de série", device.getSerialNumber()});
+        rows.add(new String[]{"Acessórios", describeAccessories(device.getAccessories())});
+        return card("Aparelho", rows);
+    }
+
+    private PdfPTable notesCard(Payment payment) {
+        List<String[]> rows = new ArrayList<>();
+        if (hasText(payment.getRepairOrder().getDescription())) {
+            rows.add(new String[]{"Serviço / defeito", truncate(payment.getRepairOrder().getDescription())});
+        }
+        if (hasText(payment.getDescription())) {
+            rows.add(new String[]{"Observações", truncate(payment.getDescription())});
+        }
+        return card("Descrição do Serviço", rows);
+    }
+
+    // -------------------------------------------------- warranty / signature
+
+    /**
+     * Garantia legal do serviço (CDC art. 26, II: 90 dias para serviços duráveis), contada a partir
+     * do pagamento aprovado. Sem pagamento aprovado ou com {@code shop.warranty-days} 0/ausente, não há linha.
+     */
+    private Optional<LocalDate> warrantyUntil(Payment payment) {
+        Integer days = shop.warrantyDays();
+        if (days == null || days <= 0 || payment.getStatus() != PaymentStatus.APPROVED || payment.getPaidAt() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(payment.getPaidAt().toLocalDate().plusDays(days));
+    }
+
+    private PdfPTable warrantyNote(LocalDate until) {
+        PdfPTable table = new PdfPTable(1);
+        table.setWidthPercentage(100);
+        PdfPCell cell = new PdfPCell(new Phrase(
+                "Garantia de " + shop.warrantyDays() + " dias sobre o serviço executado (CDC, art. 26), válida até "
+                        + DATE.format(until) + ". Não cobre mau uso, quedas, contato com líquidos ou violação do aparelho.",
+                font(7.5f, Font.NORMAL, BLACK)));
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(BORDER);
+        cell.setPadding(5f);
+        table.addCell(cell);
+        return table;
+    }
+
+    private PdfPTable signature() {
+        PdfPTable table = new PdfPTable(3);
+        table.setWidthPercentage(100);
+        try {
+            table.setWidths(new float[]{2f, 0.2f, 1f});
+        } catch (DocumentException ignored) {
+            // larguras fixas e válidas, nunca lança
+        }
+
+        PdfPCell statement = new PdfPCell(new Phrase(
+                "Declaro ter recebido o aparelho acima, com os acessórios listados, em perfeitas condições.",
+                font(7.5f, Font.NORMAL, GRAY)));
+        statement.setColspan(3);
+        statement.setBorder(Rectangle.NO_BORDER);
+        statement.setPaddingBottom(22f);
+        table.addCell(statement);
+
+        table.addCell(signatureLine("Assinatura do cliente"));
+        PdfPCell gap = new PdfPCell();
+        gap.setBorder(Rectangle.NO_BORDER);
+        table.addCell(gap);
+        table.addCell(signatureLine("Data"));
+        return table;
+    }
+
+    private PdfPCell signatureLine(String label) {
+        PdfPCell cell = new PdfPCell(new Phrase(label, font(7, Font.NORMAL, GRAY)));
+        cell.setBorder(Rectangle.TOP);
+        cell.setBorderColor(BLACK);
+        cell.setBorderWidth(0.5f);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setPaddingTop(2f);
+        return cell;
     }
 
     private PdfPTable card(String title, List<String[]> rows) {
@@ -368,6 +480,18 @@ public class PaymentReceiptService {
 
     private static String formatMoney(BigDecimal value) {
         return value == null ? "-" : "R$ " + value.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private static String describeAccessories(List<Accessory> accessories) {
+        if (accessories == null || accessories.isEmpty()) {
+            return "-";
+        }
+        return accessories.stream().map(Accessory::getName).collect(Collectors.joining(", "));
+    }
+
+    private static String truncate(String value) {
+        String trimmed = value.trim();
+        return trimmed.length() <= MAX_FREE_TEXT ? trimmed : trimmed.substring(0, MAX_FREE_TEXT - 1) + "…";
     }
 
     private static String blankToDash(String value) {
