@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -51,6 +52,7 @@ public class PaymentReceiptService {
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int MAX_FREE_TEXT = 300;
+    private static final Locale PT_BR = Locale.of("pt", "BR");
 
     private static final Color BLACK = Color.BLACK;
     private static final Color GRAY = new Color(90, 90, 90);
@@ -478,8 +480,9 @@ public class PaymentReceiptService {
         return value == null ? "-" : DATE_TIME.format(value);
     }
 
+    /** Formato brasileiro ({@code R$ 1.250,00}), o mesmo que o front usa (ex.: o troco nas observações). */
     static String formatMoney(BigDecimal value) {
-        return value == null ? "-" : "R$ " + value.setScale(2, RoundingMode.HALF_UP).toPlainString();
+        return value == null ? "-" : String.format(PT_BR, "R$ %,.2f", value.setScale(2, RoundingMode.HALF_UP));
     }
 
     private static String describeAccessories(List<Accessory> accessories) {

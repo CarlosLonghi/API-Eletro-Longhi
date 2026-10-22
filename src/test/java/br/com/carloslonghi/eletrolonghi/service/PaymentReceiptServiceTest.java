@@ -75,9 +75,16 @@ class PaymentReceiptServiceTest {
         assertThat(text)
                 .contains("Cliente 1", "11999990001", "cliente1@mail.com")
                 .contains("Marca 1 Modelo 1", "SERIAL-1", "Acessorio 1")
-                .contains("05/11/2026", "R$ 150.00", "R$ 100.00")
+                .contains("05/11/2026", "R$ 150,00", "R$ 100,00")
                 .contains("Troca da tela")
                 .contains("Assinatura do cliente");
+    }
+
+    @Test
+    void shouldFormatMoneyInBrazilianFormat() {
+        assertThat(PaymentReceiptService.formatMoney(new BigDecimal("1250.5"))).isEqualTo("R$ 1.250,50");
+        assertThat(PaymentReceiptService.formatMoney(new BigDecimal("80"))).isEqualTo("R$ 80,00");
+        assertThat(PaymentReceiptService.formatMoney(null)).isEqualTo("-");
     }
 
     @Test

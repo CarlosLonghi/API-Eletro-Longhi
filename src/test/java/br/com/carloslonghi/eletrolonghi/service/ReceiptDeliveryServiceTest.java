@@ -90,7 +90,7 @@ class ReceiptDeliveryServiceTest {
         verify(receiptMailer).send(eq("cliente1@mail.com"), subject.capture(), body.capture(),
                 eq("comprovante-1.pdf"), eq(pdf));
         assertThat(subject.getValue()).contains("OS nº 1", "Eletro Longhi");
-        assertThat(body.getValue()).contains("Cliente", "OS nº 1", "Marca 1 Modelo 1", "R$ 100.00");
+        assertThat(body.getValue()).contains("Cliente", "OS nº 1", "Marca 1 Modelo 1", "R$ 100,00");
         verify(paymentMetrics).receiptSent(PaymentMetrics.CHANNEL_EMAIL, true);
     }
 
@@ -164,7 +164,7 @@ class ReceiptDeliveryServiceTest {
         assertThat(link.phone()).isEqualTo("5511987654321");
         assertThat(link.message())
                 .startsWith("Olá, Maria! Aqui é da Eletro Longhi.")
-                .contains("*OS nº 1*", "Marca 1 Modelo 1", "R$ 100.00", "Aprovado em 22/10/2026", "90 dias, até 20/01/2027");
+                .contains("*OS nº 1*", "Marca 1 Modelo 1", "R$ 100,00", "Aprovado em 22/10/2026", "90 dias, até 20/01/2027");
         assertThat(link.url()).startsWith("https://wa.me/5511987654321?text=").doesNotContain(" ", "+");
         String decoded = URLDecoder.decode(link.url().substring(link.url().indexOf("=") + 1), StandardCharsets.UTF_8);
         assertThat(decoded).isEqualTo(link.message());
