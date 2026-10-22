@@ -4,7 +4,7 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 
 ## Build / run / test
 
-- Run locally: `./mvnw spring-boot:run` or the IDE — no active profile means `dev` (`spring.profiles.default`, `application-dev.properties`): `spring-boot-docker-compose` starts `db` + the `observability` profile (`start-only`, so stopping the app leaves the stack up), console logs stay plain text and an ECS JSON copy goes to `logs/eletrolonghi.log` for Alloy/Loki.
+- Run locally: `./mvnw spring-boot:run` or the IDE — no active profile means `dev` (`spring.profiles.default`, `application-dev.properties`): `spring-boot-docker-compose` starts `db` + the `observability` and `mail` profiles (`start-and-stop` with `stop.command=stop`, so stopping the app gracefully stops the stack and frees its ports — containers and volumes are kept; a `kill -9` skips the hook), console logs stay plain text and an ECS JSON copy goes to `logs/eletrolonghi.log` for Alloy/Loki.
 - Compile only: `./mvnw -q -DskipTests package` — always recompile after touching a `mapper/*.java` interface, since MapStruct generates the implementation at compile time.
 - Tests: `./mvnw test` (unit + Testcontainers-backed repository integration tests — needs a working Docker daemon).
 - `./mvnw verify` additionally runs JaCoCo `check` and **fails the build below `coverage.minimum` (0.80)** — run this before considering a change done.
