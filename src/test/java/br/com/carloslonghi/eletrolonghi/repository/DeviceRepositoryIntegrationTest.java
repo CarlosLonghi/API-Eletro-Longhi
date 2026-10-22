@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -91,5 +93,15 @@ class DeviceRepositoryIntegrationTest extends AbstractPostgresIntegrationTest {
                 .extracting(device -> device.getBrand().getId())
                 .containsExactly(brandB.getId(), brandA.getId());
     }
-}
 
+    @Test
+    void shouldRejectDuplicateSerialNumber() {
+        Brand brand = brandRepository.save(Brand.builder().name("Marca-Dup").build());
+        deviceRepository.saveAndFlush(Device.builder()
+                .model("Modelo A").serialNumber("SER-DUP").brand(brand).accessories(List.of()).build());
+
+        assertThatThrownBy(() -> deviceRepository.saveAndFlush(Device.builder()
+                .model("Modelo B").serialNumber("SER-DUP").brand(brand).accessories(List.of()).build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+}

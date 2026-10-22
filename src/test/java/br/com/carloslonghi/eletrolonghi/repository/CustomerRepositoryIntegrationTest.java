@@ -7,9 +7,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -32,5 +34,13 @@ class CustomerRepositoryIntegrationTest extends AbstractPostgresIntegrationTest 
         assertThat(customerRepository.findAll(CustomerSpecification.withFilters(null, "mail.com", "21"))).hasSize(1);
         assertThat(customerRepository.findAll(CustomerSpecification.withFilters(null, null, null))).hasSize(2);
     }
-}
 
+    @Test
+    void shouldRejectDuplicateEmail() {
+        customerRepository.saveAndFlush(Customer.builder().name("Ana").phone("11999990001").email("dup@mail.com").build());
+
+        assertThatThrownBy(() -> customerRepository.saveAndFlush(
+                Customer.builder().name("Outra Ana").phone("11999990002").email("dup@mail.com").build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+}
