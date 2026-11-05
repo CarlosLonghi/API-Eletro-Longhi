@@ -79,7 +79,7 @@ Expostas em `/actuator/prometheus` na porta de gerência (`management.server.por
 |---|---|---|
 | `eletrolonghi_repair_orders_opened_total` | — | `RepairOrderService.save` |
 | `eletrolonghi_repair_orders_status_changes_total` | `status` (destino) | `RepairOrderService.updateStatus` |
-| `eletrolonghi_repair_orders_by_status` (gauge) | `status` | contado no banco a cada coleta (`countByStatus`) |
+| `eletrolonghi_repair_orders_by_status` (gauge) | `status` | contado no banco numa única query agrupada (`countGroupedByStatus`), reaproveitada pelos 8 status da mesma coleta (snapshot de 5s) |
 | `eletrolonghi_payments_registered_total` | `method` | `PaymentService.save` |
 | `eletrolonghi_payments_status_changes_total` | `status` (destino) | `PaymentService.updateStatus` / `syncWithGateway` |
 | `eletrolonghi_payments_approved_amount_brl_{sum,count,max}` | `method` | quando o pagamento vira `APPROVED` |

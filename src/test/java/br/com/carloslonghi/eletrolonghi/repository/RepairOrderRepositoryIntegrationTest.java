@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 @SpringBootTest
 @Transactional
@@ -122,5 +123,29 @@ class RepairOrderRepositoryIntegrationTest extends AbstractPostgresIntegrationTe
         assertThat(repairOrderRepository.findAll(RepairOrderSpecification.withFilters(
                 null, PaymentStatus.PENDING, null, null, null, null), PageRequest.of(0, 10)).getContent()).isEmpty();
     }
-}
 
+    @Test
+    void shouldCountOrdersGroupedByStatusIgnoringSoftDeleted() {
+        Brand brand = brandRepository.save(Brand.builder().name("PHILIPS-TEST").build());
+        Customer customer = customerRepository.save(Customer.builder()
+                .name("Cliente 3").phone("11977").email("cliente3@mail.com").build());
+        RepairOrder deleted = null;
+        RepairOrderStatus[] statuses = {RepairOrderStatus.IN_REPAIR, RepairOrderStatus.IN_REPAIR,
+                RepairOrderStatus.APPROVED, RepairOrderStatus.APPROVED};
+        for (int i = 0; i < statuses.length; i++) {
+            Device device = deviceRepository.save(Device.builder()
+                    .model("TV").serialNumber("SER-30" + i).brand(brand).accessories(List.of()).build());
+            deleted = repairOrderRepository.save(RepairOrder.builder()
+                    .description("Ordem " + i).status(statuses[i]).customer(customer).device(device).build());
+        }
+        repairOrderRepository.delete(deleted);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(repairOrderRepository.countGroupedByStatus())
+                .extracting(RepairOrderRepository.StatusCount::getStatus, RepairOrderRepository.StatusCount::getTotal)
+                .containsExactlyInAnyOrder(
+                        tuple(RepairOrderStatus.IN_REPAIR, 2L),
+                        tuple(RepairOrderStatus.APPROVED, 1L));
+    }
+}
