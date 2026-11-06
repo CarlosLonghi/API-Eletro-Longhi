@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,16 +16,16 @@ public record RepairOrderResponse(
         Long id,
 
         @Schema(description = "Detalhes do serviço solicitado", example = "Tela trincada, não liga")
-        String description,
+        @Nullable String description,
 
         @Schema(description = "Estado atual do serviço", enumAsRef = true)
         RepairOrderStatus status,
 
         @Schema(description = "Valor estimado do serviço; null até ser definido via PATCH /repair-order/{id}/estimate", example = "350.00")
-        BigDecimal estimatedCost,
+        @Nullable BigDecimal estimatedCost,
 
         @Schema(description = "Data prevista de conclusão do reparo; null até ser definida via PATCH /repair-order/{id}/estimate", example = "2026-09-20")
-        LocalDate estimatedCompletionDate,
+        @Nullable LocalDate estimatedCompletionDate,
 
         @Schema(description = "Informações do cliente que solicitou o serviço")
         CustomerResponse customer,
@@ -33,9 +34,9 @@ public record RepairOrderResponse(
         DeviceResponse device,
 
         @Schema(description = "Situação do pagamento vinculado; null se a ordem ainda não tem pagamento", enumAsRef = true)
-        PaymentStatus paymentStatus,
+        @Nullable PaymentStatus paymentStatus,
 
         @Schema(description = "ID do pagamento vinculado; null se a ordem ainda não tem pagamento", example = "12")
-        Long paymentId
+        @Nullable Long paymentId
 ) {
 }

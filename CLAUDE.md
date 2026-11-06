@@ -13,6 +13,15 @@ Java 21 + Spring Boot 4.1 REST API for a device-repair shop: customers bring in 
 - DB must exist beforehand: `CREATE DATABASE eletrolonghi;` (or let docker compose provide it). Flyway applies pending migrations from `src/main/resources/db/migration` on startup.
 - Swagger UI: `/swagger-ui/index.html`. OpenAPI docs path: `/api/api-docs` (see `springdoc.*` in `application.properties`).
 
+## Contract with the desktop app
+
+The API's only client is the Electron desktop app at `../../React/eletrolonghi-desktop` (sibling repo, its own `CLAUDE.md`). It's shipped as an installed `.exe`, so **old clients keep running against a newer API** — contract changes must be additive.
+
+- `openapi/openapi.json` is the committed contract snapshot. `contract/OpenApiContractTest` regenerates the spec and fails when it drifts; after a deliberate contract change run `./mvnw test -Dtest=OpenApiContractTest -Dopenapi.update=true` and commit the file in the same PR.
+- `config/ResponseSchemaCustomizer` marks every `*Response` record component as `required` (Jackson serializes nulls, so the key is always present); components annotated with JSpecify `@Nullable` additionally accept `null` (`type: [T, "null"]`, or `oneOf [$ref, null]` for enums/objects), which the desktop sees as `T | null`. Put `@Nullable` on a response field that can come back `null` — `@Schema(nullable = true)` is dropped in OpenAPI 3.1 output.
+- CI job `contract` runs `oasdiff breaking` (`tufin/oasdiff` image) against the base branch's snapshot and fails on errors: removing/renaming a response field, making a request field required, changing types. Add new fields/endpoints instead, and only remove something once no installed client uses it.
+- After changing the contract, update the desktop in the same session: `npm run api:sync` (copies this snapshot and regenerates `src/renderer/types/openapi.d.ts`) then `npm run typecheck` there shows what broke.
+
 ## Commit convention
 
 - **Semantic commits** (Conventional Commits): `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`, `build:`, `ci:`. Keep the subject line imperative and concise.

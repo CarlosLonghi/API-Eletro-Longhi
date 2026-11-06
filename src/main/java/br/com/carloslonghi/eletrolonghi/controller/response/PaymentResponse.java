@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -27,25 +28,25 @@ public record PaymentResponse(
         Integer installments,
 
         @Schema(description = "Observações do pagamento", example = "Entrada do serviço")
-        String description,
+        @Nullable String description,
 
         @Schema(description = "Nome de quem pagou", example = "João da Silva")
-        String payerName,
+        @Nullable String payerName,
 
         @Schema(description = "CPF/CNPJ de quem pagou", example = "123.456.789-00")
-        String payerDocument,
+        @Nullable String payerDocument,
 
         @Schema(description = "Referência externa no gateway de pagamento (uso futuro)")
-        String externalReference,
+        @Nullable String externalReference,
 
         @Schema(description = "ID do pagamento no gateway (uso futuro)")
-        String gatewayPaymentId,
+        @Nullable String gatewayPaymentId,
 
         @Schema(description = "ID da ordem de reparo paga", example = "1")
         Long repairOrderId,
 
         @Schema(description = "Momento em que o pagamento foi aprovado")
-        LocalDateTime paidAt,
+        @Nullable LocalDateTime paidAt,
 
         @Schema(description = "Momento de criação do registro")
         LocalDateTime createdAt

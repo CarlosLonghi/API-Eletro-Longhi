@@ -14,7 +14,7 @@ public record DeviceResponse(
         @Schema(description = "Modelo do aparelho", example = "Galaxy S23")
         String model,
 
-        @Schema(description = "Número de série do aparelho", example = "SN-2024-00123", nullable = true)
+        @Schema(description = "Número de série do aparelho", example = "SN-2024-00123")
         String serialNumber,
 
         @Schema(description = "Informações da marca do aparelho")

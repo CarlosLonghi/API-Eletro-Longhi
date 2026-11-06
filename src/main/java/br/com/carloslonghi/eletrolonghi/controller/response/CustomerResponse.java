@@ -2,6 +2,7 @@ package br.com.carloslonghi.eletrolonghi.controller.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
+import org.jspecify.annotations.Nullable;
 
 @Schema(description = "Detalhes de um cliente retornado pela API")
 @Builder
@@ -16,6 +17,6 @@ public record CustomerResponse(
         String phone,
 
         @Schema(description = "E-mail do cliente", example = "joao.silva@email.com")
-        String email
+        @Nullable String email
 ) {
 }

@@ -1,0 +1,2886 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "contact" : {
+      "email" : "carloslonghi.cl@gmail.com",
+      "name" : "Carlos Longhi",
+      "url" : "https://carloslonghi.com.br/"
+    },
+    "description" : "API para sistema de gerenciamento de serviços de uma assistência técnica: cadastro de clientes, aparelhos, marcas, acessórios e acompanhamento de ordens de reparo.\n\nAutenticação: registre um usuário em POST /auth/register (ou peça a um admin) e faça login em POST /auth/login para obter o token JWT. Clique em \"Authorize\" acima e informe o token (sem o prefixo \"Bearer\") para autenticar as chamadas dos demais endpoints.",
+    "title" : "API Eletro Longhi",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8080",
+    "description" : "Generated server url"
+  } ],
+  "tags" : [ {
+    "description" : "Operações para gerenciar marcas dos dispositivos",
+    "name" : "Marca"
+  }, {
+    "description" : "Operações para registro e login de usuários",
+    "name" : "Autenticação"
+  }, {
+    "description" : "Operações administrativas de gerenciamento de usuários. Requer perfil ADMIN.",
+    "name" : "Usuário"
+  }, {
+    "description" : "Operações para gerenciar os pagamentos das ordens de reparo",
+    "name" : "Pagamento"
+  }, {
+    "description" : "Operações para gerenciar reparos",
+    "name" : "Reparo"
+  }, {
+    "description" : "Operações para gerenciar clientes",
+    "name" : "Cliente"
+  }, {
+    "description" : "Operações para gerenciar aparelhos",
+    "name" : "Aparelho"
+  }, {
+    "description" : "Operações para gerenciar acessórios dos dispositivos",
+    "name" : "Acessório"
+  } ],
+  "paths" : {
+    "/accessory" : {
+      "get" : {
+        "description" : "Retorna a lista completa de acessórios cadastrados",
+        "operationId" : "getAllAccessories",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AccessoryResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar todos os acessórios",
+        "tags" : [ "Acessório" ]
+      },
+      "post" : {
+        "description" : "Cria um novo acessório (ex: cabo, controle, etc.). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "createAccessory",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AccessoryRequest"
+              }
+            }
+          },
+          "description" : "Dados para cadastro do acessório",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccessoryResponse"
+                }
+              }
+            },
+            "description" : "Acessório criado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "409" : {
+            "description" : "Acessório já cadastrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cadastrar novo acessório",
+        "tags" : [ "Acessório" ]
+      }
+    },
+    "/accessory/{id}" : {
+      "delete" : {
+        "description" : "Remove um acessório do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "deleteAccessoryById",
+        "parameters" : [ {
+          "description" : "ID do acessório",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Acessório deletado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "404" : {
+            "description" : "Acessório não encontrado"
+          },
+          "409" : {
+            "description" : "Acessório não deletado, pois está relacionado a um aparelho"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Deletar acessório por ID",
+        "tags" : [ "Acessório" ]
+      },
+      "get" : {
+        "description" : "Retorna um único acessório identificado pelo seu ID",
+        "operationId" : "getAccessoryById",
+        "parameters" : [ {
+          "description" : "ID do acessório",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccessoryResponse"
+                }
+              }
+            },
+            "description" : "Acessório encontrado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Acessório não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar acessório por ID",
+        "tags" : [ "Acessório" ]
+      }
+    },
+    "/auth/login" : {
+      "post" : {
+        "description" : "Verifica email e senha; retorna JWT para autenticação se estiverem corretos",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "description" : "Dados para login do usuário",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description" : "Token retornado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Email e(ou) senha incorreto(s)"
+          },
+          "403" : {
+            "description" : "Conta aguardando ativação por um administrador"
+          },
+          "429" : {
+            "description" : "Muitas tentativas de login inválidas"
+          }
+        },
+        "summary" : "Realizar login do usuário",
+        "tags" : [ "Autenticação" ]
+      }
+    },
+    "/auth/logout" : {
+      "post" : {
+        "description" : "Revoga o refresh token informado, impedindo sua reutilização para gerar novos tokens de acesso",
+        "operationId" : "logout",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "description" : "Refresh token a ser revogado",
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "Logout realizado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          }
+        },
+        "summary" : "Encerrar sessão (logout)",
+        "tags" : [ "Autenticação" ]
+      }
+    },
+    "/auth/refresh" : {
+      "post" : {
+        "description" : "Gera um novo token JWT a partir de um refresh token válido, sem exigir novo login",
+        "operationId" : "refresh",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "description" : "Refresh token emitido no login",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description" : "Token renovado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Refresh token inválido, revogado ou expirado"
+          }
+        },
+        "summary" : "Renovar token de acesso",
+        "tags" : [ "Autenticação" ]
+      }
+    },
+    "/auth/register" : {
+      "post" : {
+        "description" : "Registra um novo usuário para acessar a aplicação",
+        "operationId" : "registerUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserRequest"
+              }
+            }
+          },
+          "description" : "Dados para cadastro do usuário",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "Usuário registrado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "409" : {
+            "description" : "Usuário já cadastrado"
+          }
+        },
+        "summary" : "Registrar novo usuário",
+        "tags" : [ "Autenticação" ]
+      }
+    },
+    "/brand" : {
+      "get" : {
+        "description" : "Retorna a lista completa de marcas cadastradas",
+        "operationId" : "getAllBrands",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BrandResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar todas as marcas",
+        "tags" : [ "Marca" ]
+      },
+      "post" : {
+        "description" : "Cria uma nova marca (ex: LG, Samsung, etc.). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "createBrand",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BrandRequest"
+              }
+            }
+          },
+          "description" : "Dados para cadastro da marca",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BrandResponse"
+                }
+              }
+            },
+            "description" : "Marca criada com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "409" : {
+            "description" : "Marca já cadastrada"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cadastrar nova marca",
+        "tags" : [ "Marca" ]
+      }
+    },
+    "/brand/{id}" : {
+      "delete" : {
+        "description" : "Remove uma marca do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "deleteBrandById",
+        "parameters" : [ {
+          "description" : "ID da marca",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Marca deletada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "404" : {
+            "description" : "Marca não encontrada"
+          },
+          "409" : {
+            "description" : "Marca não deletada, pois está relacionada a um aparelho"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Deletar marca por ID",
+        "tags" : [ "Marca" ]
+      },
+      "get" : {
+        "description" : "Retorna uma única marca identificada pelo seu ID",
+        "operationId" : "getBrandById",
+        "parameters" : [ {
+          "description" : "ID da marca",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BrandResponse"
+                }
+              }
+            },
+            "description" : "Marca encontrada"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Marca não encontrada"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar marca por ID",
+        "tags" : [ "Marca" ]
+      }
+    },
+    "/customer" : {
+      "get" : {
+        "description" : "Retorna a lista completa de clientes cadastrados",
+        "operationId" : "getAllCustomers",
+        "parameters" : [ {
+          "description" : "Filtro parcial por nome",
+          "in" : "query",
+          "name" : "name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro parcial por e-mail",
+          "in" : "query",
+          "name" : "email",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro parcial por telefone",
+          "in" : "query",
+          "name" : "phone",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Número da página (inicia em 0)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Quantidade de itens por página",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        }, {
+          "description" : "Campo para ordenação",
+          "in" : "query",
+          "name" : "sortBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "id"
+          }
+        }, {
+          "description" : "Direção da ordenação: asc ou desc",
+          "in" : "query",
+          "name" : "direction",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CustomerResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar todos os clientes",
+        "tags" : [ "Cliente" ]
+      },
+      "post" : {
+        "description" : "Cadastra novo cliente que pode ser vinculado ao serviço",
+        "operationId" : "createCustomer",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerRequest"
+              }
+            }
+          },
+          "description" : "Dados para cadastro de cliente",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "Cliente cadastrado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cadastrar novo Cliente",
+        "tags" : [ "Cliente" ]
+      }
+    },
+    "/customer/{id}" : {
+      "delete" : {
+        "description" : "Remove um cliente do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "deleteCustomerById",
+        "parameters" : [ {
+          "description" : "ID do cliente",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Cliente deletado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "404" : {
+            "description" : "Cliente não encontrado"
+          },
+          "409" : {
+            "description" : "Cliente não deletado, pois está relacionado a um serviço"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Deletar cliente por ID",
+        "tags" : [ "Cliente" ]
+      },
+      "get" : {
+        "description" : "Retorna um único cliente identificado pelo seu ID",
+        "operationId" : "getCustomerById",
+        "parameters" : [ {
+          "description" : "ID do cliente",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "Cliente encontrado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Cliente não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar cliente por ID",
+        "tags" : [ "Cliente" ]
+      },
+      "put" : {
+        "description" : "Atualiza os dados de um cliente pelo seu ID",
+        "operationId" : "updateCustomer",
+        "parameters" : [ {
+          "description" : "ID do cliente",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerRequest"
+              }
+            }
+          },
+          "description" : "Dados para atualizar um cliente",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "Cliente atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar um Cliente",
+        "tags" : [ "Cliente" ]
+      }
+    },
+    "/device" : {
+      "get" : {
+        "description" : "Retorna a lista completa de aparelhos cadastrados",
+        "operationId" : "getAllDevices",
+        "parameters" : [ {
+          "description" : "Filtro parcial por modelo",
+          "in" : "query",
+          "name" : "model",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro por ID da marca",
+          "in" : "query",
+          "name" : "brandId",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "Número da página (inicia em 0)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Quantidade de itens por página",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        }, {
+          "description" : "Campo para ordenação",
+          "in" : "query",
+          "name" : "sortBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "id"
+          }
+        }, {
+          "description" : "Direção da ordenação: asc ou desc",
+          "in" : "query",
+          "name" : "direction",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DeviceResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar todos os aparelhos",
+        "tags" : [ "Aparelho" ]
+      },
+      "post" : {
+        "description" : "Cadastra novo aparelho que pode ser vinculado ao serviço",
+        "operationId" : "createDevice",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceRequest"
+              }
+            }
+          },
+          "description" : "Dados para cadastro de aparelho",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceResponse"
+                }
+              }
+            },
+            "description" : "Aparelho cadastrado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Marca ou acessório referenciado não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cadastrar novo Aparelho",
+        "tags" : [ "Aparelho" ]
+      }
+    },
+    "/device/serial-number" : {
+      "get" : {
+        "description" : "Retorna um único aparelho identificado pelo número de série",
+        "operationId" : "getDeviceBySerialNumber",
+        "parameters" : [ {
+          "description" : "Número de série do aparelho",
+          "in" : "query",
+          "name" : "serialNumber",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceResponse"
+                }
+              }
+            },
+            "description" : "Aparelho encontrado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Aparelho não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar aparelho por número de série",
+        "tags" : [ "Aparelho" ]
+      }
+    },
+    "/device/{id}" : {
+      "delete" : {
+        "description" : "Remove um aparelho do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "deleteDeviceById",
+        "parameters" : [ {
+          "description" : "ID do aparelho",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Aparelho deletado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "404" : {
+            "description" : "Aparelho não encontrado"
+          },
+          "409" : {
+            "description" : "Aparelho não deletado, pois está relacionado a um serviço"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Deletar aparelho por ID",
+        "tags" : [ "Aparelho" ]
+      },
+      "get" : {
+        "description" : "Retorna um único aparelho identificado pelo seu ID",
+        "operationId" : "getDeviceById",
+        "parameters" : [ {
+          "description" : "ID do aparelho",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceResponse"
+                }
+              }
+            },
+            "description" : "Aparelho encontrado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Aparelho não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar aparelho por ID",
+        "tags" : [ "Aparelho" ]
+      },
+      "put" : {
+        "description" : "Atualiza os dados de um aparelho pelo seu ID",
+        "operationId" : "updateDevice",
+        "parameters" : [ {
+          "description" : "ID do aparelho",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceRequest"
+              }
+            }
+          },
+          "description" : "Dados para atualizar um aparelho",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceResponse"
+                }
+              }
+            },
+            "description" : "Aparelho atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Aparelho, marca ou acessório referenciado não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar um Aparelho",
+        "tags" : [ "Aparelho" ]
+      }
+    },
+    "/payment" : {
+      "get" : {
+        "description" : "Retorna os pagamentos cadastrados, paginados e filtráveis",
+        "operationId" : "getAllPayments",
+        "parameters" : [ {
+          "description" : "Filtro por situação do pagamento",
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "APPROVED", "REJECTED", "REFUNDED", "CANCELLED" ]
+          }
+        }, {
+          "description" : "Filtro por forma de pagamento",
+          "in" : "query",
+          "name" : "method",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "CASH", "CARD", "PIX", "BOLETO", "MERCADO_PAGO_CHECKOUT" ]
+          }
+        }, {
+          "description" : "Filtro por ID da ordem de reparo",
+          "in" : "query",
+          "name" : "repairOrderId",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "Data inicial de criação (ISO-8601)",
+          "in" : "query",
+          "name" : "createdFrom",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "description" : "Data final de criação (ISO-8601)",
+          "in" : "query",
+          "name" : "createdTo",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "description" : "Número da página (inicia em 0)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Quantidade de itens por página",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        }, {
+          "description" : "Campo para ordenação",
+          "in" : "query",
+          "name" : "sortBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "id"
+          }
+        }, {
+          "description" : "Direção da ordenação: asc ou desc",
+          "in" : "query",
+          "name" : "direction",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PaymentResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar pagamentos",
+        "tags" : [ "Pagamento" ]
+      },
+      "post" : {
+        "description" : "Registra o pagamento de uma ordem de reparo. A ordem precisa estar ao menos com o orçamento aprovado (status APPROVED ou posterior) e cada ordem admite apenas um pagamento.",
+        "operationId" : "createPayment",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentRequest"
+              }
+            }
+          },
+          "description" : "Dados para registrar o pagamento",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentResponse"
+                }
+              }
+            },
+            "description" : "Pagamento registrado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Ordem de reparo referenciada não encontrada"
+          },
+          "422" : {
+            "description" : "A ordem de reparo já possui um pagamento registrado, ou ainda não teve o orçamento aprovado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Registrar novo pagamento",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}" : {
+      "delete" : {
+        "description" : "Remove um pagamento do sistema pelo seu ID. Diferente dos outros recursos, esta é uma remoção física (o pagamento é 1:1 com a ordem e não usa soft delete). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "deletePaymentById",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Pagamento deletado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Deletar pagamento por ID",
+        "tags" : [ "Pagamento" ]
+      },
+      "get" : {
+        "description" : "Retorna um único pagamento identificado pelo seu ID",
+        "operationId" : "getPaymentById",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentResponse"
+                }
+              }
+            },
+            "description" : "Pagamento encontrado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar pagamento por ID",
+        "tags" : [ "Pagamento" ]
+      },
+      "put" : {
+        "description" : "Atualiza os dados de um pagamento pelo seu ID (não altera a ordem vinculada)",
+        "operationId" : "updatePayment",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentRequest"
+              }
+            }
+          },
+          "description" : "Dados para atualizar o pagamento",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentResponse"
+                }
+              }
+            },
+            "description" : "Pagamento atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar um pagamento",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}/checkout" : {
+      "post" : {
+        "description" : "Cria uma preferência no Mercado Pago e devolve o link (init_point) para o cliente pagar. Requer um pagamento pendente com forma MERCADO_PAGO_CHECKOUT. A preferência já leva os dados do pagador (nome, e-mail do cliente e CPF/CNPJ quando informado) para facilitar o Pix.",
+        "operationId" : "createCheckoutLink",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CheckoutLinkResponse"
+                }
+              }
+            },
+            "description" : "Link gerado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          },
+          "422" : {
+            "description" : "Pagamento não é MERCADO_PAGO_CHECKOUT ou não está pendente"
+          },
+          "502" : {
+            "description" : "Falha ao se comunicar com o Mercado Pago"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Gerar link de pagamento (Checkout Pro)",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}/receipt" : {
+      "get" : {
+        "description" : "Retorna o comprovante não-fiscal (serviço e pagamento) em PDF, em uma página: pagamento, cliente, ordem de serviço, aparelho com acessórios, garantia (pagamento aprovado) e assinatura de retirada.",
+        "operationId" : "getPaymentReceipt",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/pdf" : { }
+            },
+            "description" : "Comprovante gerado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Emitir o comprovante de serviço",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}/receipt/email" : {
+      "post" : {
+        "description" : "Envia o comprovante em PDF (anexo) para o e-mail já cadastrado do cliente da ordem de reparo.",
+        "operationId" : "sendPaymentReceiptByEmail",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "E-mail enviado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          },
+          "422" : {
+            "description" : "Cliente sem e-mail cadastrado"
+          },
+          "502" : {
+            "description" : "Falha ao enviar o e-mail (servidor SMTP)"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Enviar o comprovante por e-mail",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}/receipt/whatsapp" : {
+      "get" : {
+        "description" : "Monta um link wa.me para o telefone cadastrado do cliente com a mensagem do comprovante já preenchida (OS, aparelho, valor, garantia). Não envia nada: abrir o link inicia a conversa e o PDF (GET /payment/{id}/receipt) é anexado por quem envia.",
+        "operationId" : "getPaymentReceiptWhatsAppLink",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WhatsAppShareResponse"
+                }
+              }
+            },
+            "description" : "Link gerado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          },
+          "422" : {
+            "description" : "Cliente sem telefone válido para WhatsApp"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Gerar link do WhatsApp para o comprovante",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}/status" : {
+      "patch" : {
+        "description" : "Atualiza apenas a situação do pagamento. Ao mudar para APPROVED, o campo paidAt é preenchido; o status da ordem de reparo não é alterado, mas a listagem de reparos passa a expor o pagamento como aprovado (paymentStatus).",
+        "operationId" : "updatePaymentStatus",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentStatusUpdateRequest"
+              }
+            }
+          },
+          "description" : "Nova situação do pagamento",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentResponse"
+                }
+              }
+            },
+            "description" : "Situação atualizada com sucesso"
+          },
+          "400" : {
+            "description" : "Situação inválida ou ausente"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar a situação de um pagamento",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/payment/{id}/sync" : {
+      "post" : {
+        "description" : "Consulta a situação do pagamento no Mercado Pago pelo external_reference e atualiza o status local (polling). Aprovar preenche paidAt; o status da ordem de reparo não é alterado.",
+        "operationId" : "syncPayment",
+        "parameters" : [ {
+          "description" : "ID do pagamento",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentResponse"
+                }
+              }
+            },
+            "description" : "Pagamento conciliado (pode não ter mudado)"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Pagamento não encontrado"
+          },
+          "422" : {
+            "description" : "Pagamento não possui link do Checkout Pro"
+          },
+          "502" : {
+            "description" : "Falha ao se comunicar com o Mercado Pago"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Conciliar o pagamento com o Mercado Pago",
+        "tags" : [ "Pagamento" ]
+      }
+    },
+    "/repair-order" : {
+      "get" : {
+        "description" : "Retorna a lista completa de reparos cadastrados",
+        "operationId" : "getAllRepairOrders",
+        "parameters" : [ {
+          "description" : "Filtro por status do reparo",
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "AWAITING_EVALUATION", "IN_EVALUATION", "AWAITING_APPROVAL", "APPROVED", "AWAITING_PARTS", "IN_REPAIR", "REPAIR_COMPLETED", "DEVICE_COLLECTED" ]
+          }
+        }, {
+          "description" : "Filtro pela situação do pagamento vinculado",
+          "in" : "query",
+          "name" : "paymentStatus",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "APPROVED", "REJECTED", "REFUNDED", "CANCELLED" ]
+          }
+        }, {
+          "description" : "Filtro por ID do cliente",
+          "in" : "query",
+          "name" : "customerId",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "Filtro por ID do aparelho",
+          "in" : "query",
+          "name" : "deviceId",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "Data inicial de criação (ISO-8601)",
+          "in" : "query",
+          "name" : "createdFrom",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "description" : "Data final de criação (ISO-8601)",
+          "in" : "query",
+          "name" : "createdTo",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "description" : "Número da página (inicia em 0)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Quantidade de itens por página",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        }, {
+          "description" : "Campo para ordenação",
+          "in" : "query",
+          "name" : "sortBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "id"
+          }
+        }, {
+          "description" : "Direção da ordenação: asc ou desc",
+          "in" : "query",
+          "name" : "direction",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RepairOrderResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar todos os reparos",
+        "tags" : [ "Reparo" ]
+      },
+      "post" : {
+        "description" : "Cadastra novo reparo",
+        "operationId" : "createRepairOrder",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RepairOrderRequest"
+              }
+            }
+          },
+          "description" : "Dados para cadastro de reparo",
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RepairOrderResponse"
+                }
+              }
+            },
+            "description" : "Reparo cadastrado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Cliente ou aparelho referenciado não encontrado"
+          },
+          "422" : {
+            "description" : "Aparelho já possui uma ordem de reparo ativa. A ordem anterior deve estar com status DEVICE_COLLECTED para criar uma nova."
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Cadastrar novo Reparo",
+        "tags" : [ "Reparo" ]
+      }
+    },
+    "/repair-order/{id}" : {
+      "delete" : {
+        "description" : "Remove um reparo do sistema pelo seu ID. É um soft delete (o registro deixa de aparecer nas consultas, mas é preservado). Requer perfil ADMIN ou GERENTE.",
+        "operationId" : "deleteRepairOrderById",
+        "parameters" : [ {
+          "description" : "ID do reparo",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Reparo deletado com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN ou GERENTE"
+          },
+          "404" : {
+            "description" : "Reparo não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Deletar reparo por ID",
+        "tags" : [ "Reparo" ]
+      },
+      "get" : {
+        "description" : "Retorna um único reparo identificado pelo seu ID",
+        "operationId" : "getRepairOrderById",
+        "parameters" : [ {
+          "description" : "ID do reparo",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RepairOrderResponse"
+                }
+              }
+            },
+            "description" : "Reparo encontrado"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Reparo não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Buscar reparo por ID",
+        "tags" : [ "Reparo" ]
+      },
+      "put" : {
+        "description" : "Atualiza os dados de um reparo (descrição, cliente, aparelho) pelo seu ID. O campo 'status' do corpo é ignorado aqui — só o endpoint PATCH /repair-order/{id}/status muda o status do serviço. Requer perfil ADMIN, GERENTE ou ATENDENTE.",
+        "operationId" : "updateRepairOrder",
+        "parameters" : [ {
+          "description" : "ID do reparo",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RepairOrderRequest"
+              }
+            }
+          },
+          "description" : "Dados para atualizar um reparo",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RepairOrderResponse"
+                }
+              }
+            },
+            "description" : "Reparo atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Reparo, cliente ou aparelho referenciado não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar um Reparo",
+        "tags" : [ "Reparo" ]
+      }
+    },
+    "/repair-order/{id}/estimate" : {
+      "patch" : {
+        "description" : "Define o custo e a data prevista de conclusão estimados para o reparo, normalmente preenchidos ao final da avaliação técnica. É pré-requisito para a ordem sair de IN_EVALUATION e entrar em AWAITING_APPROVAL (PATCH /repair-order/{id}/status).",
+        "operationId" : "updateRepairOrderEstimate",
+        "parameters" : [ {
+          "description" : "ID do reparo",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RepairOrderEstimateRequest"
+              }
+            }
+          },
+          "description" : "Custo e prazo estimados do reparo",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RepairOrderResponse"
+                }
+              }
+            },
+            "description" : "Estimativa atualizada com sucesso"
+          },
+          "400" : {
+            "description" : "Dados da request inválidos"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado"
+          },
+          "404" : {
+            "description" : "Reparo não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Definir custo e prazo estimados do Reparo",
+        "tags" : [ "Reparo" ]
+      }
+    },
+    "/repair-order/{id}/status" : {
+      "patch" : {
+        "description" : "Atualiza apenas o status de andamento de um reparo pelo seu ID. É a única forma de mudar o status do serviço. Perfis GERENTE e ADMIN fazem qualquer transição. TECNICO conduz o fluxo de oficina, mas não pode marcar DEVICE_COLLECTED (aparelho retirado pelo cliente). ATENDENTE só atua nessa etapa final, marcando DEVICE_COLLECTED — as demais transições são exclusivas de TECNICO/gestão.",
+        "operationId" : "updateRepairOrderStatus",
+        "parameters" : [ {
+          "description" : "ID do reparo",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RepairOrderStatusUpdateRequest"
+              }
+            }
+          },
+          "description" : "Novo status do reparo",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RepairOrderResponse"
+                }
+              }
+            },
+            "description" : "Status atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Status inválido ou ausente"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado, ou papel não pode realizar essa transição específica (TECNICO tentando DEVICE_COLLECTED, ou ATENDENTE tentando qualquer transição que não seja DEVICE_COLLECTED)"
+          },
+          "404" : {
+            "description" : "Reparo não encontrado"
+          },
+          "422" : {
+            "description" : "Transição de status inválida (mais de uma etapa por vez), tentativa de ir para DEVICE_COLLECTED sem um pagamento aprovado vinculado, ou tentativa de ir para AWAITING_APPROVAL sem custo e prazo estimados definidos (ver PATCH /repair-order/{id}/estimate)"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar status do Reparo",
+        "tags" : [ "Reparo" ]
+      }
+    },
+    "/user" : {
+      "get" : {
+        "description" : "Retorna a lista paginada de usuários cadastrados. Requer perfil ADMIN.",
+        "operationId" : "getAllUsers",
+        "parameters" : [ {
+          "description" : "Filtro parcial por nome",
+          "in" : "query",
+          "name" : "name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro parcial por e-mail",
+          "in" : "query",
+          "name" : "email",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro por papel",
+          "in" : "query",
+          "name" : "role",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ADMIN", "GERENTE", "ATENDENTE", "TECNICO", "PENDENTE" ]
+          }
+        }, {
+          "description" : "Filtro por status habilitado/suspenso",
+          "in" : "query",
+          "name" : "enabled",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Número da página (inicia em 0)",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Quantidade de itens por página",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        }, {
+          "description" : "Campo para ordenação",
+          "in" : "query",
+          "name" : "sortBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "id"
+          }
+        }, {
+          "description" : "Direção da ordenação: asc ou desc",
+          "in" : "query",
+          "name" : "direction",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/UserResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Lista retornada com sucesso"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Listar todos os usuários",
+        "tags" : [ "Usuário" ]
+      }
+    },
+    "/user/{id}/role" : {
+      "patch" : {
+        "description" : "Atualiza apenas o papel (role) de um usuário pelo seu ID. Requer perfil ADMIN.",
+        "operationId" : "updateUserRole",
+        "parameters" : [ {
+          "description" : "ID do usuário",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserRoleUpdateRequest"
+              }
+            }
+          },
+          "description" : "Novo papel do usuário",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "Papel atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Papel inválido ou ausente"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN"
+          },
+          "404" : {
+            "description" : "Usuário não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar papel do usuário",
+        "tags" : [ "Usuário" ]
+      }
+    },
+    "/user/{id}/status" : {
+      "patch" : {
+        "description" : "Habilita ou suspende o acesso de um usuário pelo seu ID. Requer perfil ADMIN. A suspensão passa a valer no próximo login/refresh; um access token já emitido continua válido até expirar.",
+        "operationId" : "updateUserStatus",
+        "parameters" : [ {
+          "description" : "ID do usuário",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserStatusUpdateRequest"
+              }
+            }
+          },
+          "description" : "Novo status do usuário",
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "Status atualizado com sucesso"
+          },
+          "400" : {
+            "description" : "Campo enabled inválido ou ausente"
+          },
+          "401" : {
+            "description" : "Token de autenticação ausente, inválido ou expirado"
+          },
+          "403" : {
+            "description" : "Não autorizado — requer perfil ADMIN"
+          },
+          "404" : {
+            "description" : "Usuário não encontrado"
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ],
+        "summary" : "Atualizar status do usuário",
+        "tags" : [ "Usuário" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "AccessoryRequest" : {
+        "type" : "object",
+        "description" : "Dados para criar ou atualizar um acessório",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "description" : "Nome do acessório",
+            "example" : "Controle remoto",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "name" ]
+      },
+      "AccessoryResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de um acessório retornado pela API",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único do acessório",
+            "example" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Nome do acessório",
+            "example" : "Controle remoto"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "BrandRequest" : {
+        "type" : "object",
+        "description" : "Dados para criar ou atualizar uma marca",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "description" : "Nome da marca",
+            "example" : "Samsung",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "name" ]
+      },
+      "BrandResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de uma marca retornada pela API",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único da marca",
+            "example" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Nome da marca",
+            "example" : "Samsung"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "CheckoutLinkResponse" : {
+        "type" : "object",
+        "description" : "Link de pagamento do Checkout Pro gerado para um pagamento",
+        "properties" : {
+          "initPoint" : {
+            "type" : "string",
+            "description" : "URL do checkout hospedado do Mercado Pago (enviar ao cliente)",
+            "example" : "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=..."
+          }
+        },
+        "required" : [ "initPoint" ]
+      },
+      "CustomerRequest" : {
+        "type" : "object",
+        "description" : "Dados para criar ou atualizar um cliente",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "description" : "E-mail do cliente",
+            "example" : "joao.silva@email.com"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Nome do cliente",
+            "example" : "João da Silva",
+            "minLength" : 1
+          },
+          "phone" : {
+            "type" : "string",
+            "description" : "Telefone do cliente",
+            "example" : "(11) 91234-5678",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "name", "phone" ]
+      },
+      "CustomerResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de um cliente retornado pela API",
+        "properties" : {
+          "email" : {
+            "type" : [ "string", "null" ],
+            "description" : "E-mail do cliente",
+            "example" : "joao.silva@email.com"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único do cliente",
+            "example" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Nome do cliente",
+            "example" : "João da Silva"
+          },
+          "phone" : {
+            "type" : "string",
+            "description" : "Telefone do cliente",
+            "example" : "(11) 91234-5678"
+          }
+        },
+        "required" : [ "email", "id", "name", "phone" ]
+      },
+      "DeviceRequest" : {
+        "type" : "object",
+        "description" : "Dados para criar ou atualizar um aparelho",
+        "properties" : {
+          "accessories" : {
+            "type" : "array",
+            "description" : "Lista de IDs dos acessórios do aparelho",
+            "example" : [ 1, 2 ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "brand" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "ID da marca do aparelho",
+            "example" : 1
+          },
+          "model" : {
+            "type" : "string",
+            "description" : "Modelo do aparelho",
+            "example" : "Galaxy S23",
+            "minLength" : 1
+          },
+          "serialNumber" : {
+            "type" : "string",
+            "description" : "Número de série do aparelho",
+            "example" : "SN-2024-00123",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "accessories", "brand", "model", "serialNumber" ]
+      },
+      "DeviceResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de um aparelho retornado pela API",
+        "properties" : {
+          "accessories" : {
+            "type" : "array",
+            "description" : "Lista de acessórios do aparelho",
+            "items" : {
+              "$ref" : "#/components/schemas/AccessoryResponse"
+            }
+          },
+          "brand" : {
+            "$ref" : "#/components/schemas/BrandResponse",
+            "description" : "Informações da marca do aparelho"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único do aparelho",
+            "example" : 1
+          },
+          "model" : {
+            "type" : "string",
+            "description" : "Modelo do aparelho",
+            "example" : "Galaxy S23"
+          },
+          "serialNumber" : {
+            "type" : "string",
+            "description" : "Número de série do aparelho",
+            "example" : "SN-2024-00123"
+          }
+        },
+        "required" : [ "accessories", "brand", "id", "model", "serialNumber" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "description" : "Credenciais para autenticação de usuário",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "description" : "Endereço de e-mail do usuário",
+            "example" : "maria.souza@email.com",
+            "minLength" : 1
+          },
+          "password" : {
+            "type" : "string",
+            "description" : "Senha do usuário",
+            "example" : "SenhaForte123",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "LoginResponse" : {
+        "type" : "object",
+        "description" : "Token de autenticação retornado após login",
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string",
+            "description" : "Refresh token usado para obter um novo token JWT sem novo login",
+            "example" : "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "token" : {
+            "type" : "string",
+            "description" : "Token JWT para autenticação",
+            "example" : "eyJhbGciOiJIUzI1NiJ9..."
+          }
+        },
+        "required" : [ "refreshToken", "token" ]
+      },
+      "PaymentMethod" : {
+        "type" : "string",
+        "enum" : [ "CASH", "CARD", "PIX", "BOLETO", "MERCADO_PAGO_CHECKOUT" ]
+      },
+      "PaymentRequest" : {
+        "type" : "object",
+        "description" : "Dados para registrar ou atualizar um pagamento",
+        "properties" : {
+          "amount" : {
+            "type" : "number",
+            "description" : "Valor pago",
+            "example" : 350.0
+          },
+          "description" : {
+            "type" : "string",
+            "description" : "Observações do pagamento",
+            "example" : "Entrada do serviço"
+          },
+          "installments" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Número de parcelas (apenas para cartão); ignorado nas demais formas",
+            "example" : 3,
+            "maximum" : 18,
+            "minimum" : 1
+          },
+          "method" : {
+            "$ref" : "#/components/schemas/PaymentMethod",
+            "description" : "Forma de pagamento"
+          },
+          "payerDocument" : {
+            "type" : "string",
+            "description" : "CPF/CNPJ de quem pagou (impresso no recibo)",
+            "example" : "123.456.789-00",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "payerName" : {
+            "type" : "string",
+            "description" : "Nome de quem pagou (impresso no recibo)",
+            "example" : "João da Silva",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "repairOrder" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "ID da ordem de reparo paga",
+            "example" : 1
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/PaymentStatus",
+            "description" : "Situação do pagamento; assume PENDING quando ausente"
+          }
+        },
+        "required" : [ "amount", "method", "repairOrder" ]
+      },
+      "PaymentResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de um pagamento retornado pela API",
+        "properties" : {
+          "amount" : {
+            "type" : "number",
+            "description" : "Valor pago",
+            "example" : 350.0
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Momento de criação do registro"
+          },
+          "description" : {
+            "type" : [ "string", "null" ],
+            "description" : "Observações do pagamento",
+            "example" : "Entrada do serviço"
+          },
+          "externalReference" : {
+            "type" : [ "string", "null" ],
+            "description" : "Referência externa no gateway de pagamento (uso futuro)"
+          },
+          "gatewayPaymentId" : {
+            "type" : [ "string", "null" ],
+            "description" : "ID do pagamento no gateway (uso futuro)"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único do pagamento",
+            "example" : 1
+          },
+          "installments" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Número de parcelas",
+            "example" : 3
+          },
+          "method" : {
+            "$ref" : "#/components/schemas/PaymentMethod",
+            "description" : "Forma de pagamento"
+          },
+          "paidAt" : {
+            "type" : [ "string", "null" ],
+            "format" : "date-time",
+            "description" : "Momento em que o pagamento foi aprovado"
+          },
+          "payerDocument" : {
+            "type" : [ "string", "null" ],
+            "description" : "CPF/CNPJ de quem pagou",
+            "example" : "123.456.789-00"
+          },
+          "payerName" : {
+            "type" : [ "string", "null" ],
+            "description" : "Nome de quem pagou",
+            "example" : "João da Silva"
+          },
+          "repairOrderId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "ID da ordem de reparo paga",
+            "example" : 1
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/PaymentStatus",
+            "description" : "Situação do pagamento"
+          }
+        },
+        "required" : [ "amount", "createdAt", "description", "externalReference", "gatewayPaymentId", "id", "installments", "method", "paidAt", "payerDocument", "payerName", "repairOrderId", "status" ]
+      },
+      "PaymentStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "APPROVED", "REJECTED", "REFUNDED", "CANCELLED" ]
+      },
+      "PaymentStatusUpdateRequest" : {
+        "type" : "object",
+        "description" : "Dados para atualizar a situação de um pagamento",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/PaymentStatus",
+            "description" : "Nova situação do pagamento"
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "RefreshTokenRequest" : {
+        "type" : "object",
+        "description" : "Requisição para renovar o token de acesso usando um refresh token",
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string",
+            "description" : "Refresh token emitido no login",
+            "example" : "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "refreshToken" ]
+      },
+      "RepairOrderEstimateRequest" : {
+        "type" : "object",
+        "description" : "Custo e prazo estimados de uma ordem de reparo",
+        "properties" : {
+          "estimatedCompletionDate" : {
+            "type" : "string",
+            "format" : "date",
+            "description" : "Data prevista de conclusão do reparo",
+            "example" : "2026-09-20"
+          },
+          "estimatedCost" : {
+            "type" : "number",
+            "description" : "Valor estimado do serviço",
+            "example" : 350.0
+          }
+        },
+        "required" : [ "estimatedCompletionDate", "estimatedCost" ]
+      },
+      "RepairOrderRequest" : {
+        "type" : "object",
+        "description" : "Dados para criar ou atualizar um serviço de reparo",
+        "properties" : {
+          "customer" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "ID do cliente que solicitou o serviço",
+            "example" : 1
+          },
+          "description" : {
+            "type" : "string",
+            "description" : "Detalhes do serviço solicitado",
+            "example" : "Tela trincada, não liga"
+          },
+          "device" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "ID do aparelho para o serviço",
+            "example" : 1
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/RepairOrderStatus",
+            "description" : "Estado atual do serviço"
+          }
+        },
+        "required" : [ "customer", "device", "status" ]
+      },
+      "RepairOrderResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de uma ordem de reparo retornada pela API",
+        "properties" : {
+          "customer" : {
+            "$ref" : "#/components/schemas/CustomerResponse",
+            "description" : "Informações do cliente que solicitou o serviço"
+          },
+          "description" : {
+            "type" : [ "string", "null" ],
+            "description" : "Detalhes do serviço solicitado",
+            "example" : "Tela trincada, não liga"
+          },
+          "device" : {
+            "$ref" : "#/components/schemas/DeviceResponse",
+            "description" : "Informações do aparelho do serviço"
+          },
+          "estimatedCompletionDate" : {
+            "type" : [ "string", "null" ],
+            "format" : "date",
+            "description" : "Data prevista de conclusão do reparo; null até ser definida via PATCH /repair-order/{id}/estimate",
+            "example" : "2026-09-20"
+          },
+          "estimatedCost" : {
+            "type" : [ "number", "null" ],
+            "description" : "Valor estimado do serviço; null até ser definido via PATCH /repair-order/{id}/estimate",
+            "example" : 350.0
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único da ordem de reparo",
+            "example" : 1
+          },
+          "paymentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64",
+            "description" : "ID do pagamento vinculado; null se a ordem ainda não tem pagamento",
+            "example" : 12
+          },
+          "paymentStatus" : {
+            "description" : "Situação do pagamento vinculado; null se a ordem ainda não tem pagamento",
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/PaymentStatus"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/RepairOrderStatus",
+            "description" : "Estado atual do serviço"
+          }
+        },
+        "required" : [ "customer", "description", "device", "estimatedCompletionDate", "estimatedCost", "id", "paymentId", "paymentStatus", "status" ]
+      },
+      "RepairOrderStatus" : {
+        "type" : "string",
+        "enum" : [ "AWAITING_EVALUATION", "IN_EVALUATION", "AWAITING_APPROVAL", "APPROVED", "AWAITING_PARTS", "IN_REPAIR", "REPAIR_COMPLETED", "DEVICE_COLLECTED" ]
+      },
+      "RepairOrderStatusUpdateRequest" : {
+        "type" : "object",
+        "description" : "Dados para atualizar o status de uma ordem de reparo",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/RepairOrderStatus",
+            "description" : "Novo estado do serviço"
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "Role" : {
+        "type" : "string",
+        "enum" : [ "ADMIN", "GERENTE", "ATENDENTE", "TECNICO", "PENDENTE" ]
+      },
+      "UserRequest" : {
+        "type" : "object",
+        "description" : "Dados para criar ou atualizar um usuário",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "description" : "E-mail do usuário",
+            "example" : "maria.souza@email.com",
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Nome do usuário",
+            "example" : "Maria Souza",
+            "minLength" : 1
+          },
+          "password" : {
+            "type" : "string",
+            "description" : "Senha do usuário",
+            "example" : "SenhaForte123",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email", "name", "password" ]
+      },
+      "UserResponse" : {
+        "type" : "object",
+        "description" : "Detalhes de um usuário retornado pela API",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "description" : "E-mail do usuário",
+            "example" : "maria.souza@email.com"
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "description" : "Indica se o usuário está habilitado a acessar o sistema",
+            "example" : true
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Identificador único do usuário",
+            "example" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Nome do usuário",
+            "example" : "Maria Souza"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "Papel do usuário na aplicação",
+            "enum" : [ "ADMIN", "GERENTE", "ATENDENTE", "TECNICO", "PENDENTE" ]
+          }
+        },
+        "required" : [ "email", "enabled", "id", "name", "role" ]
+      },
+      "UserRoleUpdateRequest" : {
+        "type" : "object",
+        "description" : "Dados para atualizar o papel (role) de um usuário",
+        "properties" : {
+          "role" : {
+            "$ref" : "#/components/schemas/Role",
+            "description" : "Novo papel do usuário"
+          }
+        },
+        "required" : [ "role" ]
+      },
+      "UserStatusUpdateRequest" : {
+        "type" : "object",
+        "description" : "Dados para ativar/suspender o acesso de um usuário",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean",
+            "description" : "true para habilitar o acesso, false para suspender",
+            "example" : true
+          }
+        },
+        "required" : [ "enabled" ]
+      },
+      "WhatsAppShareResponse" : {
+        "type" : "object",
+        "description" : "Link do WhatsApp (wa.me) com a mensagem do comprovante pronta para o cliente",
+        "properties" : {
+          "message" : {
+            "type" : "string",
+            "description" : "Mensagem que será preenchida na conversa"
+          },
+          "phone" : {
+            "type" : "string",
+            "description" : "Telefone do cliente no formato do WhatsApp (DDI + DDD + número)",
+            "example" : 5511987654321
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "Link que abre a conversa com a mensagem preenchida",
+            "example" : "https://wa.me/5511987654321?text=Ol%C3%A1%2C%20Maria..."
+          }
+        },
+        "required" : [ "message", "phone", "url" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  }
+}
