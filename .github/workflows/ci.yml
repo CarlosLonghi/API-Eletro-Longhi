@@ -43,6 +43,30 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Contrato com o app desktop: o .exe instalado no cliente não atualiza junto com a API, então o PR não
+  # pode quebrar o openapi/openapi.json da base (campo removido, tipo trocado, parâmetro novo obrigatório...).
+  # Mudanças aditivas passam. O snapshot em si é mantido em dia pelo OpenApiContractTest (job test).
+  contract:
+    name: contract
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Breaking changes no contrato OpenAPI
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if ! git show "origin/$BASE_REF:openapi/openapi.json" > /tmp/base-openapi.json 2>/dev/null; then
+            echo "::notice::openapi/openapi.json ainda não existe em $BASE_REF; nada para comparar"
+            exit 0
+          fi
+          docker run --rm -v /tmp:/base -v "$PWD/openapi:/head" tufin/oasdiff:v1.34.1 \
+            breaking /base/base-openapi.json /head/openapi.json --fail-on ERR --format githubactions
+
   # Stack de observabilidade (docs/observabilidade.md): configs válidas, Grafana provisionado e,
   # ponta a ponta, um log da API chegando ao Loki com a métrica de login no Prometheus
   observability:
