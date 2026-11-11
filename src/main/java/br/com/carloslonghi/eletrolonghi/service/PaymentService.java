@@ -10,6 +10,7 @@ import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
@@ -199,7 +200,7 @@ public class PaymentService {
     private RepairOrder resolveRepairOrder(RepairOrder repairOrder) {
         Long id = repairOrder == null ? null : repairOrder.getId();
         return repairOrderService.findById(id)
-                .orElseThrow(() -> new ReferencedEntityNotFoundException("RepairOrder", id));
+                .orElseThrow(() -> new ReferencedEntityNotFoundException(DomainEntity.REPAIR_ORDER, id));
     }
 
     private int normalizeInstallments(PaymentMethod method, Integer installments) {

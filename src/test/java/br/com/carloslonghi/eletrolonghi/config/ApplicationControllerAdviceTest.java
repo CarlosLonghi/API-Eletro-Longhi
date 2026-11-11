@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
@@ -96,8 +97,8 @@ class ApplicationControllerAdviceTest {
     @Test
     void shouldReturnReferencedEntityNotFoundMessage() {
         String message = advice.handleReferencedEntityNotFoundException(
-                new ReferencedEntityNotFoundException("Brand", 7L));
-        assertThat(message).contains("Brand", "7");
+                new ReferencedEntityNotFoundException(DomainEntity.BRAND, 7L));
+        assertThat(message).isEqualTo("Marca de id 7 não encontrada.");
     }
 
     @Test
@@ -125,7 +126,8 @@ class ApplicationControllerAdviceTest {
     void shouldReturnStatusActorNotAllowedMessage() {
         String message = advice.handleRepairOrderStatusActorNotAllowedException(
                 new RepairOrderStatusActorNotAllowedException(5L, Role.TECNICO, RepairOrderStatus.DEVICE_COLLECTED));
-        assertThat(message).contains("5", "TECNICO", "DEVICE_COLLECTED");
+        assertThat(message).isEqualTo(
+                "O papel Técnico não pode mudar a ordem de reparo de id 5 para o status Dispositivo coletado.");
     }
 
     @Test
@@ -151,8 +153,24 @@ class ApplicationControllerAdviceTest {
 
     @Test
     void shouldReturnEntityInUseMessage() {
-        String message = advice.handleEntityInUseException(new EntityInUseException("Brand", 2L, "aparelho(s)"));
-        assertThat(message).contains("Brand", "2", "aparelho(s)");
+        String message = advice.handleEntityInUseException(new EntityInUseException(DomainEntity.BRAND, 2L, DomainEntity.DEVICE));
+        assertThat(message).isEqualTo("A marca de id 2 não pode ser removida porque possui aparelhos vinculados. "
+                + "Remova ou desvincule esses registros primeiro.");
+    }
+
+    @Test
+    void shouldInflectEntityInUseMessageForMasculineEntityAndFeminineDependent() {
+        String message = advice.handleEntityInUseException(
+                new EntityInUseException(DomainEntity.CUSTOMER, 3L, DomainEntity.REPAIR_ORDER));
+        assertThat(message).startsWith(
+                "O cliente de id 3 não pode ser removido porque possui ordens de reparo vinculadas.");
+    }
+
+    @Test
+    void shouldInflectReferencedEntityNotFoundMessageForMasculineEntity() {
+        String message = advice.handleReferencedEntityNotFoundException(
+                new ReferencedEntityNotFoundException(DomainEntity.DEVICE, 9L));
+        assertThat(message).isEqualTo("Aparelho de id 9 não encontrado.");
     }
 
     @Test

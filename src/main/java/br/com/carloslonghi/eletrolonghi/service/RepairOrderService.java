@@ -8,6 +8,7 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRepairOrderStatusTransitionException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
@@ -194,18 +195,18 @@ public class RepairOrderService {
 
     public void deleteById(Long id) {
         if (paymentRepository.existsByRepairOrderId(id)) {
-            throw new EntityInUseException("RepairOrder", id, "pagamento");
+            throw new EntityInUseException(DomainEntity.REPAIR_ORDER, id, DomainEntity.PAYMENT);
         }
         repairOrderRepository.deleteById(id);
     }
 
     private Customer findCustomer(Customer customer) {
         return customerService.findById(customer.getId())
-                .orElseThrow(() -> new ReferencedEntityNotFoundException("Customer", customer.getId()));
+                .orElseThrow(() -> new ReferencedEntityNotFoundException(DomainEntity.CUSTOMER, customer.getId()));
     }
 
     private Device findDevice(Device device) {
         return deviceService.findById(device.getId())
-                .orElseThrow(() -> new ReferencedEntityNotFoundException("Device", device.getId()));
+                .orElseThrow(() -> new ReferencedEntityNotFoundException(DomainEntity.DEVICE, device.getId()));
     }
 }

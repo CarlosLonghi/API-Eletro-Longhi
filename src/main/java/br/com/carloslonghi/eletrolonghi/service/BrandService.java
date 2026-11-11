@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.repository.BrandRepository;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
@@ -31,7 +32,7 @@ public class BrandService {
 
     public void deleteById(Long id) {
         if (deviceRepository.existsByBrandId(id)) {
-            throw new EntityInUseException("Brand", id, "aparelho(s)");
+            throw new EntityInUseException(DomainEntity.BRAND, id, DomainEntity.DEVICE);
         }
         brandRepository.deleteById(id);
     }

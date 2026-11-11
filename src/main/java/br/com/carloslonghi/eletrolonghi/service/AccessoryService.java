@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.repository.AccessoryRepository;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
@@ -31,7 +32,7 @@ public class AccessoryService {
 
     public void deleteById(Long id) {
         if (deviceRepository.existsByAccessoriesId(id)) {
-            throw new EntityInUseException("Accessory", id, "aparelho(s)");
+            throw new EntityInUseException(DomainEntity.ACCESSORY, id, DomainEntity.DEVICE);
         }
         accessoryRepository.deleteById(id);
     }
