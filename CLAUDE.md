@@ -42,6 +42,7 @@ The API's only client is the Electron desktop app at `../../React/eletrolonghi-d
   - `Device`, `Customer`, `RepairOrder`, `Payment` — operational listings, `Pageable` + `JpaSpecificationExecutor`-backed filters (`repository/specification/*`), return `Page`. Shared params: `page`, `size`, `sortBy`, `direction`. Keep this split unless product requirements explicitly change it.
 - Repositories use Spring Data derived-query naming (e.g. `DeviceRepository.findDevicesByBrandId`); reach for `Specification` before a custom `@Query`.
 - Global exception translation lives in `config/ApplicationControllerAdvice`: `MethodArgumentNotValidException` → 400 + field-errors map, `DataIntegrityViolationException` → 409. Add new validation via `@Valid`/Bean Validation annotations on the request record, not ad hoc checks in services.
+- Business exceptions (`exception/*`) build their own message — callers pass domain data, never text: a constructor taking the data (`EntityInUseException(entity, id, dependents)`), a no-arg constructor when there is a single reason, or named static factories with a `private` constructor when one exception (one HTTP status) has several reasons (`InvalidRefreshTokenException.revoked()`, `CustomerContactMissingException.missingEmail(name)`). No `new XException("texto")` at the throw site.
 
 ## Domain model
 
