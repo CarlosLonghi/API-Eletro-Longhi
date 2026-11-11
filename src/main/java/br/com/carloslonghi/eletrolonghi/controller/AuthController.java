@@ -82,12 +82,12 @@ public class AuthController implements AuthApi {
             loginAttemptService.loginFailed(email);
             log.warn("Tentativa de login para conta ainda não ativada: {}", email);
 
-            throw new AccountNotActivatedException("Conta aguardando ativação por um administrador.");
+            throw new AccountNotActivatedException();
         } catch (BadCredentialsException exception) {
             loginAttemptService.loginFailed(email);
             log.warn("Tentativa de login inválida para o e-mail: {}", email);
 
-            throw new UsernameOrPasswordInvalidException("Usuário e(ou) senha inválido(s).");
+            throw new UsernameOrPasswordInvalidException();
         }
     }
 

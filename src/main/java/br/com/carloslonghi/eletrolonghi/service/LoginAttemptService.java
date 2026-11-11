@@ -39,9 +39,7 @@ public class LoginAttemptService {
 
         if (attempt != null && attempt.blockedUntil != null && Instant.now().isBefore(attempt.blockedUntil)) {
             authMetrics.blocked();
-            throw new TooManyLoginAttemptsException(
-                    "Muitas tentativas de login inválidas. Tente novamente mais tarde."
-            );
+            throw new TooManyLoginAttemptsException();
         }
     }
 

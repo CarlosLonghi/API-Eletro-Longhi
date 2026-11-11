@@ -43,7 +43,7 @@ public class SmtpReceiptMailer implements ReceiptMailer {
             mailSender.send(message);
         } catch (MessagingException | MailException exception) {
             log.warn("Falha ao enviar o comprovante {} por e-mail: {}", attachmentName, exception.getMessage());
-            throw new ReceiptDeliveryException("Não foi possível enviar o comprovante por e-mail.", exception);
+            throw new ReceiptDeliveryException(exception);
         }
     }
 }

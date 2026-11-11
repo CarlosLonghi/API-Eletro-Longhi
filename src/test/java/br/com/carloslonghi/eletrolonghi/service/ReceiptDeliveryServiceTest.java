@@ -141,7 +141,7 @@ class ReceiptDeliveryServiceTest {
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
         when(paymentReceiptService.generate(payment)).thenReturn(pdf);
         when(paymentReceiptService.warrantyUntil(payment)).thenReturn(Optional.empty());
-        doThrow(new ReceiptDeliveryException("smtp fora", new RuntimeException()))
+        doThrow(new ReceiptDeliveryException(new RuntimeException()))
                 .when(receiptMailer).send(anyString(), anyString(), anyString(), anyString(), any());
 
         assertThatThrownBy(() -> service.sendReceiptByEmail(1L)).isInstanceOf(ReceiptDeliveryException.class);

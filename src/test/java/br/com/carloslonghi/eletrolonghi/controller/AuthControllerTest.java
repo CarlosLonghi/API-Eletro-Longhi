@@ -159,7 +159,7 @@ class AuthControllerTest {
 
     @Test
     void shouldRejectLoginWhenEmailIsBlocked() {
-        doThrow(new TooManyLoginAttemptsException("blocked")).when(loginAttemptService).checkBlocked("user@mail.com");
+        doThrow(new TooManyLoginAttemptsException()).when(loginAttemptService).checkBlocked("user@mail.com");
 
         assertThatThrownBy(() -> authController.login(new LoginRequest("user@mail.com", "senha")))
                 .isInstanceOf(TooManyLoginAttemptsException.class);

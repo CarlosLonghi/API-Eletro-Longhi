@@ -130,8 +130,7 @@ public class PaymentService {
 
             CheckoutPreference preference = mercadoPagoClient
                     .createCheckoutPreference(checkoutTitle(payment), payment.getAmount(), externalReference, payerFor(payment))
-                    .orElseThrow(() -> new PaymentGatewayException(
-                            "Não foi possível gerar o link de pagamento no Mercado Pago."));
+                    .orElseThrow(() -> new PaymentGatewayException());
 
             payment.setExternalReference(externalReference);
             paymentRepository.save(payment);

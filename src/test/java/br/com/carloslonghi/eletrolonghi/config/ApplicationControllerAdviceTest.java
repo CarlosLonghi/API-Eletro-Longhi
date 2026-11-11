@@ -37,8 +37,8 @@ class ApplicationControllerAdviceTest {
 
     @Test
     void shouldReturnAuthMessage() {
-        String message = advice.handleAuthException(new UsernameOrPasswordInvalidException("invalid"));
-        assertThat(message).isEqualTo("invalid");
+        String message = advice.handleAuthException(new UsernameOrPasswordInvalidException());
+        assertThat(message).isEqualTo("Usuário e(ou) senha inválido(s).");
     }
 
     @Test
@@ -49,14 +49,14 @@ class ApplicationControllerAdviceTest {
 
     @Test
     void shouldReturnAccountNotActivatedMessage() {
-        String message = advice.handleAccountNotActivatedException(new AccountNotActivatedException("aguardando ativação"));
-        assertThat(message).isEqualTo("aguardando ativação");
+        String message = advice.handleAccountNotActivatedException(new AccountNotActivatedException());
+        assertThat(message).isEqualTo("Conta aguardando ativação por um administrador.");
     }
 
     @Test
     void shouldReturnTooManyAttemptsMessage() {
-        String message = advice.handleTooManyLoginAttemptsException(new TooManyLoginAttemptsException("blocked"));
-        assertThat(message).isEqualTo("blocked");
+        String message = advice.handleTooManyLoginAttemptsException(new TooManyLoginAttemptsException());
+        assertThat(message).isEqualTo("Muitas tentativas de login inválidas. Tente novamente mais tarde.");
     }
 
     @Test
@@ -75,8 +75,8 @@ class ApplicationControllerAdviceTest {
     @Test
     void shouldReturnPaymentGatewayMessage() {
         String message = advice.handlePaymentGatewayException(
-                new PaymentGatewayException("Mercado Pago indisponível"));
-        assertThat(message).isEqualTo("Mercado Pago indisponível");
+                new PaymentGatewayException());
+        assertThat(message).isEqualTo("Não foi possível gerar o link de pagamento no Mercado Pago.");
     }
 
     @Test
@@ -89,8 +89,8 @@ class ApplicationControllerAdviceTest {
     @Test
     void shouldReturnReceiptDeliveryMessage() {
         String message = advice.handleReceiptDeliveryException(
-                new ReceiptDeliveryException("SMTP indisponível", new RuntimeException()));
-        assertThat(message).isEqualTo("SMTP indisponível");
+                new ReceiptDeliveryException(new RuntimeException()));
+        assertThat(message).isEqualTo("Não foi possível enviar o comprovante por e-mail.");
     }
 
     @Test
