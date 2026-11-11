@@ -43,8 +43,8 @@ class ApplicationControllerAdviceTest {
 
     @Test
     void shouldReturnRefreshTokenMessage() {
-        String message = advice.handleInvalidRefreshTokenException(new InvalidRefreshTokenException("bad token"));
-        assertThat(message).isEqualTo("bad token");
+        String message = advice.handleInvalidRefreshTokenException(InvalidRefreshTokenException.revoked());
+        assertThat(message).isEqualTo("Refresh token revogado.");
     }
 
     @Test
@@ -68,8 +68,8 @@ class ApplicationControllerAdviceTest {
     @Test
     void shouldReturnInvalidPaymentCheckoutMessage() {
         String message = advice.handleInvalidPaymentCheckoutException(
-                new InvalidPaymentCheckoutException("pagamento não é checkout"));
-        assertThat(message).isEqualTo("pagamento não é checkout");
+                InvalidPaymentCheckoutException.notPending());
+        assertThat(message).isEqualTo("O link de pagamento só pode ser gerado para um pagamento pendente.");
     }
 
     @Test
@@ -82,8 +82,8 @@ class ApplicationControllerAdviceTest {
     @Test
     void shouldReturnCustomerContactMissingMessage() {
         String message = advice.handleCustomerContactMissingException(
-                new CustomerContactMissingException("sem e-mail"));
-        assertThat(message).isEqualTo("sem e-mail");
+                CustomerContactMissingException.missingEmail("Maria"));
+        assertThat(message).isEqualTo("O cliente Maria não possui e-mail cadastrado.");
     }
 
     @Test

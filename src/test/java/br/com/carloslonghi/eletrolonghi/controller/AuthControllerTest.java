@@ -148,7 +148,7 @@ class AuthControllerTest {
 
     @Test
     void shouldNotIssueTokensWhenRefreshTokenIsInvalid() {
-        when(refreshTokenService.findValidToken("bad")).thenThrow(new InvalidRefreshTokenException("Refresh token inválido."));
+        when(refreshTokenService.findValidToken("bad")).thenThrow(InvalidRefreshTokenException.notFound());
 
         assertThatThrownBy(() -> authController.refresh(new RefreshTokenRequest("bad")))
                 .isInstanceOf(InvalidRefreshTokenException.class);

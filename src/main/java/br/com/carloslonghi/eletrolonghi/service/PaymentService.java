@@ -112,12 +112,10 @@ public class PaymentService {
     public Optional<CheckoutPreference> createCheckoutLink(Long id) {
         return paymentRepository.findById(id).map(payment -> {
             if (payment.getMethod() != PaymentMethod.MERCADO_PAGO_CHECKOUT) {
-                throw new InvalidPaymentCheckoutException(
-                        "O link de pagamento só está disponível para pagamentos com forma MERCADO_PAGO_CHECKOUT.");
+                throw InvalidPaymentCheckoutException.notCheckoutMethod();
             }
             if (payment.getStatus() != PaymentStatus.PENDING) {
-                throw new InvalidPaymentCheckoutException(
-                        "O link de pagamento só pode ser gerado para um pagamento pendente.");
+                throw InvalidPaymentCheckoutException.notPending();
             }
 
             // Reaproveita a referência se o link já foi gerado antes; senão cria uma nova
@@ -149,8 +147,7 @@ public class PaymentService {
     public Optional<Payment> syncWithGateway(Long id) {
         return paymentRepository.findById(id).map(payment -> {
             if (payment.getExternalReference() == null) {
-                throw new InvalidPaymentCheckoutException(
-                        "O pagamento não possui link do Checkout Pro para conciliar.");
+                throw InvalidPaymentCheckoutException.noCheckoutLink();
             }
 
             return mercadoPagoClient.findPaymentByExternalReference(payment.getExternalReference())
