@@ -208,7 +208,7 @@ class PaymentControllerTest {
 
     @Test
     void shouldPropagateMissingContactWhenEmailing() {
-        when(receiptDeliveryService.sendReceiptByEmail(1L)).thenThrow(new CustomerContactMissingException("sem e-mail"));
+        when(receiptDeliveryService.sendReceiptByEmail(1L)).thenThrow(CustomerContactMissingException.missingEmail("Maria"));
 
         assertThatThrownBy(() -> paymentController.sendPaymentReceiptByEmail(1L))
                 .isInstanceOf(CustomerContactMissingException.class);

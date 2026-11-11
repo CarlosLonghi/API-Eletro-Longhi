@@ -3,6 +3,7 @@ package br.com.carloslonghi.eletrolonghi.service;
 import br.com.carloslonghi.eletrolonghi.entity.Accessory;
 import br.com.carloslonghi.eletrolonghi.entity.Brand;
 import br.com.carloslonghi.eletrolonghi.entity.Device;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.ReferencedEntityNotFoundException;
 import br.com.carloslonghi.eletrolonghi.repository.DeviceRepository;
@@ -83,7 +84,7 @@ public class DeviceService {
 
     public void deleteById(Long id) {
         if (repairOrderRepository.existsByDeviceId(id)) {
-            throw new EntityInUseException("Device", id, "ordem(ns) de reparo");
+            throw new EntityInUseException(DomainEntity.DEVICE, id, DomainEntity.REPAIR_ORDER);
         }
         deviceRepository.deleteById(id);
     }
@@ -91,12 +92,12 @@ public class DeviceService {
     private List<Accessory> findAccessories(List<Accessory> accessories) {
         return accessories.stream()
                 .map(accessory -> accessoryService.findById(accessory.getId())
-                        .orElseThrow(() -> new ReferencedEntityNotFoundException("Accessory", accessory.getId())))
+                        .orElseThrow(() -> new ReferencedEntityNotFoundException(DomainEntity.ACCESSORY, accessory.getId())))
                 .toList();
     }
 
     private Brand findBrand(Brand brand) {
         return brandService.findById(brand.getId())
-                .orElseThrow(() -> new ReferencedEntityNotFoundException("Brand", brand.getId()));
+                .orElseThrow(() -> new ReferencedEntityNotFoundException(DomainEntity.BRAND, brand.getId()));
     }
 }

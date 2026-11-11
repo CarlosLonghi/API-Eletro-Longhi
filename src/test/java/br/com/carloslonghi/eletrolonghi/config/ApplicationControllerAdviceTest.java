@@ -4,6 +4,7 @@ import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.Role;
 import br.com.carloslonghi.eletrolonghi.exception.AccountNotActivatedException;
 import br.com.carloslonghi.eletrolonghi.exception.DeviceAlreadyInRepairException;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidRefreshTokenException;
@@ -37,26 +38,26 @@ class ApplicationControllerAdviceTest {
 
     @Test
     void shouldReturnAuthMessage() {
-        String message = advice.handleAuthException(new UsernameOrPasswordInvalidException("invalid"));
-        assertThat(message).isEqualTo("invalid");
+        String message = advice.handleAuthException(new UsernameOrPasswordInvalidException());
+        assertThat(message).isEqualTo("Usuário e(ou) senha inválido(s).");
     }
 
     @Test
     void shouldReturnRefreshTokenMessage() {
-        String message = advice.handleInvalidRefreshTokenException(new InvalidRefreshTokenException("bad token"));
-        assertThat(message).isEqualTo("bad token");
+        String message = advice.handleInvalidRefreshTokenException(InvalidRefreshTokenException.revoked());
+        assertThat(message).isEqualTo("Refresh token revogado.");
     }
 
     @Test
     void shouldReturnAccountNotActivatedMessage() {
-        String message = advice.handleAccountNotActivatedException(new AccountNotActivatedException("aguardando ativação"));
-        assertThat(message).isEqualTo("aguardando ativação");
+        String message = advice.handleAccountNotActivatedException(new AccountNotActivatedException());
+        assertThat(message).isEqualTo("Conta aguardando ativação por um administrador.");
     }
 
     @Test
     void shouldReturnTooManyAttemptsMessage() {
-        String message = advice.handleTooManyLoginAttemptsException(new TooManyLoginAttemptsException("blocked"));
-        assertThat(message).isEqualTo("blocked");
+        String message = advice.handleTooManyLoginAttemptsException(new TooManyLoginAttemptsException());
+        assertThat(message).isEqualTo("Muitas tentativas de login inválidas. Tente novamente mais tarde.");
     }
 
     @Test
@@ -68,36 +69,36 @@ class ApplicationControllerAdviceTest {
     @Test
     void shouldReturnInvalidPaymentCheckoutMessage() {
         String message = advice.handleInvalidPaymentCheckoutException(
-                new InvalidPaymentCheckoutException("pagamento não é checkout"));
-        assertThat(message).isEqualTo("pagamento não é checkout");
+                InvalidPaymentCheckoutException.notPending());
+        assertThat(message).isEqualTo("O link de pagamento só pode ser gerado para um pagamento pendente.");
     }
 
     @Test
     void shouldReturnPaymentGatewayMessage() {
         String message = advice.handlePaymentGatewayException(
-                new PaymentGatewayException("Mercado Pago indisponível"));
-        assertThat(message).isEqualTo("Mercado Pago indisponível");
+                new PaymentGatewayException());
+        assertThat(message).isEqualTo("Não foi possível gerar o link de pagamento no Mercado Pago.");
     }
 
     @Test
     void shouldReturnCustomerContactMissingMessage() {
         String message = advice.handleCustomerContactMissingException(
-                new CustomerContactMissingException("sem e-mail"));
-        assertThat(message).isEqualTo("sem e-mail");
+                CustomerContactMissingException.missingEmail("Maria"));
+        assertThat(message).isEqualTo("O cliente Maria não possui e-mail cadastrado.");
     }
 
     @Test
     void shouldReturnReceiptDeliveryMessage() {
         String message = advice.handleReceiptDeliveryException(
-                new ReceiptDeliveryException("SMTP indisponível", new RuntimeException()));
-        assertThat(message).isEqualTo("SMTP indisponível");
+                new ReceiptDeliveryException(new RuntimeException()));
+        assertThat(message).isEqualTo("Não foi possível enviar o comprovante por e-mail.");
     }
 
     @Test
     void shouldReturnReferencedEntityNotFoundMessage() {
         String message = advice.handleReferencedEntityNotFoundException(
-                new ReferencedEntityNotFoundException("Brand", 7L));
-        assertThat(message).contains("Brand", "7");
+                new ReferencedEntityNotFoundException(DomainEntity.BRAND, 7L));
+        assertThat(message).isEqualTo("Marca de id 7 não encontrada.");
     }
 
     @Test
@@ -125,7 +126,8 @@ class ApplicationControllerAdviceTest {
     void shouldReturnStatusActorNotAllowedMessage() {
         String message = advice.handleRepairOrderStatusActorNotAllowedException(
                 new RepairOrderStatusActorNotAllowedException(5L, Role.TECNICO, RepairOrderStatus.DEVICE_COLLECTED));
-        assertThat(message).contains("5", "TECNICO", "DEVICE_COLLECTED");
+        assertThat(message).isEqualTo(
+                "O papel Técnico não pode mudar a ordem de reparo de id 5 para o status Dispositivo coletado.");
     }
 
     @Test
@@ -151,8 +153,24 @@ class ApplicationControllerAdviceTest {
 
     @Test
     void shouldReturnEntityInUseMessage() {
-        String message = advice.handleEntityInUseException(new EntityInUseException("Brand", 2L, "aparelho(s)"));
-        assertThat(message).contains("Brand", "2", "aparelho(s)");
+        String message = advice.handleEntityInUseException(new EntityInUseException(DomainEntity.BRAND, 2L, DomainEntity.DEVICE));
+        assertThat(message).isEqualTo("A marca de id 2 não pode ser removida porque possui aparelhos vinculados. "
+                + "Remova ou desvincule esses registros primeiro.");
+    }
+
+    @Test
+    void shouldInflectEntityInUseMessageForMasculineEntityAndFeminineDependent() {
+        String message = advice.handleEntityInUseException(
+                new EntityInUseException(DomainEntity.CUSTOMER, 3L, DomainEntity.REPAIR_ORDER));
+        assertThat(message).startsWith(
+                "O cliente de id 3 não pode ser removido porque possui ordens de reparo vinculadas.");
+    }
+
+    @Test
+    void shouldInflectReferencedEntityNotFoundMessageForMasculineEntity() {
+        String message = advice.handleReferencedEntityNotFoundException(
+                new ReferencedEntityNotFoundException(DomainEntity.DEVICE, 9L));
+        assertThat(message).isEqualTo("Aparelho de id 9 não encontrado.");
     }
 
     @Test

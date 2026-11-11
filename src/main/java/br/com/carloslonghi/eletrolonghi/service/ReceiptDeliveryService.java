@@ -52,8 +52,7 @@ public class ReceiptDeliveryService {
         return paymentRepository.findById(paymentId).map(payment -> {
             Customer customer = payment.getRepairOrder().getCustomer();
             if (customer.getEmail() == null || customer.getEmail().isBlank()) {
-                throw new CustomerContactMissingException(
-                        "O cliente " + customer.getName() + " não possui e-mail cadastrado.");
+                throw CustomerContactMissingException.missingEmail(customer.getName());
             }
 
             byte[] pdf = paymentReceiptService.generate(payment);
@@ -72,8 +71,7 @@ public class ReceiptDeliveryService {
     public Optional<WhatsAppLink> whatsAppLink(Long paymentId) {
         return paymentRepository.findById(paymentId).map(payment -> {
             Customer customer = payment.getRepairOrder().getCustomer();
-            String phone = normalizePhone(customer.getPhone()).orElseThrow(() -> new CustomerContactMissingException(
-                    "O cliente " + customer.getName() + " não possui um telefone válido para WhatsApp."));
+            String phone = normalizePhone(customer.getPhone()).orElseThrow(() -> CustomerContactMissingException.invalidWhatsAppPhone(customer.getName()));
 
             String message = whatsAppMessage(payment);
             String url = "https://wa.me/" + phone + "?text="

@@ -38,18 +38,18 @@ public class RefreshTokenService {
     @Transactional(readOnly = true)
     public RefreshToken findValidToken(String token) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token inválido."));
+                .orElseThrow(() -> InvalidRefreshTokenException.notFound());
 
         if (refreshToken.isRevoked()) {
-            throw new InvalidRefreshTokenException("Refresh token revogado.");
+            throw InvalidRefreshTokenException.revoked();
         }
 
         if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
-            throw new InvalidRefreshTokenException("Refresh token expirado. Faça login novamente.");
+            throw InvalidRefreshTokenException.expired();
         }
 
         if (!refreshToken.getUser().isEnabled()) {
-            throw new InvalidRefreshTokenException("Usuário desativado. Faça login novamente.");
+            throw InvalidRefreshTokenException.userDisabled();
         }
 
         return refreshToken;

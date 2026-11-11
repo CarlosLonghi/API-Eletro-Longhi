@@ -1,6 +1,7 @@
 package br.com.carloslonghi.eletrolonghi.service;
 
 import br.com.carloslonghi.eletrolonghi.entity.Customer;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.EntityInUseException;
 import br.com.carloslonghi.eletrolonghi.repository.CustomerRepository;
 import br.com.carloslonghi.eletrolonghi.repository.RepairOrderRepository;
@@ -49,7 +50,7 @@ public class CustomerService {
 
     public void deleteById(Long id) {
         if (repairOrderRepository.existsByCustomerId(id)) {
-            throw new EntityInUseException("Customer", id, "ordem(ns) de reparo");
+            throw new EntityInUseException(DomainEntity.CUSTOMER, id, DomainEntity.REPAIR_ORDER);
         }
         customerRepository.deleteById(id);
     }

@@ -148,7 +148,7 @@ class AuthControllerTest {
 
     @Test
     void shouldNotIssueTokensWhenRefreshTokenIsInvalid() {
-        when(refreshTokenService.findValidToken("bad")).thenThrow(new InvalidRefreshTokenException("Refresh token inválido."));
+        when(refreshTokenService.findValidToken("bad")).thenThrow(InvalidRefreshTokenException.notFound());
 
         assertThatThrownBy(() -> authController.refresh(new RefreshTokenRequest("bad")))
                 .isInstanceOf(InvalidRefreshTokenException.class);
@@ -159,7 +159,7 @@ class AuthControllerTest {
 
     @Test
     void shouldRejectLoginWhenEmailIsBlocked() {
-        doThrow(new TooManyLoginAttemptsException("blocked")).when(loginAttemptService).checkBlocked("user@mail.com");
+        doThrow(new TooManyLoginAttemptsException()).when(loginAttemptService).checkBlocked("user@mail.com");
 
         assertThatThrownBy(() -> authController.login(new LoginRequest("user@mail.com", "senha")))
                 .isInstanceOf(TooManyLoginAttemptsException.class);

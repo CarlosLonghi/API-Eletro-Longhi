@@ -2,8 +2,7 @@ package br.com.carloslonghi.eletrolonghi.exception;
 
 public class TooManyLoginAttemptsException extends RuntimeException {
 
-    public TooManyLoginAttemptsException(String message) {
-        super(message);
+    public TooManyLoginAttemptsException() {
+        super("Muitas tentativas de login inválidas. Tente novamente mais tarde.");
     }
 }
-

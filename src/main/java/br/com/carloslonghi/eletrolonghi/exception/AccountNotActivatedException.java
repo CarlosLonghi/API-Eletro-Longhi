@@ -2,7 +2,7 @@ package br.com.carloslonghi.eletrolonghi.exception;
 
 public class AccountNotActivatedException extends RuntimeException {
 
-    public AccountNotActivatedException(String message) {
-        super(message);
+    public AccountNotActivatedException() {
+        super("Conta aguardando ativação por um administrador.");
     }
 }

@@ -9,8 +9,9 @@ package br.com.carloslonghi.eletrolonghi.exception;
  */
 public class EntityInUseException extends RuntimeException {
 
-    public EntityInUseException(String entity, Long id, String dependents) {
-        super(entity + " de id " + id + " não pode ser removido porque possui "
-              + dependents + " vinculado(s). Remova ou desvincule esses registros primeiro.");
+    public EntityInUseException(DomainEntity entity, Long id, DomainEntity dependent) {
+        super(DomainEntity.capitalize(entity.article()) + " " + entity.singular() + " de id " + id
+              + " não pode ser " + entity.agree("removid") + " porque possui " + dependent.plural() + " "
+              + dependent.agreePlural("vinculad") + ". Remova ou desvincule esses registros primeiro.");
     }
 }

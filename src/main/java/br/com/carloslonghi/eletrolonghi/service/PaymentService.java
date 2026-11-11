@@ -10,6 +10,7 @@ import br.com.carloslonghi.eletrolonghi.entity.RepairOrder;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentMethod;
 import br.com.carloslonghi.eletrolonghi.entity.enums.PaymentStatus;
 import br.com.carloslonghi.eletrolonghi.entity.enums.RepairOrderStatus;
+import br.com.carloslonghi.eletrolonghi.exception.DomainEntity;
 import br.com.carloslonghi.eletrolonghi.exception.InvalidPaymentCheckoutException;
 import br.com.carloslonghi.eletrolonghi.exception.PaymentAlreadyExistsForRepairOrderException;
 import br.com.carloslonghi.eletrolonghi.exception.RepairOrderNotApprovedForPaymentException;
@@ -112,12 +113,10 @@ public class PaymentService {
     public Optional<CheckoutPreference> createCheckoutLink(Long id) {
         return paymentRepository.findById(id).map(payment -> {
             if (payment.getMethod() != PaymentMethod.MERCADO_PAGO_CHECKOUT) {
-                throw new InvalidPaymentCheckoutException(
-                        "O link de pagamento só está disponível para pagamentos com forma MERCADO_PAGO_CHECKOUT.");
+                throw InvalidPaymentCheckoutException.notCheckoutMethod();
             }
             if (payment.getStatus() != PaymentStatus.PENDING) {
-                throw new InvalidPaymentCheckoutException(
-                        "O link de pagamento só pode ser gerado para um pagamento pendente.");
+                throw InvalidPaymentCheckoutException.notPending();
             }
 
             // Reaproveita a referência se o link já foi gerado antes; senão cria uma nova
@@ -130,8 +129,7 @@ public class PaymentService {
 
             CheckoutPreference preference = mercadoPagoClient
                     .createCheckoutPreference(checkoutTitle(payment), payment.getAmount(), externalReference, payerFor(payment))
-                    .orElseThrow(() -> new PaymentGatewayException(
-                            "Não foi possível gerar o link de pagamento no Mercado Pago."));
+                    .orElseThrow(() -> new PaymentGatewayException());
 
             payment.setExternalReference(externalReference);
             paymentRepository.save(payment);
@@ -150,8 +148,7 @@ public class PaymentService {
     public Optional<Payment> syncWithGateway(Long id) {
         return paymentRepository.findById(id).map(payment -> {
             if (payment.getExternalReference() == null) {
-                throw new InvalidPaymentCheckoutException(
-                        "O pagamento não possui link do Checkout Pro para conciliar.");
+                throw InvalidPaymentCheckoutException.noCheckoutLink();
             }
 
             return mercadoPagoClient.findPaymentByExternalReference(payment.getExternalReference())
@@ -203,7 +200,7 @@ public class PaymentService {
     private RepairOrder resolveRepairOrder(RepairOrder repairOrder) {
         Long id = repairOrder == null ? null : repairOrder.getId();
         return repairOrderService.findById(id)
-                .orElseThrow(() -> new ReferencedEntityNotFoundException("RepairOrder", id));
+                .orElseThrow(() -> new ReferencedEntityNotFoundException(DomainEntity.REPAIR_ORDER, id));
     }
 
     private int normalizeInstallments(PaymentMethod method, Integer installments) {
